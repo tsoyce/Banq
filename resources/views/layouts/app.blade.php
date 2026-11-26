@@ -10,9 +10,7 @@
 {{-- Лента: статус + бегущая строка ставок --}}
 <div class="topline text-[13px]">
     <div class="mx-auto max-w-[1440px] px-4 lg:px-6 h-11 flex items-center gap-4">
-        <span class="hidden sm:inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold whitespace-nowrap">
-            <span class="dot"></span> Ставки банков Казахстана
-        </span>
+        @include('partials.country-switch')
         <div class="ticker flex-1 min-w-0">
             <div class="ticker-track mono text-[12px]">
                 @if (isset($ticker) && $ticker->isNotEmpty())

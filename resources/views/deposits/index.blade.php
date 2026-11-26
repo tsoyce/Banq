@@ -1,5 +1,5 @@
 {{-- A14 · Каталог вкладов: фильтры слева, список справа. Фильтры — GET-форма; с JS список обновляется без перезагрузки. --}}
-@extends('layouts.app', ['title' => 'Вклады банков Казахстана', 'description' => 'Каталог депозитов банков Казахстана: ставки, ГЭСВ, условия пополнения и снятия, сравнение и калькулятор дохода.'])
+@extends('layouts.app', ['title' => 'Вклады банков '.(country()?->genitive() ?? ''), 'description' => 'Каталог депозитов банков '.(country()?->genitive() ?? '').': ставки, ГЭСВ, условия пополнения и снятия, сравнение и калькулятор дохода.'])
 
 @section('content')
 <div x-data="depositFilters" class="space-y-5">
@@ -9,7 +9,7 @@
         <div class="card p-7 flex flex-col justify-between gap-6" data-reveal>
             <nav class="text-sm muted flex items-center gap-2"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><span>Вклады</span></nav>
             <div>
-                <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Вклады <span class="text-grad">банков Казахстана</span></h1>
+                <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Вклады <span class="text-grad">банков {{ country()?->genitive() }}</span></h1>
                 <p class="muted mt-3 max-w-xl">Действующие ставки и ГЭСВ по всем типам вкладов. Отметьте до {{ \App\Http\Controllers\DepositController::COMPARE_LIMIT }} вкладов — и сравните их рядом.</p>
             </div>
         </div>
@@ -59,7 +59,7 @@
                         <legend class="label mb-2.5">Валюта</legend>
                         <div class="seg">
                             @foreach ($currencies as $cur)
-                                <label><input type="radio" name="currency" value="{{ $cur }}" class="sr-only" @checked($filters->currency === $cur) @if ($cur === 'KZT') data-default @endif>{{ $cur }}</label>
+                                <label><input type="radio" name="currency" value="{{ $cur }}" class="sr-only" @checked($filters->currency === $cur) @if ($cur === $filters->baseCurrency) data-default @endif>{{ $cur }}</label>
                             @endforeach
                         </div>
                     </fieldset>

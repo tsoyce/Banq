@@ -29,7 +29,7 @@
                 <span class="bank-mark !w-14 !h-14 !text-[0.8rem]" style="--c: {{ $color }}">{{ $code }}</span>
                 <div>
                     <p class="font-semibold">{{ $bank->displayName() }}</p>
-                    <p class="text-sm muted">@if ($bank->is_kdif_member)@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 inline -mt-0.5 text-[var(--ok)]']) участник КФГД @else не участник КФГД @endif</p>
+                    <p class="text-sm muted">@if ($bank->deposit_insured)@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 inline -mt-0.5 text-[var(--ok)]']) участник {{ $bank->country?->guaranteeName() ?? 'системы гарантирования' }} @else вклады не застрахованы @endif</p>
                 </div>
             </div>
             <div>
@@ -58,7 +58,7 @@
             </p>
             <div class="grid grid-cols-2 gap-3 text-sm">
                 <div class="rounded-2xl bg-white/[.07] p-3.5"><p class="opacity-60">ГЭСВ</p><p class="font-bold text-lg tabular">{{ rate_format($best?->effective_rate) }}</p></div>
-                <div class="rounded-2xl bg-white/[.07] p-3.5"><p class="opacity-60">Гарантия КФГД</p><p class="font-bold text-lg tabular">{{ $kdifLimit && $bank->is_kdif_member ? 'до '.number_format($kdifLimit / 1e6, 0).' млн ₸' : '—' }}</p></div>
+                <div class="rounded-2xl bg-white/[.07] p-3.5"><p class="opacity-60">Гарантия {{ $bank->country?->guaranteeName() }}</p><p class="font-bold text-lg tabular">{{ $kdifLimit ? 'до '.number_format($kdifLimit / 1e6, 0, ',', ' ').' млн '.$bank->country->symbol() : '—' }}</p></div>
             </div>
         </div>
     </section>
@@ -143,8 +143,8 @@
                 <h2 class="font-display font-bold text-2xl mb-3">Условия</h2>
                 <dl class="grid sm:grid-cols-2 gap-x-8">
                     @foreach (array_filter([
-                        ['Тип по КФГД', $product->type->label()],
-                        ['Валюта', implode(', ', array_keys($matrix) ?: ($product->currencies ?? ['KZT']))],
+                        ['Тип вклада', $product->type->label()],
+                        ['Валюта', implode(', ', array_keys($matrix) ?: ($product->currencies ?? [$bank->country?->currency ?? 'KZT']))],
                         ['Пополнение', $product->can_replenish ? 'да' : 'нет'],
                         ['Частичное снятие', $product->can_withdraw ? 'да' : 'нет'],
                         ['Минимальная сумма', $product->min_amount ? $money($product->min_amount) : 'не указана'],
@@ -152,7 +152,7 @@
                         ['Срок', $product->term_min || $product->term_max ? trim(($product->term_min ? 'от '.$product->term_min.' ' : '').($product->term_max ? 'до '.$product->term_max.' ' : '')).' мес' : 'не указан'],
                         $capLabel ? ['Капитализация', $capLabel] : null,
                         ['Открытие онлайн', $product->online_opening ? 'да' : 'в отделении'],
-                        ['Гарантия КФГД', $kdifLimit && $bank->is_kdif_member ? 'до '.$money($kdifLimit) : 'нет'],
+                        ['Гарантия '.($bank->country?->guaranteeName() ?? 'вклада'), $kdifLimit ? 'до '.$money($kdifLimit) : 'нет'],
                     ]) as [$k, $v])
                         <div class="list-row !py-3 justify-between sm:[&:nth-child(2)]:border-t-0"><dt class="muted text-sm">{{ $k }}</dt><dd class="font-semibold text-right">{{ $v }}</dd></div>
                     @endforeach
@@ -180,8 +180,8 @@
                     <p class="font-display font-bold text-4xl tabular" x-text="'+' + money(income())">+0 ₸</p>
                     <p class="text-sm opacity-60">Итого <b class="tabular opacity-100" x-text="money(amount + income())"></b></p>
                 </div>
-                @if ($kdifLimit && $bank->is_kdif_member)
-                    <p class="text-xs muted flex gap-2" x-show="amount > {{ $kdifLimit }}" x-cloak>@include('partials.icon', ['i' => 'shield', 'c' => 'w-4 h-4 flex-none text-[var(--warn)]']) Сумма выше гарантии КФГД ({{ $money($kdifLimit) }}). Остаток не застрахован.</p>
+                @if ($kdifLimit)
+                    <p class="text-xs muted flex gap-2" x-show="amount > {{ $kdifLimit }}" x-cloak>@include('partials.icon', ['i' => 'shield', 'c' => 'w-4 h-4 flex-none text-[var(--warn)]']) Сумма выше гарантии {{ $bank->country?->guaranteeName() }} ({{ $money($kdifLimit) }}). Остаток не застрахован.</p>
                 @endif
                 <p class="text-xs faint">Расчёт {{ $best?->effective_rate ? 'по ГЭСВ' : 'с ежемесячной капитализацией' }}, без учёта налогов и бонусов.</p>
             </section>

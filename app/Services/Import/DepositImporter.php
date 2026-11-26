@@ -4,6 +4,7 @@ namespace App\Services\Import;
 
 use App\Enums\DepositType;
 use App\Models\Bank;
+use App\Models\Country;
 use App\Models\DepositProduct;
 use App\Models\Import;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +20,11 @@ class DepositImporter
     public function __construct(private DepositSheetParser $parser) {}
 
     /** Предпросмотр: записи + какие банки не найдены. */
-    public function preview(string $path): array
+    public function preview(string $path, ?Country $country = null): array
     {
         $parsed = $this->parser->parse($path);
         $codes = collect($parsed['records'])->pluck('bank')->unique();
-        $known = $codes->mapWithKeys(fn ($c) => [$c => Bank::findByIdentifier($c)]);
+        $known = $codes->mapWithKeys(fn ($c) => [$c => Bank::findByIdentifier($c, $country)]);
 
         $parsed['banks'] = $known->map(fn (?Bank $b) => $b?->displayName())->all();
         $parsed['unknown'] = $known->filter(fn ($b) => $b === null)->keys()->values()->all();
@@ -32,18 +33,20 @@ class DepositImporter
     }
 
     /** @param list<string>|null $sheets какие листы импортировать (null — все) */
-    public function import(string $path, string $filename, ?int $userId = null, bool $createBanks = false, ?array $sheets = null): Import
+    /** A21: $country — в какой стране искать и создавать банки (null — страна по умолчанию). */
+    public function import(string $path, string $filename, ?int $userId = null, bool $createBanks = false, ?array $sheets = null, ?Country $country = null): Import
     {
+        $country ??= Country::query()->orderBy('sort')->first();
         $parsed = $this->parser->parse($path, $sheets);
-        $import = Import::create(['user_id' => $userId, 'kind' => 'deposits', 'filename' => $filename, 'status' => 'running']);
+        $import = Import::create(['user_id' => $userId, 'kind' => 'deposit_rates', 'filename' => $filename, 'format' => 'matrix', 'source' => 'admin', 'status' => 'running']);
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0];
         $log = $parsed['warnings'];
 
-        DB::transaction(function () use ($parsed, $import, $createBanks, &$stats, &$log) {
+        DB::transaction(function () use ($parsed, $import, $createBanks, $country, &$stats, &$log) {
             foreach ($parsed['records'] as $rec) {
-                $bank = Bank::findByIdentifier($rec['bank']);
+                $bank = Bank::findByIdentifier($rec['bank'], $country);
                 if (! $bank && $createBanks) {
-                    $bank = Bank::create(['code' => Str::upper(Str::slug($rec['bank'], '')) ?: $rec['bank'], 'name' => $rec['bank'], 'short_name' => $rec['bank'], 'slug' => Str::slug($rec['bank'])]);
+                    $bank = Bank::create(['country_id' => $country?->id, 'code' => Str::upper(Str::slug($rec['bank'], '')) ?: $rec['bank'], 'name' => $rec['bank'], 'short_name' => $rec['bank'], 'slug' => Str::slug($rec['bank'])]);
                     $log[] = "Создан банк «{$rec['bank']}» — заполни карточку в админке.";
                 }
                 if (! $bank) {
@@ -105,7 +108,7 @@ class DepositImporter
             ['bank_id' => $bank->id, 'type' => $type->value, 'name' => $name],
             [
                 'slug' => Str::slug($bank->slug.'-'.$name.'-'.$type->value),
-                'currencies' => ['KZT'],
+                'currencies' => [$bank->country?->currency ?? 'KZT'],
                 'can_replenish' => $type->canReplenish(),
                 'can_withdraw' => $type->canWithdraw(),
             ]
