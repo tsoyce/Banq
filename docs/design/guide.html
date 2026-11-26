@@ -1,0 +1,614 @@
+<title>Дизайн-система Banq</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Onest:wght@400;500;600;700;800&display=swap">
+<!-- A17 · Наглядный гайд дизайн-системы TSOY.IN · Banq. Токены 1:1 из resources/css/app.css (A13). Описание — docs/DESIGN.md -->
+<style>
+/* Раскладка: серый фон, колонка 1180px, секции = нумерованные метки + бенто из белых карточек */
+:root {
+  --bg: #efeff1; --card: #ffffff; --card-2: #f4f4f5; --border: transparent; --line: #ececee;
+  --text: #0a0a0b; --muted: #6b6b73; --faint: #a1a1aa; --ink: #0a0a0b; --ink-text: #fafafa;
+  --brand-1: #8b5cf6; --brand-2: #22d3ee; --brand-3: #f97316; --ok: #16a34a; --bad: #dc2626; --warn: #d97706;
+  --s-flex: #8b5cf6; --s-term: #06b6d4; --s-save: #f97316;
+  --shadow: 0 1px 2px rgb(0 0 0 / .04); --shadow-hover: 0 12px 32px -12px rgb(0 0 0 / .18);
+  --grad: linear-gradient(115deg, var(--brand-1), var(--brand-2));
+  --grad-soft: linear-gradient(135deg, #d9ccff 0%, #c7e9ff 55%, #e8f7ff 100%);
+  --grad-warm: linear-gradient(135deg, #3b2bd9 0%, #6d4bff 45%, #f97316 120%);
+  --radius: 26px; --radius-sm: 14px; --ease-out: cubic-bezier(.16,1,.3,1);
+  --font: 'Onest', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --bg: #09090b; --card: #141416; --card-2: #1f1f23; --border: #232327; --line: #232327;
+  --text: #fafafa; --muted: #a1a1aa; --faint: #63636b; --ink: #fafafa; --ink-text: #0a0a0b;
+  --ok: #22c55e; --bad: #f87171; --warn: #fbbf24; --shadow: none; --shadow-hover: 0 12px 32px -12px rgb(0 0 0 / .6);
+  --grad-soft: linear-gradient(135deg, #2a1f55 0%, #12324a 60%, #0f2533 100%);
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark; --bg: #09090b; --card: #141416; --card-2: #1f1f23; --border: #232327; --line: #232327;
+  --text: #fafafa; --muted: #a1a1aa; --faint: #63636b; --ink: #fafafa; --ink-text: #0a0a0b;
+  --ok: #22c55e; --bad: #f87171; --warn: #fbbf24; --shadow: none; --shadow-hover: 0 12px 32px -12px rgb(0 0 0 / .6);
+  --grad-soft: linear-gradient(135deg, #2a1f55 0%, #12324a 60%, #0f2533 100%);
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.tab { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+
+/* лента */
+.topline { background: #000; color: #e4e4e7; position: relative; margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+.topline::after { content: ''; position: absolute; inset: auto 0 0; height: 3px; background: linear-gradient(90deg, var(--brand-1), var(--brand-2), #4ade80, var(--brand-3), var(--brand-1)); background-size: 200% 100%; animation: flow 8s linear infinite; }
+.topline .wrap { padding-block: 0; height: 44px; display: flex; align-items: center; gap: 16px; font-size: 13px; overflow: hidden; }
+.ticker { flex: 1; min-width: 0; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.ticker-track { display: flex; gap: 32px; width: max-content; animation: marquee 40s linear infinite; font: 500 12px var(--mono); }
+.ticker-track b { color: #fff; } .ticker-track span span { color: rgb(255 255 255 / .55); }
+.live { display: inline-flex; align-items: center; gap: 8px; background: rgb(255 255 255 / .1); border-radius: 999px; padding: 4px 12px; font-weight: 600; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgb(34 197 94 / .25); animation: pulse 2s infinite; }
+
+/* шапка */
+header.top { display: flex; align-items: center; gap: 12px; padding: 20px 0 8px; flex-wrap: wrap; }
+.logo { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--ink-text); border-radius: 12px; padding: 8px 14px; font-weight: 800; letter-spacing: -.01em; }
+.logo i { width: 20px; height: 20px; border-radius: 6px; background: var(--grad); display: grid; place-items: center; color: #fff; font-style: normal; font-size: 12px; }
+.spacer { flex: 1; }
+.seg { display: inline-flex; background: var(--card); border-radius: 999px; padding: 4px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.seg button { font: 600 13px var(--font); border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--ink-text); }
+.seg button:focus-visible, .btn:focus-visible, .pill:focus-visible, .input:focus-visible { outline: 3px solid color-mix(in oklab, var(--brand-1) 55%, transparent); outline-offset: 2px; }
+
+.hero { padding: 36px 0 12px; display: grid; gap: 16px; }
+.hero h1 { font-size: clamp(38px, 6vw, 64px); font-weight: 800; line-height: 1.02; letter-spacing: -.035em; max-width: 14ch; }
+.hero h1 em { font-style: normal; color: var(--muted); }
+.grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { max-width: 62ch; color: var(--muted); font-size: 17px; }
+
+/* метка секции (из artcraft) */
+.kicker { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; margin: 48px 0 16px; }
+.kicker b { color: var(--text); font-weight: 700; }
+.kicker::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.sec-title { font-size: clamp(26px, 3.4vw, 36px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 18px; }
+
+/* сетка */
+.grid { display: grid; gap: 24px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.c2 { grid-column: span 2; } .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c6 { grid-column: span 6; }
+@media (max-width: 900px) { .grid { gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); } .c2, .c3 { grid-column: span 1; } .c4, .c6 { grid-column: span 2; } }
+@media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } .c2, .c3, .c4, .c6 { grid-column: span 1; } }
+
+.card { --pad: 28px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--pad); position: relative; min-width: 0; }
+@media (max-width: 560px) { .card { --pad: 20px; } }
+.card-ink { background: var(--ink); color: var(--ink-text); border-color: transparent; }
+.card-soft { background: var(--grad-soft); border-color: transparent; }
+.card-brand { background: var(--grad-warm); color: #fff; border-color: transparent; overflow: hidden; }
+.plate { background: var(--card-2); border-radius: var(--radius-sm); padding: 14px 16px; }
+.lift { transition: transform .4s var(--ease-out), box-shadow .4s var(--ease-out); }
+.lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+.stack { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+.h2 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.h3 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.label { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sub { font-size: 13px; color: var(--muted); }
+.num-hero { font-size: clamp(64px, 9vw, 96px); font-weight: 700; line-height: .9; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.num-card { font-size: clamp(40px, 4.4vw, 52px); font-weight: 700; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.num-hero sup, .num-card sup { font-size: .42em; font-weight: 600; vertical-align: .95em; margin-left: 2px; letter-spacing: 0; }
+.num-card small { font-size: .42em; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-left: 2px; }
+.sep { height: 1px; background: var(--line); }
+.row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
+
+.bank { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 800; color: #fff; background: var(--c, var(--brand-1)); letter-spacing: .02em; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--card-2); color: var(--muted); white-space: nowrap; }
+.chip.up { color: var(--ok); background: color-mix(in oklab, var(--ok) 12%, transparent); }
+.chip.down { color: var(--bad); background: color-mix(in oklab, var(--bad) 12%, transparent); }
+.chip.ink { background: var(--ink); color: var(--ink-text); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 999px; font: 600 14.5px var(--font); border: 0; cursor: pointer; white-space: nowrap; transition: transform .2s var(--ease-out), opacity .2s, background .2s; text-decoration: none; color: var(--text); }
+.btn:active { transform: scale(.97); }
+.btn-sm { height: 36px; padding: 0 14px; font-size: 13px; } .btn-lg { height: 52px; padding: 0 24px; font-size: 15.5px; }
+.btn-primary { background: var(--ink); color: var(--ink-text); } .btn-primary:hover { opacity: .88; }
+.btn-ghost { background: var(--card-2); } .btn-ghost:hover { background: color-mix(in oklab, var(--card-2) 85%, var(--text) 8%); }
+.btn-outline { background: transparent; border: 1px solid var(--line); }
+.btn-brand { background: var(--grad); color: #fff; }
+.btn-icon { width: 40px; height: 40px; padding: 0; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: var(--card); font-weight: 600; font-size: 14.5px; box-shadow: var(--shadow); border: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.pill.on { background: var(--ink); color: var(--ink-text); }
+.pills-bg { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-tile { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--card-2); }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.field { display: grid; gap: 6px; } .field span { font-size: 13px; font-weight: 600; }
+.input { width: 100%; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--card-2); border: 1px solid transparent; color: var(--text); font: 500 15px var(--font); outline: none; }
+.input:focus { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in oklab, var(--text) 10%, transparent); }
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 99px; background: var(--card-2); outline: none; margin: 10px 0; }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--card); border: 6px solid var(--ink); cursor: pointer; }
+.range::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 6px solid var(--ink); cursor: pointer; }
+.sentence { background: var(--card-2); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.sentence .sel { background: var(--card); color: var(--text); font-weight: 600; border-radius: 10px; padding: 8px 12px; box-shadow: var(--shadow); }
+
+/* swatches */
+.sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sw div { border-radius: var(--radius-sm); overflow: hidden; background: var(--card-2); }
+.sw i { display: block; height: 64px; background: var(--v); border-bottom: 1px solid var(--line); }
+.sw p { padding: 8px 12px 10px; font-size: 12.5px; line-height: 1.35; }
+.sw p b { display: block; font: 600 12px var(--mono); }
+.bar4 { display: flex; gap: 6px; } .bar4 i { flex: 1; height: 8px; border-radius: 99px; }
+
+/* типографика */
+.type-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--line); }
+.type-row:first-child { border-top: 0; }
+@media (max-width: 560px) { .type-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.type-row .meta { font: 500 11.5px/1.5 var(--mono); color: var(--muted); }
+
+/* радиусы */
+.radii { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.radii div { width: 88px; height: 88px; background: var(--card-2); border: 2px solid var(--text); display: grid; place-items: center; font: 600 12px var(--mono); }
+.nest { background: var(--card-2); border-radius: 26px; padding: 12px; } .nest > div { background: var(--card); border-radius: 14px; padding: 14px; font: 500 12px var(--mono); color: var(--muted); }
+
+/* таблица ставок */
+.tbl-wrap { overflow-x: auto; margin: 0 -8px; }
+table.rates { width: 100%; border-collapse: collapse; min-width: 620px; }
+.rates th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 8px; }
+.rates th.r, .rates td.r { text-align: right; }
+.rates td { padding: 12px 8px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.rates tbody tr { transition: background .15s; } .rates tbody tr:hover { background: var(--card-2); }
+.rates .rate { font-weight: 700; font-size: 16px; } .rates .gesv { color: var(--muted); font-size: 13px; }
+.meter { height: 6px; border-radius: 99px; background: var(--card-2); overflow: hidden; min-width: 90px; } .meter i { display: block; height: 100%; border-radius: inherit; background: var(--ink); }
+.typedot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 8px; vertical-align: 1px; }
+
+/* ячейки на волосках */
+.cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cells > div { padding: 18px 20px; border-top: 1px solid var(--line); }
+.cells > div:nth-child(odd) { border-right: 1px solid var(--line); }
+.cells > div:nth-child(-n+2) { border-top: 0; }
+.cells .k { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cells .v { font-size: 30px; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; margin-top: 6px; }
+
+/* стекло */
+.glass-demo { background: var(--grad-warm); border-radius: var(--radius); padding: 28px; color: #fff; min-height: 220px; position: relative; overflow: hidden; }
+.glass { background: rgb(255 255 255 / .14); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgb(255 255 255 / .22); border-radius: 14px; padding: 10px 14px; font-size: 13px; display: inline-block; }
+.orb { position: absolute; width: 320px; height: 320px; border-radius: 50%; right: -80px; bottom: -150px; background: radial-gradient(circle at 30% 30%, rgb(255 255 255 / .5), rgb(255 255 255 / 0) 60%); }
+
+/* do / don't */
+.dd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dd > div { padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; display: flex; gap: 10px; }
+.dd > div:nth-child(odd) { padding-right: 16px; } .dd > div:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--line); }
+.dd .y { color: var(--ok); font-weight: 700; } .dd .n { color: var(--bad); font-weight: 700; }
+@media (max-width: 560px) { .dd { grid-template-columns: minmax(0, 1fr); } .dd > div:nth-child(even) { padding-left: 0; border-left: 0; } }
+
+.principles { counter-reset: p; display: grid; gap: 0; }
+.principles li { list-style: none; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.principles li:first-child { border-top: 0; }
+.principles li::before { counter-increment: p; content: counter(p, decimal-leading-zero); font: 700 12px var(--mono); width: 34px; height: 26px; border-radius: 8px; background: var(--card-2); display: grid; place-items: center; }
+.principles ul { margin: 0; padding: 0; }
+.principles b { display: block; font-size: 16px; margin-bottom: 2px; }
+.principles span { color: var(--muted); font-size: 14px; }
+
+.motion-demo { display: flex; flex-wrap: wrap; gap: 12px; }
+.motion-demo .card { padding: 20px; flex: 1 1 160px; background: var(--card-2); box-shadow: none; border: 0; }
+.ease-track { height: 8px; background: var(--card-2); border-radius: 99px; position: relative; }
+.ease-track i { position: absolute; top: -5px; left: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); }
+.ease-track.run i { animation: slide 1.2s var(--ease-out) forwards; }
+
+footer { margin-top: 48px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--muted); font-size: 13px; }
+
+@keyframes pulse { 50% { opacity: .45; } }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes flow { to { background-position: 200% 0; } }
+@keyframes slide { to { left: calc(100% - 18px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-piggy" viewBox="0 0 24 24"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5zM2 9v1c0 1.1.9 2 2 2h1M16 11h.01"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><path d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM7 6h10v4H7zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M3 7h18M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0zM8 21h8"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+</svg>
+
+<div class="topline">
+  <div class="wrap">
+    <span class="live"><span class="dot"></span> Ставки банков Казахстана</span>
+    <div class="ticker"><div class="ticker-track">
+      <span><span>BCC</span> срочный <b>16,70%</b></span><span><span>KASPI</span> срочный <b>16,67%</b></span><span><span>ALATAU</span> сберегательный <b>16,50%</b></span><span><span>FFIN</span> сберегательный <b>15,70%</b></span><span><span>ALTYN</span> сберегательный <b>14,97%</b></span><span><span>HALYK</span> сберегательный <b>14,93%</b></span>
+      <span><span>BCC</span> срочный <b>16,70%</b></span><span><span>KASPI</span> срочный <b>16,67%</b></span><span><span>ALATAU</span> сберегательный <b>16,50%</b></span><span><span>FFIN</span> сберегательный <b>15,70%</b></span><span><span>ALTYN</span> сберегательный <b>14,97%</b></span><span><span>HALYK</span> сберегательный <b>14,93%</b></span>
+    </div></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <span class="logo"><i>T</i>TSOY.IN</span>
+    <span class="sub">Banq · дизайн-система v2 «Bento»</span>
+    <span class="spacer"></span>
+    <div class="seg" role="group" aria-label="Тема">
+      <button type="button" id="th-auto" data-t="" aria-pressed="true">Авто</button>
+      <button type="button" id="th-light" data-t="light" aria-pressed="false">Светлая</button>
+      <button type="button" id="th-dark" data-t="dark" aria-pressed="false">Тёмная</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <span class="label">Гайд для всех страниц портала · 26 ноября 2026</span>
+    <h1>Цифра — герой. <em>Карточка — ответ.</em> <span class="grad-text">Градиент — капля.</span></h1>
+    <p>shadcn-порядок, карточки vibecoding, бенто-цифры, фирменный градиент tsoy.in и точные моно-подписи artcraft. Ниже живые компоненты на настоящих токенах портала: переключите тему вверху, наведите на карточки.</p>
+  </section>
+
+  <!-- 01 -->
+  <div class="kicker"><b>01</b> / Принципы</div>
+  <div class="grid">
+    <div class="card c4">
+      <ul class="principles">
+        <li><div><b>Цифра — герой</b><span>Ставка набирается крупно, жирно, табличными цифрами; знак % мелкий и приподнятый. Всё остальное на карточке ей подчиняется.</span></div></li>
+        <li><div><b>Одна карточка — один ответ</b><span>«Какая лучшая ставка?», «Сколько я заработаю?». Два вопроса — две карточки.</span></div></li>
+        <li><div><b>Тишина нейтралей, один акцент</b><span>90% экрана серое, белое, чёрное. Фирменный градиент — один элемент на экран.</span></div></li>
+        <li><div><b>Чернила для главного факта</b><span>Чёрная карточка показывает самое важное. Одна на экран.</span></div></li>
+        <li><div><b>Мягкость леденца</b><span>Крупные радиусы, никаких рамок в светлой теме, плавные переходы.</span></div></li>
+        <li><div><b>Честность данных</b><span>Рядом с цифрой дата, источник, ГЭСВ и условия.</span></div></li>
+        <li><div><b>Движение объясняет</b><span>Счётчик показывает, откуда цифра; появление — что нового. Без анимации ради анимации.</span></div></li>
+      </ul>
+    </div>
+    <div class="card c2 stack" style="gap:14px">
+      <span class="label">Откуда стиль</span>
+      <div class="row between"><b>vibecoding.ru</b><span class="chip">карточки, 3 колонки</span></div><div class="sep"></div>
+      <div class="row between"><b>ui.shadcn.com</b><span class="chip">порядок, тёмная</span></div><div class="sep"></div>
+      <div class="row between"><b>Бенто-референсы</b><span class="chip">крупные цифры</span></div><div class="sep"></div>
+      <div class="row between"><b>tsoy.in</b><span class="chip">градиент</span></div><div class="sep"></div>
+      <div class="row between"><b>getartcraft.com</b><span class="chip">моно-подписи</span></div>
+      <div class="bar4" aria-hidden="true"><i style="background:var(--text)"></i><i style="background:var(--brand-1)"></i><i style="background:var(--brand-2)"></i><i style="background:var(--brand-3)"></i></div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="kicker"><b>02</b> / Цвет</div>
+  <div class="grid">
+    <div class="card c4">
+      <div class="h3" style="margin-bottom:14px">Нейтрали меняются с темой</div>
+      <div class="sw">
+        <div><i style="--v:var(--bg)"></i><p><b>--bg</b>фон страницы</p></div>
+        <div><i style="--v:var(--card)"></i><p><b>--card</b>карточка</p></div>
+        <div><i style="--v:var(--card-2)"></i><p><b>--card-2</b>плашки, инпуты</p></div>
+        <div><i style="--v:var(--line)"></i><p><b>--line</b>разделители</p></div>
+        <div><i style="--v:var(--text)"></i><p><b>--text</b>основной текст</p></div>
+        <div><i style="--v:var(--muted)"></i><p><b>--muted</b>подписи</p></div>
+        <div><i style="--v:var(--faint)"></i><p><b>--faint</b>плейсхолдеры</p></div>
+        <div><i style="--v:var(--ink)"></i><p><b>--ink</b>чернила, инвертируются</p></div>
+      </div>
+    </div>
+    <div class="card c2 stack">
+      <div>
+        <div class="h3" style="margin-bottom:14px">Бренд и семантика</div>
+        <div class="sw" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <div><i style="--v:var(--grad)"></i><p><b>--grad</b>1 на экран</p></div>
+          <div><i style="--v:var(--brand-3)"></i><p><b>--brand-3</b>тёплый акцент</p></div>
+          <div><i style="--v:var(--ok)"></i><p><b>--ok</b>▲ рост, КФГД</p></div>
+          <div><i style="--v:var(--bad)"></i><p><b>--bad</b>▼ падение</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="card c6">
+      <div class="row between" style="flex-wrap:wrap;gap:12px;margin-bottom:14px"><div class="h3">Типы вкладов КФГД — один цвет везде</div><span class="sub">графики, фильтры, бейджи</span></div>
+      <div class="grid" style="gap:12px">
+        <div class="plate c2"><span class="typedot" style="--c:var(--s-flex)"></span><b>Несрочный</b><div class="sub mono">--s-flex · #8b5cf6</div></div>
+        <div class="plate c2"><span class="typedot" style="--c:var(--s-term)"></span><b>Срочный</b><div class="sub mono">--s-term · #06b6d4</div></div>
+        <div class="plate c2"><span class="typedot" style="--c:var(--s-save)"></span><b>Сберегательный</b><div class="sub mono">--s-save · #f97316</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="kicker"><b>03</b> / Типографика</div>
+  <div class="grid">
+    <div class="card c4">
+      <div class="type-row"><div class="meta">Hero-цифра<br>96/64 · 700 · −0.05em</div><div class="num-hero">16,7<sup>%</sup></div></div>
+      <div class="type-row"><div class="meta">Цифра карточки<br>52/40 · 700 · −0.04em</div><div class="num-card">1 180 394<small>₸</small></div></div>
+      <div class="type-row"><div class="meta">Display<br>56/38 · 800 · −0.035em</div><div style="font-size:clamp(30px,4vw,44px);font-weight:800;letter-spacing:-.035em;line-height:1.05">Все вклады. <span class="muted">Одна таблица.</span></div></div>
+      <div class="type-row"><div class="meta">H2 карточки<br>22 · 700</div><div class="h2">Топ ставок по срочным вкладам</div></div>
+      <div class="type-row"><div class="meta">Текст<br>15 · 400 · 1.55</div><div>ГЭСВ — годовая эффективная ставка вознаграждения: реальная доходность с учётом капитализации.</div></div>
+      <div class="type-row"><div class="meta">Метка<br>11.5 · 600 · CAPS +0.08em</div><div class="label">Лучшая ставка сегодня</div></div>
+      <div class="type-row"><div class="meta">Моно<br>JetBrains Mono 500</div><div class="mono" style="font-size:13px">BCC · FFIN · HSBK · 01 / ВКЛАДЫ</div></div>
+    </div>
+    <div class="card c2 stack">
+      <div>
+        <span class="label">Шрифт</span>
+        <div style="font-size:64px;font-weight:700;letter-spacing:-.04em;line-height:1;margin:10px 0 4px">Onest</div>
+        <p class="sub">400–800 · кириллица и казахские буквы</p>
+        <p style="font-size:22px;font-weight:600;margin-top:12px;letter-spacing:-.01em">ә ғ қ ң ө ұ ү һ і</p>
+      </div>
+      <div class="plate">
+        <div class="label" style="margin-bottom:8px">Формат ru-KZ</div>
+        <div class="tab" style="display:grid;gap:4px;font-size:14px">
+          <div class="row between"><span class="muted">ставка</span><b>16,70 %</b></div>
+          <div class="row between"><span class="muted">деньги</span><b>1 000 000 ₸</b></div>
+          <div class="row between"><span class="muted">изменение</span><b>−0,50 п.п.</b></div>
+          <div class="row between"><span class="muted">срок</span><b>12 мес.</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="kicker"><b>04</b> / Форма и сетка</div>
+  <div class="grid">
+    <div class="card c3">
+      <div class="h3" style="margin-bottom:16px">Радиусы: только четыре</div>
+      <div class="radii">
+        <div style="border-radius:26px">26</div><div style="border-radius:14px">14</div><div style="border-radius:12px">12</div><div style="border-radius:999px">999</div>
+      </div>
+      <p class="sub" style="margin-top:16px">Карточка · плашка · инпут и пилюля · кнопка и чип.</p>
+    </div>
+    <div class="card c3">
+      <div class="h3" style="margin-bottom:16px">Вложенность концентрична</div>
+      <div class="nest"><div>внутренний 14 = внешний 26 − отступ 12</div></div>
+      <p class="sub" style="margin-top:16px">Шаг 4 px. Зазор между карточками 24 (16 на телефоне), отступ внутри 28 (20).</p>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="kicker"><b>05</b> / Карточки и бенто</div>
+  <div class="grid">
+    <div class="card c4 stack lift">
+      <div class="row" style="flex-wrap:wrap;gap:8px"><span class="chip"><span class="dot"></span> обновлено 26 ноября</span><span class="chip">19 банков</span><span class="chip">27 ставок</span></div>
+      <h2 style="font-size:clamp(30px,4vw,44px);font-weight:800;letter-spacing:-.035em;line-height:1.04">Все вклады Казахстана. <span class="muted">Одна таблица — </span><span class="grad-text">лучшая ставка.</span></h2>
+      <div class="sentence">Хочу вклад <span class="sel">с пополнением ▾</span> на <span class="sel">12 месяцев ▾</span><span class="spacer"></span><button class="btn btn-primary btn-sm" type="button">Подобрать <svg class="i"><use href="#i-arrow"/></svg></button></div>
+    </div>
+    <div class="card card-ink c2 stack lift" style="min-height:300px">
+      <div class="row between"><span style="font-size:13px;opacity:.7">Лучшая ставка<br>сегодня</span><span class="bank" style="--c:#16a34a">BCC</span></div>
+      <div class="num-hero">16,7<sup>%</sup></div>
+      <div style="font-size:13px"><b>BCC</b><div style="opacity:.6">Срочный · ГЭСВ 18,04%</div></div>
+    </div>
+    <div class="card c2 stack lift">
+      <div><div class="h3">Несрочный</div><div class="sub">Снятие и пополнение</div></div>
+      <div class="num-card">14,50<small>%</small></div>
+      <div><div class="sep" style="margin-bottom:12px"></div><div class="row"><span class="bank" style="--c:#8b5cf6">ALAT</span><b style="font-size:14px">Alatau</b><span class="spacer"></span><span class="sub">из 10</span></div></div>
+    </div>
+    <div class="card c2 stack lift">
+      <div class="row between"><div><div class="h3">Срочный</div><div class="sub">Только пополнение</div></div><span class="chip up">▲ 0,25</span></div>
+      <div class="num-card">16,70<small>%</small></div>
+      <div><div class="sep" style="margin-bottom:12px"></div><div class="row"><span class="bank" style="--c:#16a34a">BCC</span><b style="font-size:14px">BCC</b><span class="spacer"></span><span class="sub">из 9</span></div></div>
+    </div>
+    <div class="card c2 stack lift">
+      <div class="row between"><div><div class="h3">Сберегательный</div><div class="sub">Без операций</div></div><span class="chip down">▼ 0,50</span></div>
+      <div class="num-card">16,50<small>%</small></div>
+      <div><div class="sep" style="margin-bottom:12px"></div><div class="row"><span class="bank" style="--c:#8b5cf6">ALAT</span><b style="font-size:14px">Alatau</b><span class="spacer"></span><span class="sub">из 8</span></div></div>
+    </div>
+    <div class="card card-brand c3 stack lift" style="min-height:260px">
+      <div class="orb" aria-hidden="true"></div>
+      <span class="chip" style="background:rgb(255 255 255 / .16);color:#fff;align-self:flex-start"><svg class="i" style="width:14px;height:14px"><use href="#i-star"/></svg> скоро</span>
+      <div style="position:relative"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.08">Народный рейтинг банков</div><p style="opacity:.75;font-size:14px;margin-top:8px;max-width:40ch">.card-brand — один насыщенный баннер на страницу.</p></div>
+    </div>
+    <div class="card card-soft c3 stack lift">
+      <span class="icon-tile" style="background:rgb(255 255 255 / .55)"><svg class="i"><use href="#i-calc"/></svg></span>
+      <div><div class="h3">Карты</div><div class="sub">.card-soft — превью раздела, подсказка, промо в потоке. Пастель, без насыщенности.</div></div>
+    </div>
+    <div class="card c3">
+      <span class="label">Ячейки на волосках · из artcraft</span>
+      <div class="cells" style="margin:12px calc(-1 * var(--pad)) calc(-1 * var(--pad))">
+        <div><div class="k">Банков</div><div class="v">19</div></div>
+        <div><div class="k">Ставок</div><div class="v">27</div></div>
+        <div><div class="k">Медиана</div><div class="v">15,2%</div></div>
+        <div><div class="k">База НБРК</div><div class="v">16,5%</div></div>
+      </div>
+    </div>
+    <div class="c3 glass-demo">
+      <div class="orb" aria-hidden="true"></div>
+      <span class="label" style="color:rgb(255 255 255 / .75)">Стекло — только поверх градиента</span>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;position:relative">
+        <span class="glass"><b>16,7%</b> BCC<br><span style="opacity:.75">+0,25 п.п. за неделю</span></span>
+        <span class="glass"><b>1 180 394 ₸</b><br><span style="opacity:.75">через 12 мес.</span></span>
+      </div>
+      <p style="position:relative;margin-top:18px;font-size:13px;opacity:.8">blur 12 · фон белый 14% · рамка белая 22% · радиус 14</p>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="kicker"><b>06</b> / Кнопки, навигация, формы</div>
+  <div class="grid">
+    <div class="card c3 stack">
+      <div>
+        <div class="h3" style="margin-bottom:14px">Кнопки — пилюли</div>
+        <div class="row" style="flex-wrap:wrap;gap:10px">
+          <button class="btn btn-primary" type="button">Найти вклад <svg class="i"><use href="#i-arrow"/></svg></button>
+          <button class="btn btn-ghost" type="button">Сравнить</button>
+          <button class="btn btn-outline" type="button">Подробнее</button>
+          <button class="btn btn-brand" type="button">Оценить банк</button>
+          <button class="btn btn-ghost btn-icon" type="button" aria-label="Поиск"><svg class="i"><use href="#i-search"/></svg></button>
+        </div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center">
+        <button class="btn btn-primary btn-sm" type="button">36 · в таблице</button>
+        <button class="btn btn-primary" type="button">44 · стандарт</button>
+        <button class="btn btn-primary btn-lg" type="button">52 · hero</button>
+      </div>
+      <p class="sub">Primary — одна на карточку. Brand — не чаще одной на экран.</p>
+    </div>
+    <div class="card c3 stack">
+      <div>
+        <div class="h3" style="margin-bottom:14px">Пилюли разделов и чипы</div>
+        <div class="pills-bg">
+          <a class="pill" href="#"><svg class="i" style="color:var(--brand-1)"><use href="#i-piggy"/></svg> Вклады</a>
+          <a class="pill on" href="#"><svg class="i"><use href="#i-chart"/></svg> Топ ставок</a>
+          <a class="pill" href="#"><svg class="i"><use href="#i-calc"/></svg> Калькулятор</a>
+        </div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <span class="chip"><span class="dot"></span> обновлено</span><span class="chip ink">KZT</span><span class="chip">USD · скоро</span><span class="chip up">▲ +0,25</span><span class="chip down">▼ −0,50</span>
+      </div>
+      <div style="display:grid;gap:0">
+        <div class="row" style="padding:10px 0"><span class="icon-tile"><svg class="i"><use href="#i-scale"/></svg></span><b style="font-size:14.5px">Сравнить вклады банков</b></div>
+        <div class="sep"></div>
+        <div class="row" style="padding:10px 0"><span class="icon-tile"><svg class="i"><use href="#i-shield"/></svg></span><b style="font-size:14.5px">Проверить гарантию КФГД</b></div>
+      </div>
+    </div>
+    <div class="card c6">
+      <div class="grid" style="gap:20px">
+        <div class="c2 field"><label for="f-sum"><span>Сумма</span></label><input class="input tab" id="f-sum" value="1 000 000 ₸"></div>
+        <div class="c2 field"><label for="f-term"><span>Срок, мес.</span></label><input class="input tab" id="f-term" value="12"></div>
+        <div class="c2 field"><label for="f-rate"><span>Ставка, %</span></label><input class="input tab" id="f-rate" value="16,7"></div>
+        <div class="c3"><label class="sub" for="f-range">Слайдер срока</label><input class="range" id="f-range" type="range" min="1" max="36" value="12"></div>
+        <div class="c3 plate tab" style="display:grid;gap:6px">
+          <div class="row between"><span class="muted">Доход</span><b style="font-size:18px">+180 394 ₸</b></div>
+          <div class="row between"><span class="muted">Через 12 мес.</span><b>1 180 394 ₸</b></div>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:14px">Поле лежит на плашке без рамки; в фокусе — рамка цвета текста и мягкое кольцо 3 px. Фильтры читаются фразой: «Хочу вклад с пополнением на 12 месяцев».</p>
+    </div>
+  </div>
+
+  <!-- 07 -->
+  <div class="kicker"><b>07</b> / Таблица ставок</div>
+  <div class="card">
+    <div class="row between" style="flex-wrap:wrap;gap:12px;margin-bottom:10px">
+      <div class="row"><span class="icon-tile" style="background:var(--ink);color:var(--ink-text);width:36px;height:36px"><svg class="i"><use href="#i-chart"/></svg></span><div class="h2">Топ ставок</div></div>
+      <div class="row"><span class="chip ink">KZT</span><span class="chip">USD · скоро</span></div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="rates">
+        <thead><tr><th>#</th><th>Банк</th><th>Тип</th><th aria-label="Относительно максимума"></th><th class="r">Ставка ↓</th><th class="r">ГЭСВ</th></tr></thead>
+        <tbody>
+          <tr><td class="muted">1</td><td><div class="row"><span class="bank" style="--c:#16a34a">BCC</span><b>BCC</b><span class="chip up">лучшая</span></div></td><td><span class="typedot" style="--c:var(--s-term)"></span>Срочный</td><td><div class="meter"><i style="width:100%"></i></div></td><td class="r rate">16,70%</td><td class="r gesv">18,04%</td></tr>
+          <tr><td class="muted">2</td><td><div class="row"><span class="bank" style="--c:#ef4444">KASP</span><b>Kaspi</b></div></td><td><span class="typedot" style="--c:var(--s-term)"></span>Срочный</td><td><div class="meter"><i style="width:98%"></i></div></td><td class="r rate">16,67%</td><td class="r gesv">18,00%</td></tr>
+          <tr><td class="muted">3</td><td><div class="row"><span class="bank" style="--c:#8b5cf6">ALAT</span><b>Alatau</b></div></td><td><span class="typedot" style="--c:var(--s-save)"></span>Сберегательный</td><td><div class="meter"><i style="width:93%"></i></div></td><td class="r rate">16,50%</td><td class="r gesv">17,72%</td></tr>
+          <tr><td class="muted">4</td><td><div class="row"><span class="bank" style="--c:#65a30d">FFIN</span><b>Freedom Bank</b></div></td><td><span class="typedot" style="--c:var(--s-save)"></span>Сберегательный</td><td><div class="meter"><i style="width:70%"></i></div></td><td class="r rate">15,70%</td><td class="r gesv">16,87%</td></tr>
+          <tr><td class="muted">5</td><td><div class="row"><span class="bank" style="--c:#8b5cf6">ALAT</span><b>Alatau</b></div></td><td><span class="typedot" style="--c:var(--s-flex)"></span>Несрочный</td><td><div class="meter"><i style="width:42%"></i></div></td><td class="r rate">14,50%</td><td class="r gesv">15,50%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:14px">Числа вправо и табличными цифрами. Бар показывает ставку относительно максимума. На телефоне таблица становится списком карточек-строк. Значения — пример из импорта.</p>
+  </div>
+
+  <!-- 08 -->
+  <div class="kicker"><b>08</b> / Графики</div>
+  <div class="grid">
+    <div class="card c4">
+      <div class="row between" style="flex-wrap:wrap;gap:10px"><div><div class="h3">Медиана ставок по типам</div><div class="sub">Пример данных для демонстрации стиля</div></div>
+        <div class="row" style="gap:14px;font-size:12.5px"><span><span class="typedot" style="--c:var(--s-term)"></span>Срочный</span><span><span class="typedot" style="--c:var(--s-save)"></span>Сберег.</span><span><span class="typedot" style="--c:var(--s-flex)"></span>Несрочный</span></div></div>
+      <div id="chart" style="margin-top:14px"></div>
+    </div>
+    <div class="card c2 stack">
+      <div class="h3">Гейдж и спарклайн</div>
+      <div id="gauge" style="display:grid;place-items:center"></div>
+      <div class="plate row between"><div><div class="sub">BCC · срочный</div><b class="tab">16,70%</b></div><div id="spark"></div></div>
+    </div>
+  </div>
+
+  <!-- 09 -->
+  <div class="kicker"><b>09</b> / Движение</div>
+  <div class="card">
+    <div class="motion-demo">
+      <div class="card"><div class="label">Счётчик · 900 мс</div><div class="num-card" id="count" style="margin-top:10px">0,00<small>%</small></div></div>
+      <div class="card"><div class="label">Подъём · 400 мс</div><div class="lift" style="margin-top:10px;background:var(--card);border-radius:14px;padding:16px;font-weight:600">Наведите</div></div>
+      <div class="card" style="flex-basis:260px"><div class="label">Кривая ease-out (.16, 1, .3, 1)</div><div class="ease-track" id="ease" style="margin:24px 0 14px"><i></i></div><button class="btn btn-ghost btn-sm" type="button" id="replay">Повторить</button></div>
+    </div>
+    <p class="sub" style="margin-top:14px">Двигаем только transform и opacity. Бесконечно — только тикер и живая точка. prefers-reduced-motion выключает всё.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="kicker"><b>10</b> / Делаем и не делаем</div>
+  <div class="card">
+    <div class="dd">
+      <div><span class="y">✓</span>Белые карточки на сером, без рамок</div><div><span class="n">✕</span>Рамки вокруг карточек в светлой теме</div>
+      <div><span class="y">✓</span>Одна крупная цифра на карточку</div><div><span class="n">✕</span>Пять одинаково жирных цифр рядом</div>
+      <div><span class="y">✓</span>Один градиентный элемент на экран</div><div><span class="n">✕</span>Градиентные заголовки, кнопки и фоны сразу</div>
+      <div><span class="y">✓</span>Одна чёрная карточка — главный факт</div><div><span class="n">✕</span>Две чёрные карточки рядом</div>
+      <div><span class="y">✓</span>Радиусы 26 / 14 / 12 / 999</div><div><span class="n">✕</span>Радиусы на глаз: 7, 10, 18</div>
+      <div><span class="y">✓</span>Табличные цифры во всех числах</div><div><span class="n">✕</span>Пропорциональные цифры в таблицах</div>
+      <div><span class="y">✓</span>Линейные иконки в серых квадратиках</div><div><span class="n">✕</span>Эмодзи и залитые цветные иконки</div>
+      <div><span class="y">✓</span>Дата обновления и источник у данных</div><div><span class="n">✕</span>Голые цифры без контекста</div>
+      <div><span class="y">✓</span>Onest и JetBrains Mono</div><div><span class="n">✕</span>Третий шрифт «для акцента»</div>
+    </div>
+  </div>
+
+  <footer><span>© 2024–2026 TSOY.IN · Banq of Bank</span><span>Полное описание: docs/DESIGN.md · токены: resources/css/app.css</span></footer>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var btns = document.querySelectorAll('.seg button');
+  function setTheme(t) {
+    if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.t === t)); });
+    try { localStorage.setItem('banq.guide.theme', t); } catch (e) {}
+    draw();
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.t); }); });
+
+  var css = function (v) { return getComputedStyle(root).getPropertyValue(v).trim(); };
+  var NS = 'http://www.w3.org/2000/svg';
+
+  // Пример: медиана ставок по месяцам (иллюстрация стиля, не реальные данные)
+  var months = ['июн', 'июл', 'авг', 'сен', 'окт', 'ноя'];
+  var series = [
+    { c: '--s-term', d: [15.1, 15.3, 15.6, 15.9, 16.2, 16.4] },
+    { c: '--s-save', d: [14.6, 14.9, 15.2, 15.4, 15.8, 16.0] },
+    { c: '--s-flex', d: [13.2, 13.4, 13.5, 13.9, 14.1, 14.3] }
+  ];
+
+  function draw() {
+    var el = document.getElementById('chart');
+    var W = 640, H = 240, L = 40, R = 16, T = 12, B = 28, min = 13, max = 17;
+    var x = function (i) { return L + i * (W - L - R) / (months.length - 1); };
+    var y = function (v) { return T + (max - v) * (H - T - B) / (max - min); };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Линейный график медианы ставок по типам вкладов, пример">';
+    s += '<defs>' + series.map(function (se, k) { return '<linearGradient id="g' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + css(se.c) + '" stop-opacity=".16"/><stop offset="1" stop-color="' + css(se.c) + '" stop-opacity="0"/></linearGradient>'; }).join('') + '</defs>';
+    for (var v = min; v <= max; v++) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + css('--line') + '" stroke-width="1"/>';
+      s += '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="' + css('--muted') + '" font-family="Onest, sans-serif">' + v + '%</text>';
+    }
+    months.forEach(function (m, i) { s += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="' + css('--muted') + '" font-family="Onest, sans-serif">' + m + '</text>'; });
+    series.forEach(function (se, k) {
+      var pts = se.d.map(function (v, i) { return x(i) + ',' + y(v); });
+      s += '<path d="M' + pts.join(' L') + ' L' + x(se.d.length - 1) + ',' + (H - B) + ' L' + x(0) + ',' + (H - B) + 'Z" fill="url(#g' + k + ')"/>';
+      s += '<path d="M' + pts.join(' L') + '" fill="none" stroke="' + css(se.c) + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+      var lx = x(se.d.length - 1), ly = y(se.d[se.d.length - 1]);
+      s += '<circle cx="' + lx + '" cy="' + ly + '" r="4.5" fill="' + css('--card') + '" stroke="' + css(se.c) + '" stroke-width="2.2"/>';
+    });
+    el.innerHTML = s + '</svg>';
+
+    // Гейдж: ставка против рынка (16,7 при шкале 10–20)
+    var g = document.getElementById('gauge'), cx = 100, cy = 100, r = 78, a0 = 135, span = 270, frac = (16.7 - 10) / 10;
+    var pt = function (a) { var rad = a * Math.PI / 180; return (cx + r * Math.cos(rad)) + ',' + (cy + r * Math.sin(rad)); };
+    var arc = function (from, to) { return 'M' + pt(from) + ' A' + r + ',' + r + ' 0 ' + ((to - from) > 180 ? 1 : 0) + ' 1 ' + pt(to); };
+    g.innerHTML = '<svg viewBox="0 0 200 180" width="200" role="img" aria-label="Гейдж: 16,7% на шкале от 10 до 20">' +
+      '<defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="' + css('--brand-1') + '"/><stop offset="1" stop-color="' + css('--brand-2') + '"/></linearGradient></defs>' +
+      '<path d="' + arc(a0, a0 + span) + '" fill="none" stroke="' + css('--card-2') + '" stroke-width="14" stroke-linecap="round"/>' +
+      '<path d="' + arc(a0, a0 + span * frac) + '" fill="none" stroke="url(#gg)" stroke-width="14" stroke-linecap="round"/>' +
+      '<text x="100" y="104" text-anchor="middle" font-size="34" font-weight="700" letter-spacing="-1.5" fill="' + css('--text') + '" font-family="Onest, sans-serif">16,7%</text>' +
+      '<text x="100" y="126" text-anchor="middle" font-size="11" fill="' + css('--muted') + '" font-family="Onest, sans-serif">выше медианы рынка</text></svg>';
+
+    var sp = [15.6, 15.8, 15.7, 16.1, 16.2, 16.45, 16.7], sw = 96, sh = 30;
+    var sx = function (i) { return 2 + i * (sw - 4) / (sp.length - 1); }, sy = function (v) { return 3 + (16.8 - v) * (sh - 6) / 1.3; };
+    document.getElementById('spark').innerHTML = '<svg viewBox="0 0 ' + sw + ' ' + sh + '" width="' + sw + '" height="' + sh + '" aria-hidden="true"><path d="M' + sp.map(function (v, i) { return sx(i) + ',' + sy(v); }).join(' L') + '" fill="none" stroke="' + css('--ok') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + sx(sp.length - 1) + '" cy="' + sy(16.7) + '" r="3" fill="' + css('--ok') + '"/></svg>';
+  }
+
+  var saved = '';
+  try { saved = localStorage.getItem('banq.guide.theme') || ''; } catch (e) {}
+  setTheme(saved);
+  if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+  // Счётчик
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cnt = document.getElementById('count');
+  function count() {
+    var target = 16.7, t0 = performance.now(), dur = reduce ? 0 : 900;
+    (function step(now) {
+      var p = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - p, 3);
+      cnt.innerHTML = (target * e).toFixed(2).replace('.', ',') + '<small>%</small>';
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  count();
+  var ease = document.getElementById('ease');
+  function run() { ease.classList.remove('run'); void ease.offsetWidth; ease.classList.add('run'); count(); }
+  document.getElementById('replay').addEventListener('click', run);
+  run();
+})();
+</script>
