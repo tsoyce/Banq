@@ -44,6 +44,8 @@
 
 - **A19 — `deploy.sh` под BrainyCP с chroot.** Проект впервые развёрнут на сервере (bank.tsoy.in, `/home/tsoy/sites/banqofbank`; заглушка панели — в `/home/tsoy/banqofbank-placeholder-backup`). Выяснилось: PHP-FPM сайта работает в chroot `/home/tsoy` (сайт видит пути как `/sites/...`), поэтому `config:cache`/`view:cache` из консоли записали бы пути, которых сайт не найдёт. Теперь `deploy.sh` по умолчанию только очищает кеши (`optimize:clear`), кеширование включается `ARTISAN_CACHE=1` на серверах без chroot. PHP ищется сам (`php` в PATH, `/usr/bin/php83/bin/php`, `/usr/bin/php84/bin/php`), composer запускается через тот же PHP. В мастере установки хост БД — `127.0.0.1` (в chroot нет сокета MySQL). Корень сайта, версия PHP и SSL меняются только в панели BrainyCP: она перезаписывает ручные правки конфигов.
 
+- **A20 — MySQL на BrainyCP: ключи и движок.** Мастер установки упал на `password_reset_tokens`: «Specified key was too long; max key length is 1000 bytes» — MySQL сервера по умолчанию создаёт таблицы в MyISAM. Теперь соединения mysql/mariadb всегда создают таблицы в InnoDB (`DB_ENGINE`, по умолчанию `InnoDB`), а `Schema::defaultStringLength(191)` держит индексы по строкам в пределах лимита даже на старых серверах.
+
 ### Следующие шаги (этап 1)
 - A15 — CRUD продуктов и ставок в админке
 - A16 — наполнение всех банков РК, сверка справочника

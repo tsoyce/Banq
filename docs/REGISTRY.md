@@ -123,6 +123,7 @@ HTTP запрос
 | `APP_TIMEZONE` | вручную | Asia/Almaty |
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2) | sqlite |
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
+| `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
 | `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19) |
 
