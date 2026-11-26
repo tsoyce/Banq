@@ -54,7 +54,7 @@ public/build/ ....................... собранный фронтенд (ко�
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
-deploy.sh ........................... A11 деплой на BrainyCP
+deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить)
 docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры)
 ```
 
@@ -123,7 +123,9 @@ HTTP запрос
 | `APP_TIMEZONE` | вручную | Asia/Almaty |
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2) | sqlite |
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
+| `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
+| `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19) |
 
 ## 5. Настройки сайта (таблица settings)
 

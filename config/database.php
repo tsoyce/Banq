@@ -58,7 +58,8 @@ return [
             'prefix' => env('DB_PREFIX', ''),
             'prefix_indexes' => true,
             'strict' => true,
-            'engine' => null,
+            // A20 · BrainyCP: движок по умолчанию MyISAM (ключ ≤ 1000 байт) — таблицы всегда InnoDB
+            'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
@@ -78,7 +79,8 @@ return [
             'prefix' => env('DB_PREFIX', ''),
             'prefix_indexes' => true,
             'strict' => true,
-            'engine' => null,
+            // A20 · BrainyCP: движок по умолчанию MyISAM (ключ ≤ 1000 байт) — таблицы всегда InnoDB
+            'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

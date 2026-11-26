@@ -126,3 +126,5 @@
 5. Cron: `* * * * * php /home/tsoy/sites/banqofbank/artisan schedule:run`.
 
 Скрипт `deploy.sh` в корне делает шаги 2–3.
+
+Особенности боевого сервера (A19): домен **bank.tsoy.in**; корень сайта, PHP (8.4) и SSL задаются в панели BrainyCP; PHP-FPM в chroot `/home/tsoy` → в мастере хост БД `127.0.0.1`, кеши конфигурации из консоли не строим (`deploy.sh` их очищает). CLI-PHP: `/usr/bin/php83/bin/php`. Cron для пользователя tsoy: `* * * * * /usr/bin/php83/bin/php /home/tsoy/sites/banqofbank/artisan schedule:run >/dev/null 2>&1`.
