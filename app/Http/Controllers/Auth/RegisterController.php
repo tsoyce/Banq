@@ -34,6 +34,6 @@ class RegisterController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('ratings'));
+        return redirect()->intended(route('account.index'))->with('status', 'Добро пожаловать! Это ваш личный кабинет');
     }
 }
