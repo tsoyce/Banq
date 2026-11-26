@@ -43,6 +43,7 @@ public/build/ ....................... собранный фронтенд (ко�
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14)
 deploy.sh ........................... A11 деплой на BrainyCP
+docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры)
 ```
 
 ## 2. Граф зависимостей
@@ -134,6 +135,7 @@ HTTP запрос
 - JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver.
 - A14: `$store.compare` (до 4 вкладов, localStorage `banq.compare`, панель `.compare-bar` в layouts.app), `depositFilters` (fetch списка без перезагрузки + replaceState), `depositCalc({amount, months, rate, effective})`, функция `depositIncome()`. Классы: `.check-pill .seg .switch .offer .feat .cmp-btn .compare-bar .rate-grid .cmp-table .spark-line .is-loading`. Иконки: check x plus minus filter clock trend down wallet refill withdraw phone lock back. Всё уважает `prefers-reduced-motion`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
+- **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.
 - Раскладка витрины: тёмная лента-тикер → шапка с пилюлями → левое меню 230px → контент; на главной правая колонка 340px.
 
 ## 8. Хелперы
