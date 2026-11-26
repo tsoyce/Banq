@@ -1,0 +1,220 @@
+/* A04 · Дизайн-система TSOY.IN «2126».
+   Токены → база → компоненты → анимации. Темы: [data-theme=dark|light]. */
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-display: 'Unbounded', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ---------- Токены ---------- */
+:root,
+[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #05060f;
+    --bg-2: #0a0c1e;
+    --surface: rgb(255 255 255 / 0.045);
+    --surface-strong: rgb(255 255 255 / 0.08);
+    --border: rgb(255 255 255 / 0.09);
+    --border-glow: rgb(160 200 255 / 0.35);
+    --text: #eef1ff;
+    --muted: #8d93b8;
+    --faint: #565b80;
+    --a1: #22e4ff; /* циан */
+    --a2: #7b5cff; /* фиолет */
+    --a3: #ff3fb4; /* маджента */
+    --a4: #ffc65c; /* янтарь */
+    --ok: #3cf0a8;
+    --bad: #ff5c7a;
+    --shadow: 0 30px 80px -30px rgb(0 0 0 / 0.7);
+    --grain-opacity: 0.06;
+}
+
+[data-theme='light'] {
+    color-scheme: light;
+    --bg: #f5f6ff;
+    --bg-2: #eceeff;
+    --surface: rgb(255 255 255 / 0.65);
+    --surface-strong: rgb(255 255 255 / 0.9);
+    --border: rgb(20 24 60 / 0.08);
+    --border-glow: rgb(123 92 255 / 0.35);
+    --text: #0d1030;
+    --muted: #5a6090;
+    --faint: #9aa0c8;
+    --a1: #00a8d6;
+    --a2: #5b3cf0;
+    --a3: #e0168f;
+    --a4: #e39a00;
+    --ok: #0aa46c;
+    --bad: #e02d50;
+    --shadow: 0 30px 70px -35px rgb(40 30 120 / 0.35);
+    --grain-opacity: 0.03;
+}
+
+:root {
+    --radius: 22px;
+    --radius-sm: 14px;
+    --blur: 22px;
+    --grad: linear-gradient(120deg, var(--a1), var(--a2) 45%, var(--a3) 80%, var(--a4));
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- База ---------- */
+html { scroll-behavior: smooth; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    overflow-x: hidden;
+}
+::selection { background: color-mix(in oklab, var(--a2) 55%, transparent); color: #fff; }
+.font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+.tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Живой фон: три «ауры» + сетка + зерно */
+.aurora { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+.aurora::before,
+.aurora::after,
+.aurora > i {
+    content: '';
+    position: absolute;
+    width: 60vmax; height: 60vmax;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    mix-blend-mode: screen;
+    animation: drift 26s var(--ease-out) infinite alternate;
+}
+.aurora::before { background: radial-gradient(circle, var(--a2), transparent 65%); top: -25vmax; left: -15vmax; }
+.aurora::after { background: radial-gradient(circle, var(--a1), transparent 65%); bottom: -30vmax; right: -20vmax; animation-delay: -8s; }
+.aurora > i { background: radial-gradient(circle, var(--a3), transparent 65%); top: 30%; left: 45%; width: 40vmax; height: 40vmax; opacity: 0.35; animation-delay: -16s; }
+[data-theme='light'] .aurora::before,
+[data-theme='light'] .aurora::after,
+[data-theme='light'] .aurora > i { mix-blend-mode: multiply; opacity: 0.22; }
+.grid-bg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+.grain {
+    position: fixed; inset: -50%; z-index: -1; pointer-events: none; opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 1.2s steps(6) infinite;
+}
+
+/* ---------- Компоненты (в слое components — утилиты Tailwind их переопределяют) ---------- */
+@layer components {
+.glass {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(var(--blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
+    box-shadow: var(--shadow), inset 0 1px 0 rgb(255 255 255 / 0.06);
+    position: relative;
+}
+/* Подсветка грани, следующая за курсором (--mx/--my ставит JS) */
+.glow-edge::before {
+    content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 0%), var(--border-glow), transparent 45%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity 0.4s;
+}
+.glow-edge:hover::before { opacity: 1; }
+.lift { transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out); }
+.lift:hover { transform: translateY(-4px); }
+
+.text-grad {
+    background: var(--grad); background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine 8s linear infinite;
+}
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.8rem 1.35rem; border-radius: 999px; font-weight: 700; font-size: 0.95rem;
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s, background 0.3s; cursor: pointer;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+    color: #fff; background: var(--grad); background-size: 180% auto;
+    box-shadow: 0 10px 40px -10px color-mix(in oklab, var(--a2) 70%, transparent);
+}
+.btn-primary:hover { background-position: right center; box-shadow: 0 14px 50px -8px color-mix(in oklab, var(--a3) 70%, transparent); }
+.btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.btn-ghost:hover { background: var(--surface-strong); }
+.btn[disabled] { opacity: 0.5; pointer-events: none; }
+
+.chip {
+    display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 12px var(--ok); animation: pulse 2s infinite; }
+
+.field { display: grid; gap: 0.4rem; }
+.field > span { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.input {
+    width: 100%; padding: 0.8rem 1rem; border-radius: var(--radius-sm); color: var(--text);
+    background: color-mix(in oklab, var(--bg) 60%, transparent); border: 1px solid var(--border);
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+}
+.input:focus { border-color: var(--a2); box-shadow: 0 0 0 4px color-mix(in oklab, var(--a2) 22%, transparent); }
+textarea.input { min-height: 110px; resize: vertical; }
+.error { color: var(--bad); font-size: 0.8rem; }
+
+.table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); font-weight: 700; padding: 0.75rem 1rem; }
+.table td { padding: 0.9rem 1rem; border-top: 1px solid var(--border); }
+.table tr { transition: background 0.2s; }
+.table tbody tr:hover { background: var(--surface); }
+
+.bank-mark {
+    width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center;
+    font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, var(--c, var(--a2)), color-mix(in oklab, var(--c, var(--a2)) 50%, #000));
+    box-shadow: 0 8px 24px -10px var(--c, var(--a2));
+}
+
+}
+
+/* Анимации появления: [data-reveal] получает .is-in от IntersectionObserver */
+[data-reveal] { opacity: 0; transform: translateY(24px) scale(0.98); filter: blur(6px); transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out), filter 0.9s var(--ease-out); transition-delay: var(--d, 0s); }
+[data-reveal].is-in { opacity: 1; transform: none; filter: none; }
+
+/* Бегущая строка ставок */
+.ticker { mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); overflow: hidden; }
+.ticker-track { display: flex; gap: 2.5rem; width: max-content; animation: marquee 40s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+
+/* Орбита в героe */
+.orb {
+    width: min(420px, 80vw); aspect-ratio: 1; border-radius: 50%; position: relative;
+    background: conic-gradient(from 0deg, var(--a1), var(--a2), var(--a3), var(--a4), var(--a1));
+    filter: blur(0.5px); animation: spin 18s linear infinite;
+    mask: radial-gradient(circle, transparent 54%, #000 55%, #000 57%, transparent 58%, transparent 66%, #000 67%, #000 67.6%, transparent 68%);
+}
+
+/* ---------- Ключевые кадры ---------- */
+@keyframes drift { to { transform: translate(12vmax, 8vmax) scale(1.15) rotate(25deg); } }
+@keyframes shine { to { background-position: 200% center; } }
+@keyframes pulse { 50% { opacity: 0.4; transform: scale(0.8); } }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes grain { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-5%, 3%); } 40% { transform: translate(3%, -6%); } 60% { transform: translate(-4%, 5%); } 80% { transform: translate(6%, -2%); } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    [data-reveal] { opacity: 1; transform: none; filter: none; }
+}
+[x-cloak] { display: none !important; }
