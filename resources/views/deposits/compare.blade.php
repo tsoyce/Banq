@@ -24,7 +24,20 @@
                 <select x-model.number="months" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Срок">
                     @foreach (config('banq.terms') as $m)<option value="{{ $m }}">{{ $m }} мес</option>@endforeach
                 </select>
+                {{-- A28 · Сохранить подборку в кабинет (с текущей суммой и сроком) --}}
+                @auth
+                    <form method="POST" action="{{ route('comparisons.store') }}" class="contents">
+                        @csrf
+                        <input type="hidden" name="ids" value="{{ $ids->join(',') }}">
+                        <input type="hidden" name="amount" :value="amount">
+                        <input type="hidden" name="term" :value="months">
+                        <button class="btn btn-primary !py-2">@include('partials.icon', ['i' => 'heart', 'c' => 'w-4 h-4']) Сохранить</button>
+                    </form>
+                @else
+                    <a href="{{ route('login', ['to' => request()->getRequestUri()]) }}" class="btn btn-ghost !py-2 !bg-[var(--card)]" title="Войдите, чтобы сохранить сравнение">@include('partials.icon', ['i' => 'heart', 'c' => 'w-4 h-4']) Сохранить</a>
+                @endauth
             </div>
+            @error('ids')<p class="error w-full">{{ $message }}</p>@enderror
         @endif
     </section>
 

@@ -43,7 +43,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         // A18 · сотрудники — в админку, посетители — обратно на сайт
-        return redirect()->intended($request->user()->isStaff() ? route('admin.dashboard') : route('ratings'));
+        return redirect()->intended($request->user()->isStaff() ? route('admin.dashboard') : route('account.index'));
     }
 
     public function logout(Request $request): RedirectResponse

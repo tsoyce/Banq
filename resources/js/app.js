@@ -136,6 +136,27 @@ Alpine.data('depositCalc', (opts = {}) => ({
     setAmount(e) { this.amount = parseMoney(e.target.value); },
 }));
 
+// A28 · Избранное: переключение без перезагрузки (FavoriteController отвечает JSON), без JS — обычная форма
+Alpine.data('favorite', (on = false) => ({
+    on,
+    busy: false,
+    async toggle(form) {
+        if (this.busy) return;
+        this.busy = true;
+        this.on = !this.on; // оптимистично
+        try {
+            const res = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error(res.status);
+            this.on = (await res.json()).on;
+        } catch {
+            this.on = !this.on;
+            form.submit();
+        } finally {
+            this.busy = false;
+        }
+    },
+}));
+
 window.Alpine = Alpine;
 Alpine.start();
 

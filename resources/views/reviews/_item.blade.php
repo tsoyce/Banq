@@ -1,9 +1,11 @@
 {{-- A18 · Отзыв в ленте. $r — App\Models\Review (approved), $showBank — показать банк (страница рейтингов). --}}
 <article id="review-{{ $r->id }}" class="py-5 border-t border-[var(--line)] first:border-t-0 scroll-mt-32">
     <header class="flex items-start gap-3">
-        <span class="avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($r->user->name, 0, 1)) }}</span>
+        {{-- A28 · аватар и имя ведут на публичный профиль автора (если он открыт) --}}
+        @php($profile = $r->user->profileUrl())
+        @if ($profile)<a href="{{ $profile }}" class="shrink-0">@include('partials.avatar', ['u' => $r->user])</a>@else @include('partials.avatar', ['u' => $r->user]) @endif
         <div class="min-w-0 flex-1">
-            <p class="font-semibold leading-tight">{{ $r->user->name }}
+            <p class="font-semibold leading-tight">@if ($profile && ! request()->routeIs('profile.show'))<a href="{{ $profile }}" class="hover:underline">{{ $r->user->name }}</a>@else{{ $r->user->name }}@endif
                 @if ($showBank ?? false)<span class="muted font-normal">о</span> <a href="{{ route('banks.show', $r->bank) }}#review-{{ $r->id }}" class="hover:underline">{{ $r->bank->displayName() }}</a>@endif
             </p>
             <p class="text-xs muted mt-0.5">{{ $r->published_at?->translatedFormat('j F Y') }}@if ($r->product) · {{ $r->product->name }}@endif</p>

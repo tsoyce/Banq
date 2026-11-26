@@ -42,6 +42,7 @@
                     @include('partials.icon', ['i' => 'scale', 'c' => 'w-4 h-4'])
                     <span x-text="$store.compare.has({{ $product->id }}) ? 'В сравнении' : 'Добавить к сравнению'">Добавить к сравнению</span>
                 </button>
+                @include('partials.fav', ['type' => 'deposit', 'id' => $product->id, 'on' => auth()->user()?->hasFavorite($product), 'label' => true]){{-- A28 --}}
                 @if ($product->source_url || $bank->website)
                     <a href="{{ $product->source_url ?: $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline">На сайт банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>
                 @endif

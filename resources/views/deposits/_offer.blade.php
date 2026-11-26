@@ -35,6 +35,7 @@
 
     {{-- Действия --}}
     <div class="hidden min-[900px]:flex items-center gap-2">
+        @include('partials.fav', ['type' => 'deposit', 'id' => $p->id, 'on' => auth()->user()?->hasFavorite($p)])
         <button type="button" class="cmp-btn" x-data :class="$store.compare.has({{ $p->id }}) && 'is-on'" @click="$store.compare.toggle(@js($cmp))"
                 :title="$store.compare.has({{ $p->id }}) ? 'Убрать из сравнения' : 'Добавить к сравнению'" aria-label="Сравнить">
             <span x-show="!$store.compare.has({{ $p->id }})">@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px]'])</span>
@@ -43,7 +44,8 @@
         <a href="{{ route('deposits.show', $p) }}" class="btn btn-primary !px-4" aria-label="Подробнее">@include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
     </div>
     <div class="col-span-2 flex gap-2 min-[900px]:hidden order-last">
-        <a href="{{ route('deposits.show', $p) }}" class="btn btn-primary flex-1">Подробнее</a>
+        <a href="{{ route('deposits.show', $p) }}" class="btn btn-primary flex-1 min-w-0">Подробнее</a>
+        @include('partials.fav', ['type' => 'deposit', 'id' => $p->id, 'on' => auth()->user()?->hasFavorite($p)])
         <button type="button" class="btn btn-ghost" x-data :class="$store.compare.has({{ $p->id }}) && '!bg-[var(--ink)] !text-[var(--ink-text)]'" @click="$store.compare.toggle(@js($cmp))">
             @include('partials.icon', ['i' => 'scale', 'c' => 'w-4 h-4']) <span x-text="$store.compare.has({{ $p->id }}) ? 'В сравнении' : 'Сравнить'">Сравнить</span>
         </button>

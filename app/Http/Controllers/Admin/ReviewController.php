@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Notifications\ReviewModerated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,13 +44,36 @@ class ReviewController extends Controller
                 'published_at' => $data['action'] === 'approve' ? ($review->published_at ?? now()) : $review->published_at,
             ];
         }
+        $hadReply = (string) $review->reply;
         $review->update($changes);
+        $this->notifyAuthor($review, $data['action'], $hadReply);
 
         return back()->with('status', match ($data['action']) {
             'approve' => 'Отзыв опубликован',
             'reject' => 'Отзыв отклонён',
             default => 'Ответ сохранён',
         });
+    }
+
+    /** A28 · Письмо автору — только если он включил это в кабинете; сбой почты не ломает модерацию. */
+    private function notifyAuthor(Review $review, string $action, string $hadReply): void
+    {
+        $user = $review->user;
+        $event = match (true) {
+            $action === 'approve' => 'approved',
+            $action === 'reject' => 'rejected',
+            $review->reply && $review->reply !== $hadReply => 'reply',
+            default => null,
+        };
+        $pref = $event === 'reply' ? 'review_reply' : 'review_status';
+        if (! $event || ! $user || ! $user->wants($pref)) {
+            return;
+        }
+        try {
+            $user->notify(new ReviewModerated($review, $event));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function destroy(Review $review): RedirectResponse
