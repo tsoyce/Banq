@@ -1,4 +1,4 @@
-// A04 · Клиентский слой: Alpine-острова + микроанимации.
+// A04/A13 · Клиентский слой: Alpine-острова + микроанимации.
 import Alpine from 'alpinejs';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -59,7 +59,7 @@ const io = new IntersectionObserver((entries) => entries.forEach((e) => {
 }), { threshold: 0.12 });
 document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
 
-// Подсветка граней за курсором
+// Подсветка граней за курсором (v1, на карточках .glow-edge)
 document.addEventListener('pointermove', (e) => {
     const card = e.target.closest?.('.glow-edge');
     if (!card) return;
@@ -67,14 +67,3 @@ document.addEventListener('pointermove', (e) => {
     card.style.setProperty('--mx', `${e.clientX - r.left}px`);
     card.style.setProperty('--my', `${e.clientY - r.top}px`);
 });
-
-// Лёгкий параллакс аур
-if (!reduced) {
-    const aurora = document.querySelector('.aurora');
-    window.addEventListener('pointermove', (e) => {
-        if (!aurora) return;
-        const x = (e.clientX / innerWidth - 0.5) * 30;
-        const y = (e.clientY / innerHeight - 0.5) * 30;
-        aurora.style.transform = `translate(${x}px, ${y}px)`;
-    }, { passive: true });
-}

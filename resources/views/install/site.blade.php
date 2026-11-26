@@ -10,7 +10,7 @@
     <label class="field sm:col-span-2"><span>Слоган</span><input name="site_tagline" class="input" value="{{ old('site_tagline', $defaults['site.tagline']) }}"></label>
     <label class="field sm:col-span-2"><span>Описание (для поиска и главной)</span><textarea name="site_description" class="input">{{ old('site_description', $defaults['site.description']) }}</textarea></label>
     <label class="field"><span>Год рождения проекта</span><input name="founded_year" type="number" class="input" value="{{ old('founded_year', date('Y')) }}" required></label>
-    <label class="flex items-center gap-3 text-sm font-semibold self-end pb-3"><input type="checkbox" name="seed_banks" value="1" checked class="w-4 h-4 accent-[var(--a2)]"> Заполнить справочник банков РК</label>
+    <label class="flex items-center gap-3 text-sm font-semibold self-end pb-3"><input type="checkbox" name="seed_banks" value="1" checked class="w-4 h-4 accent-[var(--ink)]"> Заполнить справочник банков РК</label>
 
     <p class="sm:col-span-2 faint text-xs uppercase tracking-widest font-bold mt-4">Администратор</p>
     <label class="field"><span>Имя</span><input name="admin_name" class="input" value="{{ old('admin_name') }}" required></label>

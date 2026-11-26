@@ -21,17 +21,17 @@ app/
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
 │  └─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08
-├─ Support/ Installation (признак установки), Settings (настройки+кеш)  A03 A05
+├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка)  A03 A05 A13
 └─ helpers.php ...................... settings(), project_years(), rate_format()
 config/banq.php ..................... версия, путь lock-файла, валюты, сроки
 database/migrations/2026_11_26_* .... settings+role, banks, deposit_*, imports
 database/seeders/BankSeeder.php ..... 18 банков РК с алиасами (черновик, сверить с АРРФР)
 resources/
-├─ css/app.css ...................... A04 дизайн-система (токены, glass, aurora, анимации)
-├─ js/app.js ........................ A04 Alpine: тема, x-count, калькулятор, reveal, glow
+├─ css/app.css ...................... A13 дизайн-система v2 «Bento» (токены, карточки, пилюли, темы)
+├─ js/app.js ........................ A04 Alpine: тема, x-count, калькулятор, reveal
 └─ views/
    ├─ layouts/ app (витрина), admin, install
-   ├─ partials/ head, logo, backdrop, theme-toggle
+   ├─ partials/ head, logo, icon (линейные иконки), theme-toggle, backdrop (пусто в v2)
    ├─ home.blade.php, auth/login
    ├─ install/ welcome, database, site
    └─ admin/ dashboard, settings/edit, banks/{index,edit}, import/{index,preview}
@@ -53,8 +53,9 @@ HTTP запрос
         │        ├─ Settings::set ──► settings
         │        └─ BankSeeder ──► banks
         └─ да → web routes
-              ├─ HomeController ──► DepositRate(current) → DepositProduct → Bank
-              │                  └─ DepositType
+              ├─ HomeController ──► Support\Market ──► DepositRate(current) → DepositProduct → Bank
+              │                                    └─ DepositType
+              ├─ layouts.app (View composer в AppServiceProvider) ──► Market::top() → бегущая строка
               ├─ LoginController ──► users
               └─ /admin (auth + EnsureAdmin)
                     ├─ SettingsController ──► Settings ──► settings, public/uploads/branding
@@ -115,12 +116,14 @@ HTTP запрос
 | GET/PUT | `/admin/banks`, `/admin/banks/{bank}/edit` | admin.banks.* | admin, editor |
 | GET/POST | `/admin/import`, `/admin/import/preview` | admin.import.* | admin, editor |
 
-## 7. Фронтенд: токены и функции
+## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
-- CSS-переменные: `--bg --bg-2 --surface --surface-strong --border --border-glow --text --muted --faint --a1..--a4 --ok --bad --grad --radius --blur --ease-out`. Темы: `[data-theme=dark|light]`.
-- Классы: `.glass .glow-edge .lift .text-grad .btn(-primary|-ghost) .chip .dot .field .input .table .bank-mark .orb .ticker [data-reveal]` (компоненты в `@layer components`, утилиты Tailwind их переопределяют).
-- JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver; подсветка граней `--mx/--my`; параллакс аур. Всё уважает `prefers-reduced-motion`.
-- Шрифты: Unbounded / Manrope / JetBrains Mono (Google Fonts).
+- CSS-переменные: `--bg --card --card-2 --border --line --text --muted --faint --ink --ink-text --primary --primary-text --brand-1..3 --ok --bad --warn --grad --grad-soft --grad-warm --radius --radius-sm --ease-out`. Темы: `[data-theme=light|dark]`, по умолчанию светлая (настройка `theme.default`).
+- Классы (в `@layer components`): `.card` (= `.glass`), `.card-ink` (тёмная бенто-карточка с крупной цифрой), `.card-soft` (пастельный градиент), `.card-brand` (фирменный градиент), `.plate`, `.lift`, `.btn(-primary|-ghost|-outline|-brand)`, `.pill(.is-active)`, `.chip`, `.dot`, `.icon-tile`, `.list-row`, `.field`, `.input`, `.range`, `.table`, `.bank-mark`, `.meter`, `.topline` + `.ticker`, `.text-grad`, `.label`, `[data-reveal]`.
+- Иконки: `@include('partials.icon', ['i' => 'piggy', 'c' => 'w-5 h-5'])`, список имён в самом partial.
+- JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver. Всё уважает `prefers-reduced-motion`.
+- Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
+- Раскладка витрины: тёмная лента-тикер → шапка с пилюлями → левое меню 230px → контент; на главной правая колонка 340px.
 
 ## 8. Хелперы
 

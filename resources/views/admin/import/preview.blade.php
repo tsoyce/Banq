@@ -5,7 +5,7 @@
 <p class="muted">Найдено ставок: <b>{{ count($preview['records']) }}</b>. Нули и пустые ячейки — «нет данных». Если листы противоречат друг другу, побеждает последний — сними галочки с черновых листов.</p>
 
 @if ($preview['warnings'])
-    <div class="glass p-5 text-sm space-y-1" style="border-color: color-mix(in oklab, var(--a4) 50%, transparent)">
+    <div class="glass p-5 text-sm space-y-1" style="border-color: color-mix(in oklab, var(--warn) 50%, transparent)">
         @foreach ($preview['warnings'] as $w)<p>⚠ {{ $w }}</p>@endforeach
     </div>
 @endif
@@ -36,11 +36,11 @@
     <fieldset class="flex flex-wrap gap-3 w-full">
         <legend class="text-sm font-semibold mb-2">Какие листы записать</legend>
         @foreach ($preview['sheets'] as $sheet => $n)
-            <label class="chip cursor-pointer"><input type="checkbox" name="sheets[]" value="{{ $sheet }}" checked class="accent-[var(--a2)]"> {{ $sheet }} · {{ $n }}</label>
+            <label class="chip cursor-pointer"><input type="checkbox" name="sheets[]" value="{{ $sheet }}" checked class="accent-[var(--ink)]"> {{ $sheet }} · {{ $n }}</label>
         @endforeach
     </fieldset>
     @if ($preview['unknown'])
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="create_banks" value="1" class="accent-[var(--a2)]"> Создать неизвестные банки: {{ implode(', ', $preview['unknown']) }}</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="create_banks" value="1" class="accent-[var(--ink)]"> Создать неизвестные банки: {{ implode(', ', $preview['unknown']) }}</label>
     @endif
     <a href="{{ route('admin.import.index') }}" class="btn btn-ghost">Отмена</a>
     <button class="btn btn-primary" @disabled(empty($preview['records']))>Записать в базу</button>

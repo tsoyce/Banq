@@ -27,7 +27,7 @@
             @foreach (['logo' => ['Логотип', 'PNG, SVG, WebP до 2 МБ', 'h-14'], 'favicon' => ['Фавикон', 'PNG, ICO, SVG до 512 КБ', 'h-10 w-10']] as $key => [$label, $hint, $size])
                 <div class="space-y-3">
                     <p class="text-sm font-semibold muted">{{ $label }}</p>
-                    <div class="h-24 rounded-2xl border border-dashed border-[var(--border)] grid place-items-center bg-[var(--surface)]">
+                    <div class="h-24 rounded-2xl border border-dashed border-[var(--border)] grid place-items-center bg-[var(--card-2)]">
                         <template x-if="{{ $key }}"><img :src="{{ $key }}" class="{{ $size }} object-contain"></template>
                         <span x-show="!{{ $key }}" class="faint text-sm">нет файла</span>
                     </div>
@@ -56,10 +56,10 @@
         <div class="glass p-5 space-y-4">
             <div class="flex items-center gap-3">
                 <template x-if="logo"><img :src="logo" class="h-9"></template>
-                <template x-if="!logo"><span class="grid place-items-center w-10 h-10 rounded-2xl text-white font-display font-black" style="background: var(--grad)">T</span></template>
+                <template x-if="!logo"><span class="grid place-items-center w-10 h-10 rounded-2xl text-white font-display font-black" style="background: var(--ink); color: var(--ink-text)">T</span></template>
                 <span class="font-display font-bold" x-text="name"></span>
             </div>
-            <div class="flex items-center gap-2 text-xs muted rounded-lg bg-[var(--surface)] px-3 py-2">
+            <div class="flex items-center gap-2 text-xs muted rounded-lg bg-[var(--card-2)] px-3 py-2">
                 <template x-if="favicon"><img :src="favicon" class="w-4 h-4"></template>
                 <span x-text="name"></span>
             </div>

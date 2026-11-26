@@ -6,7 +6,7 @@
 <form method="POST" action="{{ route('admin.import.preview') }}" enctype="multipart/form-data" class="glass glow-edge p-8"
       x-data="{ name: '', over: false }" @dragover.prevent="over = true" @dragleave="over = false" @drop.prevent="over = false; $refs.file.files = $event.dataTransfer.files; name = $refs.file.files[0]?.name">
     @csrf
-    <label class="block rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition" :style="{ borderColor: over ? 'var(--a2)' : 'var(--border)' }">
+    <label class="block rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition" :style="{ borderColor: over ? 'var(--ink)' : 'var(--border)' }">
         <input x-ref="file" type="file" name="file" accept=".xlsx,.xls,.csv,.ods" class="hidden" @change="name = $event.target.files[0]?.name" required>
         <p class="font-display font-bold text-xl">Перетащи файл сюда или нажми</p>
         <p class="muted text-sm mt-2" x-text="name || 'xlsx, xls, csv, ods · до 10 МБ'"></p>

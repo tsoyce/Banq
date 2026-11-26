@@ -8,7 +8,7 @@
         <tbody>
         @forelse ($banks as $b)
             <tr>
-                <td><div class="flex items-center gap-3"><span class="bank-mark" style="--c: {{ $b->brand_color ?? 'var(--a2)' }}">{{ \Illuminate\Support\Str::limit($b->code, 4, '') }}</span><div><p class="font-semibold">{{ $b->displayName() }}</p><p class="faint text-xs">{{ $b->name }}</p></div></div></td>
+                <td><div class="flex items-center gap-3"><span class="bank-mark" style="--c: {{ $b->brand_color ?? 'var(--ink)' }}">{{ \Illuminate\Support\Str::limit($b->code, 4, '') }}</span><div><p class="font-semibold">{{ $b->displayName() }}</p><p class="faint text-xs">{{ $b->name }}</p></div></div></td>
                 <td class="font-mono text-sm">{{ $b->code }}</td>
                 <td class="tabular">{{ $b->deposit_products_count }}</td>
                 <td><span class="chip">{{ ['active' => 'работает', 'revoked' => 'лицензия отозвана', 'merged' => 'присоединён'][$b->status] ?? $b->status }}</span></td>

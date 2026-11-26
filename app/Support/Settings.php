@@ -32,7 +32,7 @@ class Settings
             'site.contact_email' => null,
             'site.social' => [],
             'site.counters' => null,
-            'theme.default' => 'dark',
+            'theme.default' => 'light',
         ];
     }
 

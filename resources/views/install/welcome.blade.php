@@ -10,7 +10,7 @@
             <p class="faint text-xs uppercase tracking-widest font-bold mb-3">{{ $group }}</p>
             <ul class="grid sm:grid-cols-2 gap-2">
                 @foreach ($rows as $c)
-                    <li class="flex items-start gap-3 rounded-2xl px-4 py-3 bg-[var(--surface)] border border-[var(--border)]" title="{{ $c['ok'] ? '' : $c['hint'] }}">
+                    <li class="flex items-start gap-3 rounded-2xl px-4 py-3 bg-[var(--card-2)] border border-[var(--border)]" title="{{ $c['ok'] ? '' : $c['hint'] }}">
                         <span class="mt-1.5 w-2 h-2 rounded-full flex-none" style="background: {{ $c['ok'] ? 'var(--ok)' : 'var(--bad)' }}; box-shadow: 0 0 10px {{ $c['ok'] ? 'var(--ok)' : 'var(--bad)' }}"></span>
                         <span class="text-sm">
                             <span class="font-semibold font-mono">{{ $c['name'] }}</span>

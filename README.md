@@ -4,6 +4,8 @@
 
 ![Главная](docs/screenshots/home.jpg)
 
+<img src="docs/screenshots/mobile.jpg" width="240" alt="Телефон"> <img src="docs/screenshots/home-dark.jpg" width="560" alt="Тёмная тема">
+
 ## Быстрый старт (локально)
 
 ```bash

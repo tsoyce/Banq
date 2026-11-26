@@ -1,9 +1,11 @@
-<a href="{{ url('/') }}" class="flex items-center gap-3 group">
+{{-- A13 · Логотип: чёрная «пилюля» + фирменный градиентный знак. --}}
+<a href="{{ url('/') }}" class="inline-flex items-center gap-2.5 shrink-0" aria-label="{{ settings('site.name') }}">
     @if (settings('site.logo'))
         <img src="{{ settings('site.logo') }}" alt="{{ settings('site.name') }}" class="h-9 w-auto">
     @else
-        <span class="relative grid place-items-center w-10 h-10 rounded-2xl text-white font-display font-black text-lg"
-              style="background: var(--grad); box-shadow: 0 10px 30px -8px var(--a2)">T</span>
-        <span class="font-display font-bold text-lg tracking-tight">{{ settings('site.name') }}</span>
+        <span class="inline-flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-[1.05rem] tracking-tight" style="background: var(--ink); color: var(--ink-text)">
+            <span class="grid place-items-center w-5 h-5 rounded-md text-[11px] font-extrabold text-white" style="background: var(--grad)">T</span>
+            {{ settings('site.name') }}
+        </span>
     @endif
 </a>

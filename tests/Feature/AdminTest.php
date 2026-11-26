@@ -23,7 +23,7 @@ class AdminTest extends TestCase
 
     public function test_home_renders_with_and_without_data(): void
     {
-        $this->get('/')->assertOk()->assertSee('Пульс рынка');
+        $this->get('/')->assertOk()->assertSee('Топ ставок')->assertSee('Калькулятор дохода');
     }
 
     public function test_admin_requires_admin_role(): void
