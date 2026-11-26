@@ -11,11 +11,17 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-/** A09 · Вход/выход. Регистрация пользователей — этап 3 (народный рейтинг). */
+/** A09 · Вход/выход. Регистрация — RegisterController (A18). */
 class LoginController extends Controller
 {
-    public function show(): View
+    public function show(Request $request): View
     {
+        // A18 · ?to=/banks/kaspi#review-form — вернуть туда после входа (только относительные пути)
+        $to = (string) $request->query('to');
+        if (str_starts_with($to, '/') && ! str_starts_with($to, '//')) {
+            $request->session()->put('url.intended', url($to));
+        }
+
         return view('auth.login');
     }
 
@@ -36,7 +42,8 @@ class LoginController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard'));
+        // A18 · сотрудники — в админку, посетители — обратно на сайт
+        return redirect()->intended($request->user()->isStaff() ? route('admin.dashboard') : route('ratings'));
     }
 
     public function logout(Request $request): RedirectResponse

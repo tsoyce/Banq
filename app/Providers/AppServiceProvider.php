@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\Ratings\ObjectiveRating;
+use App\Services\Ratings\PeopleRating;
+use App\Services\Ratings\RatingBoard;
 use App\Support\Market;
 use App\Support\Settings;
 use Illuminate\Support\Facades\View;
@@ -16,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(Settings::class);
         $this->app->scoped(Market::class);
+        // A18 · Рейтинги: один расчёт на запрос
+        $this->app->scoped(ObjectiveRating::class);
+        $this->app->scoped(PeopleRating::class);
+        $this->app->scoped(RatingBoard::class);
     }
 
     /**

@@ -42,3 +42,19 @@ if (! function_exists('plural')) {
         };
     }
 }
+
+if (! function_exists('score_format')) {
+    /** A18 · Оценка рейтинга 0–5: 4.623 → «4,6». */
+    function score_format(float|string|null $score, int $decimals = 1): string
+    {
+        return $score === null ? '—' : number_format((float) $score, $decimals, ',', '');
+    }
+}
+
+if (! function_exists('money_format')) {
+    /** A18 · Деньги по DESIGN §3.3: 1180394 → «1 180 394 ₸» (неразрывные пробелы). */
+    function money_format(float|int|string|null $v, string $sign = '₸'): string
+    {
+        return $v === null ? '—' : number_format((float) $v, 0, ',', "\u{202F}")."\u{00A0}".$sign;
+    }
+}

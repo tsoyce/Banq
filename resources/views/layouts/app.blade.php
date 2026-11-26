@@ -26,7 +26,7 @@
                 @endif
             </div>
         </div>
-        <a href="#ratings" class="hidden md:inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 font-semibold whitespace-nowrap" style="color: #fdba74">народный рейтинг →</a>
+        <a href="{{ route('ratings') }}" class="hidden md:inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 font-semibold whitespace-nowrap" style="color: #fdba74">народный рейтинг →</a>
     </div>
 </div>
 
@@ -37,14 +37,24 @@
         @include('partials.logo')
         <nav class="hidden md:flex items-center gap-2 ml-6 lg:ml-24">
             <a href="{{ route('deposits.index') }}" class="pill {{ request()->routeIs('deposits.index', 'deposits.show') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'piggy', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.index', 'deposits.show') ? '' : 'text-[var(--brand-1)]')]) Вклады</a>
-            <a href="{{ route('deposits.compare') }}" class="pill {{ request()->routeIs('deposits.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.compare.items.length" x-text="$store.compare.items.length" x-cloak></span></a>
-            <a href="{{ route('home') }}#calc" class="pill">@include('partials.icon', ['i' => 'calc', 'c' => 'w-[18px] h-[18px]']) Калькулятор</a>
+            {{-- A18 · Банки и рейтинги --}}
+            <a href="{{ route('banks.index') }}" class="pill {{ request()->routeIs('banks.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'bank', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('banks.*') ? '' : 'text-[var(--brand-2)]')]) Банки</a>
+            <a href="{{ route('ratings') }}" class="pill {{ request()->routeIs('ratings') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'star', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('ratings') ? '' : 'text-[var(--brand-3)]')]) Рейтинги</a>
+            <a href="{{ route('deposits.compare') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('deposits.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.compare.items.length" x-text="$store.compare.items.length" x-cloak></span></a>
         </nav>
         <div class="ml-auto flex items-center gap-2">
             <button class="btn btn-ghost !p-2.5" aria-label="Поиск">@include('partials.icon', ['i' => 'search', 'c' => 'w-[18px] h-[18px]'])</button>
             @include('partials.theme-toggle')
             @auth
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">Админка</a>
+                @if (auth()->user()->isStaff())
+                    <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">Админка</a>
+                @else
+                    {{-- A18 · посетитель: имя и выход --}}
+                    <span class="hidden sm:flex items-center gap-2 text-sm font-semibold"><span class="avatar !w-9 !h-9 !bg-[var(--card)]">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span><span class="max-w-[10rem] truncate">{{ auth()->user()->name }}</span></span>
+                    <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-ghost !p-2.5" aria-label="Выйти" title="Выйти">@include('partials.icon', ['i' => 'logout', 'c' => 'w-[18px] h-[18px]'])</button></form>
+                @endif
+            @else
+                <a href="{{ route('login', ['to' => request()->getRequestUri()]) }}" class="btn btn-ghost">Войти</a>
             @endauth
         </div>
     </div>
@@ -57,7 +67,8 @@
             <nav class="grid gap-0.5 text-[15px]">
                 @foreach ([
                     ['piggy', 'Вклады', route('deposits.index')],
-                    ['star', 'Рейтинг банков', route('home').'#ratings'],
+                    ['bank', 'Банки', route('banks.index')],
+                    ['star', 'Рейтинг банков', route('ratings')],
                     ['scale', 'Сравнение', route('deposits.compare')],
                     ['calc', 'Калькулятор', route('home').'#calc'],
                     ['card', 'Карты', '#soon'],

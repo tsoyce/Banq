@@ -260,6 +260,75 @@ body {
     .spark-line { stroke-dasharray: var(--len, 1000); stroke-dashoffset: var(--len, 1000); animation: draw 1.6s var(--ease-out) forwards 0.2s; }
 }
 
+/* ---------- A18 · Банки и рейтинги ---------- */
+@layer components {
+    /* Токены серий рейтингов (DESIGN §2.4): авторский — фиолет, объективный — циан, народный — оранж */
+    :root { --s-author: #8b5cf6; --s-objective: #06b6d4; --s-people: #f97316; }
+
+    /* Нумерованная моно-метка секции «01 / Банки» (DESIGN §3.2) */
+    .kicker { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .kicker b { color: var(--text); font-weight: 700; }
+
+    /* Крупные цифры (DESIGN §3.1) */
+    .num-hero { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.05em; line-height: 0.9; font-variant-numeric: tabular-nums; font-size: 64px; }
+    @media (min-width: 768px) { .num-hero { font-size: 96px; } }
+    .num-card { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; font-size: 2.5rem; }
+
+    /* Ячейки на волосках (DESIGN §6.7): <div class="cells cols-3"><div>…</div>…</div> */
+    .cells { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
+    .cells > * { padding: 0.85rem 1rem; border-left: 1px solid var(--line); min-width: 0; }
+    .cells > *:first-child { border-left: 0; }
+    .cells.cols-2 { --cols: 2; } .cells.cols-2 > *:nth-child(odd) { border-left: 0; } .cells.cols-2 > *:nth-child(n + 3) { border-top: 1px solid var(--line); }
+    .cells.cols-3 > *:nth-child(3n + 1) { border-left: 0; } .cells.cols-3 > *:nth-child(n + 4) { border-top: 1px solid var(--line); }
+    .cells .cell-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+    /* Изменение оценки/ставки — всегда со знаком (DESIGN §2.3) */
+    .delta { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; padding: 0.12rem 0.45rem; border-radius: 999px; }
+    .delta-up { color: var(--ok); background: color-mix(in oklab, var(--ok) 12%, transparent); }
+    .delta-down { color: var(--bad); background: color-mix(in oklab, var(--bad) 12%, transparent); }
+    .delta-flat { color: var(--muted); background: var(--card-2); }
+
+    /* Гейдж 270° (DESIGN §6.6) — partials/gauge */
+    .gauge { position: relative; display: grid; place-items: center; }
+    .gauge svg { display: block; width: 100%; height: auto; }
+    .gauge .g-track { stroke: var(--card-2); }
+    .gauge .g-value { transition: stroke-dasharray 1.2s var(--ease-out); }
+    .gauge .g-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding-top: 6%; }
+
+    /* Звёзды оценки — partials/stars; закраска долей через ширину верхнего слоя */
+    .stars { position: relative; display: inline-flex; color: var(--card-2); line-height: 0; }
+    .stars > .on { position: absolute; inset: 0 auto 0 0; overflow: hidden; display: inline-flex; color: var(--s-people); white-space: nowrap; }
+    .stars svg { flex: none; }
+
+    /* Выбор оценки в форме отзыва */
+    .star-pick { display: inline-flex; gap: 0.25rem; }
+    .star-pick label { cursor: pointer; color: var(--faint); transition: color 0.15s, transform 0.2s var(--ease-out); }
+    .star-pick label:hover { transform: scale(1.1); }
+    .star-pick label.on { color: var(--s-people); }
+    .star-pick label:has(input:focus-visible) { outline: 2px solid var(--brand-1); outline-offset: 2px; border-radius: 6px; }
+
+    /* Полоски распределения оценок 5…1 */
+    .dist-row { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) 2.4rem; align-items: center; gap: 0.6rem; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .dist-row .meter > i { background: var(--s-people); }
+
+    /* Карточка банка в каталоге */
+    .bank-card { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.4rem; }
+    @media (min-width: 1024px) { .bank-card { padding: 1.6rem; } }
+    .bank-card .bank-mark { width: 56px; height: 56px; font-size: 0.78rem; }
+
+    /* Аватар автора отзыва */
+    .avatar { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--card-2); color: var(--text); }
+
+    /* Сегмент-ссылки (сортировка без формы) */
+    .seg > a { flex: 1; text-align: center; padding: 0.42rem 0.75rem; border-radius: 10px; font-weight: 600; font-size: 0.84rem; white-space: nowrap; transition: background 0.2s; }
+    .seg > a.is-active { background: var(--card); box-shadow: 0 1px 3px rgb(0 0 0 / 0.08); }
+    [data-theme='dark'] .seg > a.is-active { background: #2a2a30; }
+
+    /* Колонка, по которой отсортирована таблица */
+    .table .is-sorted { color: var(--text); }
+    .table td.is-sorted { font-weight: 800; }
+}
+
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
 /* Появление блоков: [data-reveal] получает .is-in */
