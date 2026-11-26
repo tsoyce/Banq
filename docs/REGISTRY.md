@@ -64,7 +64,7 @@ public/uploads/branding/ ............ логотип и фавикон из ад
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
-deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить)
+deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot
 docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры)
 ```
 
