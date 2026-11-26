@@ -4,6 +4,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DepositController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
 use App\Http\Middleware\EnsureAdmin;
@@ -21,6 +22,13 @@ Route::prefix('install')->name('install.')->controller(InstallController::class)
 
 // Витрина
 Route::get('/', HomeController::class)->name('home');
+
+// A14 · Вклады: каталог, сравнение, карточка (compare — до {product}, иначе слово съест маршрут карточки)
+Route::prefix('deposits')->name('deposits.')->controller(DepositController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/compare', 'compare')->name('compare');
+    Route::get('/{product:slug}', 'show')->name('show');
+});
 
 // Вход
 Route::middleware('guest')->group(function () {

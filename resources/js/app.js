@@ -50,6 +50,92 @@ Alpine.data('calc', (rate = 16) => ({
     money(v) { return Math.round(v).toLocaleString('ru-RU') + ' ₸'; },
 }));
 
+// A14 · Доход по вкладу: по ГЭСВ (она уже учитывает капитализацию), иначе номинал с ежемесячной капитализацией.
+// Та же формула — app/Services/Deposits/Income.php
+export function depositIncome(amount, months, rate, effective = null, cap = true) {
+    if (amount <= 0 || months <= 0) return 0;
+    if (effective) return amount * (Math.pow(1 + effective / 100, months / 12) - 1);
+    return cap ? amount * (Math.pow(1 + rate / 100 / 12, months) - 1) : amount * (rate / 100) * (months / 12);
+}
+const money = (v) => Math.round(v).toLocaleString('ru-RU') + ' ₸';
+const parseMoney = (s) => +(String(s).replace(/\D/g, '')) || 0;
+
+// A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц
+const COMPARE_KEY = 'banq.compare';
+Alpine.store('compare', {
+    limit: 4,
+    items: (() => { try { return JSON.parse(localStorage.getItem(COMPARE_KEY)) || []; } catch { return []; } })(),
+    has(id) { return this.items.some((i) => i.id === id); },
+    toggle(item) {
+        if (this.has(item.id)) this.items = this.items.filter((i) => i.id !== item.id);
+        else if (this.items.length < this.limit) this.items = [...this.items, item];
+        else { this.full = true; setTimeout(() => (this.full = false), 2200); return; }
+        this.save();
+    },
+    remove(id) { this.items = this.items.filter((i) => i.id !== id); this.save(); },
+    clear() { this.items = []; this.save(); },
+    set(items) { this.items = items.slice(0, this.limit); this.save(); },
+    save() { try { localStorage.setItem(COMPARE_KEY, JSON.stringify(this.items)); } catch {} },
+    url() { return '/deposits/compare?ids=' + this.items.map((i) => i.id).join(','); },
+    full: false,
+});
+
+// A14 · Фильтры каталога: любое изменение → fetch частичного HTML (X-Partial) → подмена списка + URL.
+// Без JS форма работает обычным GET-сабмитом.
+Alpine.data('depositFilters', () => ({
+    loading: false,
+    open: false,
+    timer: null,
+    ctrl: null,
+    changed(delay = 0) {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => this.load(), delay);
+    },
+    async load() {
+        const form = this.$refs.form;
+        const params = new URLSearchParams();
+        for (const [k, v] of new FormData(form)) {
+            const val = k === 'amount' ? String(parseMoney(v) || '') : v;
+            if (val !== '' && !(k === 'currency' && val === 'KZT') && !(k === 'sort' && val === 'rate')) params.append(k, val);
+        }
+        const url = form.action + (params.toString() ? '?' + params : '');
+        this.ctrl?.abort();
+        this.ctrl = new AbortController();
+        this.loading = true;
+        try {
+            const res = await fetch(url, { headers: { 'X-Partial': 'results' }, signal: this.ctrl.signal });
+            document.getElementById('deposit-results').innerHTML = await res.text();
+            history.replaceState(null, '', url);
+            document.querySelectorAll('#deposit-results [data-reveal]').forEach((el) => el.classList.add('is-in'));
+        } catch (e) {
+            if (e.name !== 'AbortError') form.submit();
+        } finally {
+            this.loading = false;
+        }
+    },
+    reset() {
+        const form = this.$refs.form;
+        form.querySelectorAll('input[type=checkbox]').forEach((i) => (i.checked = false));
+        form.querySelectorAll('input[type=text], input[type=search]').forEach((i) => (i.value = ''));
+        form.querySelectorAll('input[type=radio][data-default]').forEach((i) => (i.checked = true));
+        form.querySelectorAll('select').forEach((s) => (s.selectedIndex = 0));
+        this.changed();
+    },
+    money,
+    parseMoney,
+}));
+
+// A14 · Калькулятор на карточке вклада и в сравнении
+Alpine.data('depositCalc', (opts = {}) => ({
+    amount: opts.amount || 1_000_000,
+    months: opts.months || 12,
+    rate: opts.rate || 0,
+    effective: opts.effective || null,
+    income(rate = this.rate, effective = this.effective) { return depositIncome(this.amount, this.months, rate, effective); },
+    money,
+    setAmount(e) { this.amount = parseMoney(e.target.value); },
+}));
+
 window.Alpine = Alpine;
 Alpine.start();
 

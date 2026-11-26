@@ -14,15 +14,18 @@ app/
 │  ├─ Middleware/EnsureAdmin.php .... A09 роль admin|editor для /admin
 │  └─ Controllers/
 │     ├─ HomeController.php ......... A10 главная-дашборд
+│     ├─ DepositController.php ...... A14 каталог вкладов, карточка, сравнение
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
 │     └─ Admin/{Dashboard,Settings,Bank,Import}Controller  A05 A06 A08 A09
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
-│  └─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08
+│  ├─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08
+│  └─ Deposits/ DepositCatalog (подбор, сетка, история, похожие), DepositFilters (URL ⇄ фильтры),
+│               DepositOffer (вклад + лучшая ставка), Income (доход по ГЭСВ/капитализации)   A14
 ├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка)  A03 A05 A13
-└─ helpers.php ...................... settings(), project_years(), rate_format()
+└─ helpers.php ...................... settings(), project_years(), rate_format(), plural()
 config/banq.php ..................... версия, путь lock-файла, валюты, сроки
 database/migrations/2026_11_26_* .... settings+role, banks, deposit_*, imports
 database/seeders/BankSeeder.php ..... 18 банков РК с алиасами (черновик, сверить с АРРФР)
@@ -33,11 +36,12 @@ resources/
    ├─ layouts/ app (витрина), admin, install
    ├─ partials/ head, logo, icon (линейные иконки), theme-toggle, backdrop (пусто в v2)
    ├─ home.blade.php, auth/login
+   ├─ deposits/ index (каталог), _results (список, отдаётся и по fetch), _offer (строка), show (карточка), compare  A14
    ├─ install/ welcome, database, site
    └─ admin/ dashboard, settings/edit, banks/{index,edit}, import/{index,preview}
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
-tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт
+tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14)
 deploy.sh ........................... A11 деплой на BrainyCP
 ```
 
@@ -55,6 +59,9 @@ HTTP запрос
         └─ да → web routes
               ├─ HomeController ──► Support\Market ──► DepositRate(current) → DepositProduct → Bank
               │                                    └─ DepositType
+              ├─ DepositController ──► DepositCatalog ──► DepositProduct(active) + currentRates → Bank(active)
+              │     ├─ DepositFilters::fromRequest (URL)      ├─ Income (та же формула в app.js depositIncome)
+              │     └─ X-Partial: results → deposits._results └─ config banq.kdif_limits (гарантия КФГД)
               ├─ layouts.app (View composer в AppServiceProvider) ──► Market::top() → бегущая строка
               ├─ LoginController ──► users
               └─ /admin (auth + EnsureAdmin)
@@ -75,8 +82,8 @@ HTTP запрос
 | `settings` | key (unique), value json, group | Settings::set (установка, админка) | Support\Settings → все шаблоны |
 | `users` | + role: admin/editor/user | установка, (этап 3: регистрация) | Auth, EnsureAdmin |
 | `banks` | code (unique), slug, aliases json, brand_color, status | BankSeeder, BankController, импорт | Home, админка, импорт |
-| `deposit_products` | bank_id, type, name, slug, can_replenish/withdraw | импорт (firstOrCreate) | Home |
-| `deposit_rates` | product_id, currency, term_months, amount_from, rate, effective_rate, valid_from, **valid_to (null = текущая)**, source, import_id | импорт | Home (scope current) |
+| `deposit_products` | bank_id, type, name, slug, can_replenish/withdraw, online_opening, min/max_amount, term_min/max | импорт (firstOrCreate) | Home, каталог (A14) |
+| `deposit_rates` | product_id, currency, term_months, amount_from/to, rate, effective_rate, valid_from, **valid_to (null = текущая)**, source, import_id | импорт | Home, каталог: null в term_months/amount_from = «любой срок/сумма» |
 | `imports` | filename, path, rows_*, log json | DepositImporter | админка |
 
 ## 4. Переменные окружения (.env)
@@ -109,6 +116,9 @@ HTTP запрос
 | Метод | URL | Имя | Доступ |
 |---|---|---|---|
 | GET | `/` | home | все (после установки) |
+| GET | `/deposits` | deposits.index | все. Фильтры: `type[]` `currency` `term` `amount` `bank[]` (slug) `replenish` `withdraw` `online` `q` `sort`=rate\|effective\|income\|bank; заголовок `X-Partial: results` → только список |
+| GET | `/deposits/compare?ids=1,2,3` | deposits.compare | все; до 4 вкладов, учитывает `amount`/`term` |
+| GET | `/deposits/{slug}` | deposits.show | все; 404 для неактивного вклада/банка |
 | GET/POST | `/install`, `/install/database`, `/install/database/test`, `/install/site` | install.* | только до установки |
 | GET/POST | `/login`, POST `/logout` | login, logout | гости / вошедшие |
 | GET | `/admin` | admin.dashboard | admin, editor |
@@ -121,7 +131,8 @@ HTTP запрос
 - CSS-переменные: `--bg --card --card-2 --border --line --text --muted --faint --ink --ink-text --primary --primary-text --brand-1..3 --ok --bad --warn --grad --grad-soft --grad-warm --radius --radius-sm --ease-out`. Темы: `[data-theme=light|dark]`, по умолчанию светлая (настройка `theme.default`).
 - Классы (в `@layer components`): `.card` (= `.glass`), `.card-ink` (тёмная бенто-карточка с крупной цифрой), `.card-soft` (пастельный градиент), `.card-brand` (фирменный градиент), `.plate`, `.lift`, `.btn(-primary|-ghost|-outline|-brand)`, `.pill(.is-active)`, `.chip`, `.dot`, `.icon-tile`, `.list-row`, `.field`, `.input`, `.range`, `.table`, `.bank-mark`, `.meter`, `.topline` + `.ticker`, `.text-grad`, `.label`, `[data-reveal]`.
 - Иконки: `@include('partials.icon', ['i' => 'piggy', 'c' => 'w-5 h-5'])`, список имён в самом partial.
-- JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver. Всё уважает `prefers-reduced-motion`.
+- JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver.
+- A14: `$store.compare` (до 4 вкладов, localStorage `banq.compare`, панель `.compare-bar` в layouts.app), `depositFilters` (fetch списка без перезагрузки + replaceState), `depositCalc({amount, months, rate, effective})`, функция `depositIncome()`. Классы: `.check-pill .seg .switch .offer .feat .cmp-btn .compare-bar .rate-grid .cmp-table .spark-line .is-loading`. Иконки: check x plus minus filter clock trend down wallet refill withdraw phone lock back. Всё уважает `prefers-reduced-motion`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - Раскладка витрины: тёмная лента-тикер → шапка с пилюлями → левое меню 230px → контент; на главной правая колонка 340px.
 
@@ -134,3 +145,13 @@ HTTP запрос
 | `rate_format($rate)` | 16.350 → «16,35%» |
 | `Bank::findByIdentifier($s)` | поиск по коду/имени/алиасу без учёта регистра, пробелов, дефисов |
 | `DepositType::fromLabel($s)` | «Табу» → Savings и т.п. |
+| `plural($n, 'вклад', 'вклада', 'вкладов')` | русское склонение по числу (A14) |
+| `Income::calc($amount, $months, $rate, $effective)` | доход: по ГЭСВ, иначе номинал с ежемесячной капитализацией (A14) |
+
+## 9. Конфиг `config/banq.php`
+
+| Ключ | Что | Где используется |
+|---|---|---|
+| `currencies` | порядок валют | фильтр каталога, сетка ставок |
+| `terms` | сроки в месяцах | сравнение (выбор срока) |
+| `kdif_limits.{savings,term,demand,foreign}` | гарантия КФГД, ₸: 20 / 15 / 10 / 5 млн — сверить с kdif.kz | карточка, сравнение (A14) |

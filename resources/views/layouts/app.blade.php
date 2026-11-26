@@ -36,9 +36,9 @@
         <button class="btn btn-ghost !p-2.5 lg:!hidden" @click="nav = !nav" aria-label="Меню">@include('partials.icon', ['i' => 'menu'])</button>
         @include('partials.logo')
         <nav class="hidden md:flex items-center gap-2 ml-6 lg:ml-24">
-            <a href="#deposits" class="pill">@include('partials.icon', ['i' => 'piggy', 'c' => 'w-[18px] h-[18px] text-[var(--brand-1)]']) Вклады</a>
-            <a href="#top" class="pill">@include('partials.icon', ['i' => 'chart', 'c' => 'w-[18px] h-[18px] text-[var(--ok)]']) Топ ставок</a>
-            <a href="#calc" class="pill">@include('partials.icon', ['i' => 'calc', 'c' => 'w-[18px] h-[18px]']) Калькулятор</a>
+            <a href="{{ route('deposits.index') }}" class="pill {{ request()->routeIs('deposits.index', 'deposits.show') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'piggy', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.index', 'deposits.show') ? '' : 'text-[var(--brand-1)]')]) Вклады</a>
+            <a href="{{ route('deposits.compare') }}" class="pill {{ request()->routeIs('deposits.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.compare.items.length" x-text="$store.compare.items.length" x-cloak></span></a>
+            <a href="{{ route('home') }}#calc" class="pill">@include('partials.icon', ['i' => 'calc', 'c' => 'w-[18px] h-[18px]']) Калькулятор</a>
         </nav>
         <div class="ml-auto flex items-center gap-2">
             <button class="btn btn-ghost !p-2.5" aria-label="Поиск">@include('partials.icon', ['i' => 'search', 'c' => 'w-[18px] h-[18px]'])</button>
@@ -56,10 +56,10 @@
         <div class="lg:sticky lg:top-[88px] space-y-6 pt-2">
             <nav class="grid gap-0.5 text-[15px]">
                 @foreach ([
-                    ['piggy', 'Вклады', '#deposits'],
-                    ['star', 'Рейтинг банков', '#ratings'],
-                    ['scale', 'Сравнение', '#top'],
-                    ['calc', 'Калькулятор', '#calc'],
+                    ['piggy', 'Вклады', route('deposits.index')],
+                    ['star', 'Рейтинг банков', route('home').'#ratings'],
+                    ['scale', 'Сравнение', route('deposits.compare')],
+                    ['calc', 'Калькулятор', route('home').'#calc'],
                     ['card', 'Карты', '#soon'],
                     ['loan', 'Кредиты', '#soon'],
                     ['globe', 'Платёжные системы', '#soon'],
@@ -81,6 +81,20 @@
         @yield('content')
     </main>
 </div>
+
+{{-- A14 · Плавающая панель сравнения (данные — $store.compare в resources/js/app.js) --}}
+@unless (request()->routeIs('deposits.compare'))
+<div x-data x-show="$store.compare.items.length" x-cloak x-transition.opacity.duration.300ms class="compare-bar">
+    <div class="flex items-center">
+        <template x-for="i in $store.compare.items" :key="i.id">
+            <span class="bank-mark" :style="'--c:' + i.color" x-text="i.code" :title="i.name"></span>
+        </template>
+    </div>
+    <span class="text-sm font-semibold whitespace-nowrap" x-text="$store.compare.full ? 'Максимум ' + $store.compare.limit + ' вклада' : 'К сравнению: ' + $store.compare.items.length + ' из ' + $store.compare.limit"></span>
+    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.compare.clear()">очистить</button>
+    <a :href="$store.compare.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
+</div>
+@endunless
 
 <footer class="border-t border-[var(--line)]">
     <div class="mx-auto max-w-[1440px] px-4 lg:px-6 py-10 flex flex-col md:flex-row gap-6 md:items-center justify-between text-sm">
