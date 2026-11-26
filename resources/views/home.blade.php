@@ -24,12 +24,13 @@
                 <h1 class="font-display font-bold text-[2.2rem] sm:text-5xl xl:text-[3.25rem] leading-[1.04]">
                     Все вклады Казахстана.<br><span class="muted">Одна таблица — <span class="text-grad">лучшая ставка.</span></span>
                 </h1>
-                <form class="plate p-2 flex flex-wrap items-center gap-2 text-[15px]" onsubmit="return false">
+                {{-- A14 · Быстрый подбор → каталог вкладов --}}
+                <form action="{{ route('deposits.index') }}" method="get" class="plate p-2 flex flex-wrap items-center gap-2 text-[15px]">
                     <span class="px-3 muted">Хочу вклад</span>
-                    <select class="input !w-auto !py-2 !bg-[var(--card)] font-semibold"><option>с пополнением</option><option>со снятием</option><option>без операций</option></select>
+                    <select name="type[]" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Тип вклада"><option value="term">с пополнением</option><option value="demand">со снятием</option><option value="savings">без операций</option><option value="">любой</option></select>
                     <span class="muted">на</span>
-                    <select class="input !w-auto !py-2 !bg-[var(--card)] font-semibold"><option>12 месяцев</option><option>6 месяцев</option><option>3 месяца</option><option>24 месяца</option></select>
-                    <a href="#top" class="btn btn-primary ml-auto">Подобрать @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
+                    <select name="term" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Срок"><option value="12">12 месяцев</option><option value="6">6 месяцев</option><option value="3">3 месяца</option><option value="24">24 месяца</option><option value="">любой срок</option></select>
+                    <button class="btn btn-primary ml-auto">Подобрать @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</button>
                 </form>
             </div>
 
@@ -79,18 +80,18 @@
                     <span class="icon-tile !w-9 !h-9" style="background: var(--ink); color: var(--ink-text)">@include('partials.icon', ['i' => 'chart', 'c' => 'w-[18px] h-[18px]'])</span>
                     Топ ставок
                 </h2>
-                <div class="flex gap-1.5 shrink-0"><span class="chip !bg-[var(--ink)] !text-[var(--ink-text)]">KZT</span><span class="chip hidden sm:inline-flex">USD · скоро</span></div>
+                <a href="{{ route('deposits.index') }}" class="btn btn-ghost !py-1.5 text-sm shrink-0">Все вклады @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
             </div>
             <div class="overflow-x-auto">
                 <table class="table">
                     <thead><tr><th class="w-8">#</th><th>Банк</th><th class="hidden md:table-cell">Тип</th><th class="hidden sm:table-cell w-[22%]"></th><th class="!text-right">Ставка</th><th class="!text-right hidden sm:table-cell">ГЭСВ</th></tr></thead>
                     <tbody>
                     @forelse ($top as $i => $r)
-                        <tr>
+                        <tr class="cursor-pointer" onclick="location.href='{{ route('deposits.show', $r->product) }}'">
                             <td class="muted tabular">{{ $i + 1 }}</td>
                             <td><div class="flex items-center gap-3">
                                 <span class="bank-mark" style="--c: {{ $r->product->bank->brand_color ?? 'var(--brand-1)' }}">{{ $mark($r->product->bank) }}</span>
-                                <div><p class="font-semibold leading-tight">{{ $r->product->bank->displayName() }}</p><p class="text-xs muted md:hidden">{{ $r->product->type->label() }}</p></div>
+                                <div><a href="{{ route('deposits.show', $r->product) }}" class="font-semibold leading-tight block">{{ $r->product->bank->displayName() }}</a><p class="text-xs muted md:hidden">{{ $r->product->type->label() }}</p></div>
                             </div></td>
                             <td class="muted text-sm hidden md:table-cell">{{ $r->product->type->label() }}</td>
                             <td class="hidden sm:table-cell"><div class="meter"><i style="width: {{ max(4, round(((float) $r->rate - $minRate) / max(0.01, $maxRate - $minRate) * 100)) }}%"></i></div></td>
@@ -131,7 +132,7 @@
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>
             <div>
-                @foreach ([['scale', 'Сравнить вклады банков', '#top'], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию КФГД', '#soon'], ['star', 'Оценить свой банк', '#ratings'], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
+                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию КФГД', '#soon'], ['star', 'Оценить свой банк', '#ratings'], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="list-row group">
                         <span class="icon-tile group-hover:bg-[var(--ink)] group-hover:text-[var(--ink-text)] transition">@include('partials.icon', ['i' => $icon, 'c' => 'w-[19px] h-[19px]'])</span>
                         <span class="font-medium">{{ $label }}</span>
@@ -158,7 +159,7 @@
                 <div class="flex justify-between"><span class="muted">Доход</span><b class="tabular text-lg" x-text="'+' + money(income)"></b></div>
                 <div class="flex justify-between border-t border-[var(--line)] pt-2"><span class="muted">Через <span x-text="months"></span> мес.</span><b class="tabular" x-text="money(amount + income)"></b></div>
             </div>
-            <a href="#top" class="btn btn-primary w-full">Найти вклад с этой ставкой</a>
+            <a :href="'{{ route('deposits.index') }}?amount=' + Math.round(amount) + '&sort=income'" class="btn btn-primary w-full">Найти вклад с этой ставкой</a>
         </section>
 
         <section class="card p-6" data-reveal style="--d:.1s">

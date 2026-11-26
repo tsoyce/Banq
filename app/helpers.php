@@ -26,3 +26,19 @@ if (! function_exists('rate_format')) {
         return $rate === null ? '—' : rtrim(rtrim(number_format((float) $rate, 2, ',', ' '), '0'), ',').'%';
     }
 }
+
+if (! function_exists('plural')) {
+    /** A14 · Русское склонение по числу: plural(5, 'вклад', 'вклада', 'вкладов') → «вкладов». */
+    function plural(int|float $n, string $one, string $few, string $many): string
+    {
+        $n = abs((int) $n) % 100;
+        $d = $n % 10;
+
+        return match (true) {
+            $n > 10 && $n < 20 => $many,
+            $d === 1 => $one,
+            $d >= 2 && $d <= 4 => $few,
+            default => $many,
+        };
+    }
+}
