@@ -108,14 +108,24 @@
 
         {{-- Бренд-карточки: рейтинги и будущие разделы --}}
         <section id="ratings" class="grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 scroll-mt-32">
-            <article class="card card-brand p-8 min-h-[260px] flex flex-col justify-between" data-reveal>
+            {{-- A18 · Живой блок рейтингов вместо анонса --}}
+            <a href="{{ route('ratings') }}" class="card card-brand lift p-8 min-h-[260px] flex flex-col justify-between gap-6" data-reveal>
                 <div class="orb-soft"></div>
-                <span class="chip !bg-white/15 !text-white w-fit">@include('partials.icon', ['i' => 'star', 'c' => 'w-3.5 h-3.5']) скоро</span>
-                <div class="relative">
-                    <h3 class="font-display font-bold text-3xl sm:text-4xl leading-tight">Народный рейтинг<br>банков</h3>
-                    <p class="mt-3 text-white/75 max-w-md">Оценки и отзывы клиентов, авторский рейтинг TSOY.IN и объективный расчёт — рядом, в одном месте.</p>
+                <span class="chip !bg-white/15 !text-white w-fit relative">@include('partials.icon', ['i' => 'star', 'c' => 'w-3.5 h-3.5']) {{ $ratingKind === \App\Enums\RatingKind::People ? 'народный рейтинг · '.$reviewsCount.' '.plural($reviewsCount, 'отзыв', 'отзыва', 'отзывов') : 'объективный рейтинг' }}</span>
+                <div class="relative grid sm:grid-cols-[minmax(0,1fr)_auto] gap-6 items-end">
+                    <div>
+                        <h3 class="font-display font-bold text-3xl sm:text-4xl leading-tight">Рейтинг<br>банков</h3>
+                        <p class="mt-3 text-white/75 max-w-md">Народный, объективный и авторский — рядом. Оцените свой банк.</p>
+                    </div>
+                    @if ($ratingTop->isNotEmpty())
+                        <ol class="rounded-[14px] p-2 min-w-[220px]" style="background: rgb(255 255 255 / .14); backdrop-filter: blur(12px); border: 1px solid rgb(255 255 255 / .22)">
+                            @foreach ($ratingTop as $n => $s)
+                                <li class="flex items-center gap-3 px-2 py-1.5"><span class="text-sm font-bold opacity-70 w-3">{{ $n + 1 }}</span><span class="font-semibold flex-1 truncate">{{ $s->bank->displayName() }}</span><b class="tabular">{{ score_format($s->score($ratingKind)) }}</b></li>
+                            @endforeach
+                        </ol>
+                    @endif
                 </div>
-            </article>
+            </a>
             <div id="soon" class="grid grid-cols-2 gap-5 scroll-mt-32">
                 @foreach ([['card', 'Карты', 'Кешбэк и лимиты'], ['loan', 'Кредиты', 'Ставки и переплата'], ['globe', 'Платёжные системы', 'Visa, Mastercard, UnionPay'], ['news', 'Новости', 'Рынок и решения НБРК']] as $i => [$icon, $name, $text])
                     <article class="card lift p-5 flex flex-col justify-between gap-6 {{ $i === 0 ? 'card-soft' : '' }}" data-reveal style="--d: {{ 0.04 * $i }}s">
@@ -132,7 +142,7 @@
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>
             <div>
-                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию КФГД', '#soon'], ['star', 'Оценить свой банк', '#ratings'], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
+                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию КФГД', '#soon'], ['star', 'Оценить свой банк', route('banks.index')], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="list-row group">
                         <span class="icon-tile group-hover:bg-[var(--ink)] group-hover:text-[var(--ink-text)] transition">@include('partials.icon', ['i' => $icon, 'c' => 'w-[19px] h-[19px]'])</span>
                         <span class="font-medium">{{ $label }}</span>

@@ -12,6 +12,8 @@
     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remember" value="1" class="accent-[var(--ink)]"> Запомнить меня</label>
     @error('email')<p class="error">{{ $message }}</p>@enderror
     <button class="btn btn-primary w-full">Войти</button>
+    {{-- A18 --}}
+    <p class="text-sm muted text-center">Нет аккаунта? <a href="{{ route('register') }}" class="font-semibold text-[var(--text)] underline">Регистрация</a></p>
 </form>
 </body>
 </html>

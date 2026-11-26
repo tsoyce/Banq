@@ -12,7 +12,10 @@ class Bank extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['is_kdif_member' => 'boolean', 'founded_year' => 'integer', 'aliases' => 'array'];
+    protected $casts = [
+        'is_kdif_member' => 'boolean', 'founded_year' => 'integer', 'aliases' => 'array',
+        'assets_bn' => 'decimal:1', 'capital_bn' => 'decimal:1', 'financials_at' => 'date', // A18
+    ];
 
     protected static function booted(): void
     {
@@ -30,6 +33,24 @@ class Bank extends Model
     public function depositRates(): HasManyThrough
     {
         return $this->hasManyThrough(DepositRate::class, DepositProduct::class);
+    }
+
+    /** A18 · История оценок (авторская, снимки объективной и народной). */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(Rating::class);
+    }
+
+    /** A18 · Отзывы клиентов (на сайте — только approved). */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /** A18 · Код для круглой марки (не длиннее 4 символов). */
+    public function mark(): string
+    {
+        return Str::limit($this->code, 4, '');
     }
 
     public function scopeActive(Builder $q): Builder
