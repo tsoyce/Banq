@@ -70,3 +70,16 @@ if (! function_exists('country')) {
         return app(CurrentCountry::class)->get();
     }
 }
+
+if (! function_exists('currency_symbol')) {
+    /** A21 · Знак валюты: основная валюта текущей страны → её знак (₸, сум), прочие — $, €, ₽, ¥ или код. */
+    function currency_symbol(?string $code = null): string
+    {
+        $country = country();
+        if ($code === null || ($country && strtoupper($code) === $country->currency)) {
+            return $country?->symbol() ?? '₸';
+        }
+
+        return ['USD' => '$', 'EUR' => '€', 'RUB' => '₽', 'CNY' => '¥', 'KZT' => '₸', 'GBP' => '£'][strtoupper($code)] ?? strtoupper($code);
+    }
+}

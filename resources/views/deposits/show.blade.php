@@ -4,7 +4,7 @@
     $code = \Illuminate\Support\Str::limit($bank->code, 4, '');
     $color = $bank->brand_color ?? 'var(--brand-1)';
     $cmp = ['id' => $product->id, 'code' => $code, 'color' => $bank->brand_color ?? '#8b5cf6', 'name' => $bank->displayName()];
-    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' ₸';
+    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' '.currency_symbol(); // A21 · знак валюты страны
     $termLabel = fn (?int $m) => $m === null ? 'любой срок' : $m.' мес';
     $amountLabel = fn (?float $a) => $a === null ? 'любая сумма' : 'от '.number_format($a, 0, ',', ' ');
     $capLabel = ['monthly' => 'ежемесячно', 'end' => 'в конце срока', 'none' => 'нет'][$product->capitalization] ?? null;
@@ -177,7 +177,7 @@
                     <input type="range" min="1" max="36" x-model.number="months" class="range" aria-label="Срок"></label>
                 <div class="card-ink rounded-[var(--radius-sm)] p-5 space-y-1">
                     <p class="text-sm opacity-60">Доход</p>
-                    <p class="font-display font-bold text-4xl tabular" x-text="'+' + money(income())">+0 ₸</p>
+                    <p class="font-display font-bold text-4xl tabular" x-text="'+' + money(income())">+0 {{ currency_symbol() }}</p>
                     <p class="text-sm opacity-60">Итого <b class="tabular opacity-100" x-text="money(amount + income())"></b></p>
                 </div>
                 @if ($kdifLimit)

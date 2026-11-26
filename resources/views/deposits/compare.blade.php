@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' ₸';
+    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' '.currency_symbol($filters->currency);
     $ids = $columns->map(fn ($col) => $col['product']->id);
     $storeItems = $columns->map(fn ($col) => ['id' => $col['product']->id, 'code' => \Illuminate\Support\Str::limit($col['product']->bank->code, 4, ''), 'color' => $col['product']->bank->brand_color ?? '#8b5cf6', 'name' => $col['product']->bank->displayName()])->values();
 @endphp

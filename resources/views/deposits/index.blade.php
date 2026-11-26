@@ -67,7 +67,7 @@
 
                 <fieldset>
                     <legend class="label mb-2.5">Сумма</legend>
-                    <input type="text" inputmode="numeric" name="amount" value="{{ $filters->amount ? number_format($filters->amount, 0, ',', ' ') : '' }}" placeholder="например, 1 000 000 ₸"
+                    <input type="text" inputmode="numeric" name="amount" value="{{ $filters->amount ? number_format($filters->amount, 0, ',', ' ') : '' }}" placeholder="например, 1 000 000 {{ currency_symbol($filters->currency) }}"
                            class="input tabular font-semibold" data-live
                            @blur="$el.value = parseMoney($el.value) ? parseMoney($el.value).toLocaleString('ru-RU') : ''">
                     <div class="flex flex-wrap gap-1.5 mt-2">

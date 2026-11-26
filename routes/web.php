@@ -2,6 +2,7 @@
 
 // A02 · Карта маршрутов. Полный список — docs/REGISTRY.md §Маршруты.
 
+use App\Admin\ResourceRegistry;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -57,9 +58,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/', Admin\DashboardController::class)->name('dashboard');
     Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
-    Route::get('/banks', [Admin\BankController::class, 'index'])->name('banks.index');
-    Route::get('/banks/{bank}/edit', [Admin\BankController::class, 'edit'])->name('banks.edit');
-    Route::put('/banks/{bank}', [Admin\BankController::class, 'update'])->name('banks.update');
     Route::get('/import', [Admin\ImportController::class, 'index'])->name('import.index');
     Route::post('/import/preview', [Admin\ImportController::class, 'preview'])->name('import.preview');
     Route::post('/import', [Admin\ImportController::class, 'store'])->name('import.store');
@@ -71,4 +69,32 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/reviews', [Admin\ReviewController::class, 'index'])->name('reviews.index');
     Route::put('/reviews/{review}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
     Route::delete('/reviews/{review}', [Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
+
+    // A22/A23 · Обмен данными: импорт (dry-run → применить), экспорт, схема, токены API, история
+    Route::prefix('exchange')->name('exchange.')->controller(Admin\ExchangeController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/check', 'check')->name('check');
+        Route::post('/apply', 'apply')->name('apply');
+        Route::get('/export', 'export')->name('export');
+        Route::get('/schema', 'schema')->name('schema');
+        Route::get('/template/{entity}/{format}', 'template')->name('template');
+        Route::get('/history/{import}', 'show')->name('show');
+        Route::get('/tokens', 'tokens')->name('tokens');
+        Route::post('/tokens', 'issueToken')->name('tokens.store');
+        Route::delete('/tokens/{token}', 'revokeToken')->name('tokens.destroy');
+    });
+
+    // A24 · Глобальный поиск по админке
+    Route::get('/search', Admin\SearchController::class)->name('search');
+
+    // A24 · Универсальный CRUD: страны, банки, вклады, ставки, пользователи (App\Admin\ResourceRegistry)
+    Route::prefix('{key}')->name('resource.')->whereIn('key', app(ResourceRegistry::class)->keys())->controller(Admin\ResourceController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::post('/bulk', 'bulk')->name('bulk');
+        Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+    });
 });

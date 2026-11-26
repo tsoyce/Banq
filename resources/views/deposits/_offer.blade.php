@@ -23,8 +23,8 @@
         <span class="feat {{ $p->can_withdraw ? 'on' : 'off' }}">@include('partials.icon', ['i' => $p->can_withdraw ? 'check' : 'x', 'c' => 'w-3.5 h-3.5']) снятие</span>
         @if ($p->online_opening)<span class="feat on">@include('partials.icon', ['i' => 'phone', 'c' => 'w-3.5 h-3.5']) онлайн</span>@endif
         @if ($o->rate->term_months)<span class="feat">@include('partials.icon', ['i' => 'clock', 'c' => 'w-3.5 h-3.5']) {{ $o->rate->term_months }} мес</span>@endif
-        @if ($p->min_amount)<span class="feat">от {{ number_format((float) $p->min_amount, 0, ',', ' ') }} ₸</span>@endif
-        @if ($o->income)<span class="feat on w-full">@include('partials.icon', ['i' => 'trend', 'c' => 'w-3.5 h-3.5']) +{{ number_format($o->income, 0, ',', ' ') }} ₸ <span class="faint font-medium">{{ $filters->amount ? '' : 'с 1 млн за год' }}</span></span>@endif
+        @if ($p->min_amount)<span class="feat">от {{ number_format((float) $p->min_amount, 0, ',', ' ') }} {{ currency_symbol() }}</span>@endif
+        @if ($o->income)<span class="feat on w-full">@include('partials.icon', ['i' => 'trend', 'c' => 'w-3.5 h-3.5']) +{{ number_format($o->income, 0, ',', ' ') }} {{ currency_symbol($o->rate->currency) }} <span class="faint font-medium">{{ $filters->amount ? '' : 'с 1 млн за год' }}</span></span>@endif
     </div>
 
     {{-- Ставка --}}

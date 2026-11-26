@@ -2,7 +2,7 @@
 <div class="flex flex-wrap items-center justify-between gap-3 px-1 pb-4">
     <p class="font-semibold">
         <span class="font-display text-2xl tabular">{{ $offers->count() }}</span>
-        <span class="muted">{{ plural($offers->count(), 'вклад', 'вклада', 'вкладов') }}@if ($filters->amount) · доход за {{ $filters->term ?? 12 }} мес. с {{ number_format($filters->amount, 0, ',', ' ') }} ₸@endif</span>
+        <span class="muted">{{ plural($offers->count(), 'вклад', 'вклада', 'вкладов') }}@if ($filters->amount) · доход за {{ $filters->term ?? 12 }} мес. с {{ number_format($filters->amount, 0, ',', ' ') }} {{ currency_symbol($filters->currency) }}@endif</span>
     </p>
     <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1">
         @foreach (\App\Services\Deposits\DepositFilters::SORTS as $key => $label)

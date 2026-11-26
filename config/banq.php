@@ -7,14 +7,7 @@ return [
     'install_lock' => env('BANQ_INSTALL_LOCK'),
     'currencies' => ['KZT', 'USD', 'EUR', 'RUB', 'CNY'],
     'terms' => [1, 3, 6, 9, 12, 18, 24, 36],
-    // A14 · Предельная сумма гарантии КФГД по типу вклада, ₸. Сверено с kdif.kz 26.11.2026
-    // (пресс-релиз 20.01.2026 «новый закон о банках»: лимиты без изменений).
-    'kdif_limits' => [
-        'savings' => 20_000_000,
-        'term' => 10_000_000,
-        'demand' => 10_000_000,
-        'foreign' => 5_000_000, // вклады в иностранной валюте
-    ],
+    // A21 · Лимиты гарантии вкладов перенесены в страну: countries.deposit_guarantee.limits (Country::guaranteeLimit).
     // A18 · Рейтинги банков. Формула объективного — App\Services\Ratings\ObjectiveRating, описание — /ratings#method
     'ratings' => [
         'objective_weights' => [

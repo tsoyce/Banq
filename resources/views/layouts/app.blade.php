@@ -1,6 +1,6 @@
 {{-- A13 · Макет витрины v2: тёмная лента-тикер, шапка с пилюлями, левое меню, контент. --}}
 <!DOCTYPE html>
-<html lang="ru" data-theme="{{ settings('theme.default', 'light') }}">
+<html lang="ru" data-theme="{{ settings('theme.default', 'light') }}" data-currency="{{ currency_symbol() }}">
 <head>
     @include('partials.head')
     {!! settings('site.counters') !!}
