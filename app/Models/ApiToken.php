@@ -9,7 +9,8 @@ use Illuminate\Support\Str;
 /** A23 · Токен API. Хранится только sha256; открытый токен возвращает issue() один раз. */
 class ApiToken extends Model
 {
-    public const ABILITIES = ['read' => 'Чтение: схема и экспорт', 'write' => 'Запись: импорт данных'];
+    // A39 · delete — строки с _delete и DELETE /api/v1/{entity} (ставки не удаляются, а закрываются)
+    public const ABILITIES = ['read' => 'Чтение: схема и экспорт', 'write' => 'Запись: импорт данных', 'delete' => 'Удаление записей'];
 
     protected $guarded = ['id'];
 

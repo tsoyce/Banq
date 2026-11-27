@@ -1,5 +1,6 @@
 // A04/A13 · Клиентский слой: Alpine-острова + микроанимации.
 import Alpine from 'alpinejs';
+import { sheet } from './sheet'; // A39 · табличный редактор админки
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -66,6 +67,9 @@ Alpine.data('hscroll', () => ({
         t.scrollBy({ left: dir * t.clientWidth * 0.7, behavior: reduced ? 'auto' : 'smooth' });
     },
 }));
+
+// A39 · Табличный редактор «как Excel» (/admin/exchange/grid/{entity})
+Alpine.data('sheet', sheet);
 
 // Калькулятор дохода по вкладу (простой/капитализация ежемесячно)
 Alpine.data('calc', (rate = 16) => ({

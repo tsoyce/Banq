@@ -10,10 +10,12 @@ class ExportDataCommand extends Command
 {
     protected $signature = 'banq:export
         {entities?* : какие сущности (по умолчанию — все)}
-        {--format=json : json | csv | xlsx}
+        {--format=json : json | ndjson | xml | yaml | csv | tsv | xlsx}
         {--country= : только страна (код ISO)}
         {--bank=* : только банки (коды)}
         {--current : только действующие ставки}
+        {--updated-since= : A39 — только изменённые с даты/времени (ISO 8601)}
+        {--ids : A39 — добавить _id (для правки с переименованием ключей)}
         {--output= : файл (по умолчанию — вывод в консоль)}';
 
     protected $description = 'Экспорт данных в формате обмена (тот же формат принимает banq:import)';
@@ -23,7 +25,8 @@ class ExportDataCommand extends Command
         try {
             $bundle = $exchange->export($this->argument('entities'), [
                 'country' => $this->option('country'), 'bank' => $this->option('bank') ?: null, 'current' => (bool) $this->option('current'),
-            ]);
+                'updated_since' => $this->option('updated-since') ?: null,
+            ], (bool) $this->option('ids'));
             $out = $exchange->render($bundle, (string) $this->option('format'));
         } catch (\Throwable $e) {
             $this->error($e->getMessage());

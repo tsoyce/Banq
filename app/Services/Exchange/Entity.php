@@ -66,8 +66,8 @@ abstract class Entity
         return [];
     }
 
-    /** Приводит строку к полям сущности: имена (алиасы), типы, проверка. Бросает RowError. */
-    public function normalize(array $raw): array
+    /** Приводит строку к полям сущности: имена (алиасы), типы, проверка. Бросает RowError. A39: $partial — без проверки обязательных (удаление по ключу). */
+    public function normalize(array $raw, bool $partial = false): array
     {
         $byName = [];
         foreach ($this->fields() as $name => $f) {
@@ -108,7 +108,7 @@ abstract class Entity
             }
         }
         foreach ($this->fields() as $name => $f) {
-            if (($f['required'] ?? false) && ($row[$name] ?? null) === null) {
+            if (! $partial && ($f['required'] ?? false) && ($row[$name] ?? null) === null) {
                 $errors[] = "{$name}: обязательное поле";
             }
         }
@@ -129,7 +129,7 @@ abstract class Entity
     /** Запись строки: upsert с учётом режима. Возвращает [action, changes]. */
     public function persist(array $row, ImportContext $ctx): array
     {
-        $existing = $this->find($row, $ctx);
+        $existing = $this->locate($row, $ctx);
         $mode = $ctx->options->mode;
 
         if ($existing && $mode === 'create') {
@@ -162,6 +162,36 @@ abstract class Entity
         $changes += $relations ? $this->syncRelations($existing, $relations, $ctx) : [];
 
         return $changes ? ['updated', $changes, null] : ['unchanged', [], null];
+    }
+
+    /** A39 · Запись для строки: по _id (если пришёл), иначе по естественному ключу. */
+    public function locate(array $row, ImportContext $ctx): ?Model
+    {
+        if ($ctx->rowId !== null) {
+            return $this->newModel()->newQuery()->find($ctx->rowId)
+                ?? throw new RowError("запись #{$ctx->rowId} не найдена — её уже удалили?");
+        }
+
+        return $this->find($row, $ctx);
+    }
+
+    /**
+     * A39 · Удаление строки (_delete). Ищет по _id или естественному ключу; дочерние записи
+     * удаляются каскадом базы (банк → вклады → ставки), страна с банками не удаляется.
+     */
+    public function remove(array $row, ImportContext $ctx): array
+    {
+        $model = $this->locate($row, $ctx);
+        if (! $model) {
+            return ['skipped', [], 'нет в базе — удалять нечего'];
+        }
+        try {
+            $model->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            throw new RowError('нельзя удалить: на запись ссылаются другие данные — сначала удали их');
+        }
+
+        return ['deleted', [], null];
     }
 
     /** A31 · Поля строки, которые пишутся не в модель, а в связи (см. syncRelations). */

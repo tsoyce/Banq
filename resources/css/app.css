@@ -591,3 +591,70 @@ p, li, dd, figcaption, blockquote { text-wrap: pretty; }
     *, *::before, *::after { animation: none !important; transition: none !important; }
     [data-reveal] { opacity: 1; transform: none; }
 }
+
+/* ---------- A39 · Табличный редактор «как Excel» (resources/js/sheet.js) ---------- */
+.sheet { position: relative; }
+.sheet-scroll {
+    position: relative; overflow: auto; height: calc(100dvh - 300px); min-height: 360px;
+    border-radius: 1.25rem; background: var(--card); outline: none;
+    border: 1px solid var(--line); scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.sheet-scroll:focus-visible { box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-1) 45%, transparent); }
+.sheet-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.sheet-table th, .sheet-table td {
+    height: 32px; padding: 0 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+}
+.sheet-table thead th {
+    position: sticky; top: 0; z-index: 2; height: 44px; background: var(--card-2); font-weight: 600;
+    user-select: none; cursor: default; vertical-align: middle; line-height: 1.1;
+}
+.sheet-table thead th.is-hl, .sheet-num.is-hl { background: color-mix(in oklab, var(--brand-1) 14%, var(--card-2)); }
+.sheet-letter { position: absolute; top: 3px; right: 6px; font: 500 9px/1 var(--font-mono); color: var(--faint); }
+.sheet-name { display: block; font: 600 12px/1.2 var(--font-mono); overflow: hidden; text-overflow: ellipsis; padding-right: 14px; }
+.sheet-name b { color: var(--bad); font-weight: 700; }
+.sheet-ru { display: block; font-size: 11px; font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.sheet-sort {
+    position: absolute; right: 6px; bottom: 5px; font-size: 11px; line-height: 1; color: var(--faint);
+    border-radius: 6px; padding: 2px 3px; opacity: 0; transition: opacity .15s;
+}
+.sheet-table thead th:hover .sheet-sort, .sheet-sort.is-on { opacity: 1; color: var(--brand-1); }
+.sheet-sort:hover { color: var(--text); background: var(--line); }
+.sheet-resize { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 3; }
+.sheet-resize:hover { background: color-mix(in oklab, var(--brand-1) 50%, transparent); }
+.sheet-corner, .sheet-num {
+    position: sticky; left: 0; z-index: 1; background: var(--card-2); color: var(--faint);
+    text-align: center !important; font: 500 11px/1 var(--font-mono); cursor: pointer; user-select: none;
+}
+.sheet-table thead .sheet-corner { z-index: 3; }
+.sheet-cell { cursor: cell; user-select: none; }
+.sheet-cell.t-int, .sheet-cell.t-decimal { text-align: right; font-family: var(--font-mono); font-size: 12.5px; }
+.sheet-cell.t-ref, .sheet-cell.t-enum, .sheet-cell.t-list { font-family: var(--font-mono); font-size: 12px; }
+.sheet-cell.t-json { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.sheet-cell.is-sel { background: color-mix(in oklab, var(--brand-1) 11%, transparent); }
+.sheet-cell.is-focus { box-shadow: inset 0 0 0 2px var(--brand-1); background: color-mix(in oklab, var(--brand-1) 6%, var(--card)); }
+.sheet-cell.is-dirty { background-image: linear-gradient(135deg, color-mix(in oklab, var(--brand-2) 70%, transparent) 0 6px, transparent 6px); background-color: color-mix(in oklab, var(--brand-2) 9%, transparent); }
+.sheet-cell.is-missing { background-color: color-mix(in oklab, var(--warn) 14%, transparent); }
+.sheet-cell.is-invalid { color: var(--bad); text-decoration: wavy underline color-mix(in oklab, var(--bad) 60%, transparent); }
+tr.is-new .sheet-num { color: var(--ok); }
+tr.is-new .sheet-num::before { content: '+'; }
+tr.is-changed .sheet-num { color: var(--brand-2); font-weight: 700; }
+tr.is-del td { text-decoration: line-through; color: var(--faint); background: color-mix(in oklab, var(--bad) 7%, transparent); }
+tr.is-del .sheet-num { color: var(--bad); }
+tr.is-error .sheet-num { background: var(--bad); color: #fff; font-weight: 700; }
+tr.is-error td { background-color: color-mix(in oklab, var(--bad) 6%, transparent); }
+.sheet-pad td, .sheet-pad th, tr.sheet-pad { border: 0; padding: 0; height: auto; }
+.sheet-empty { height: 180px !important; text-align: center !important; color: var(--muted); white-space: normal !important; }
+.sheet-editor {
+    position: absolute; z-index: 4; height: 32px; padding: 0 8px; font: inherit; font-size: 13px;
+    background: var(--card); color: var(--text); border-radius: 4px; outline: none;
+    box-shadow: 0 0 0 2px var(--brand-1), 0 12px 32px -12px rgb(0 0 0 / .35);
+}
+.sheet-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+.sheet-toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; max-width: min(640px, calc(100vw - 32px));
+    padding: 10px 16px; border-radius: 999px; background: var(--ink); color: var(--ink-text); font-size: 13px;
+    box-shadow: 0 18px 40px -16px rgb(0 0 0 / .45);
+}
+kbd.k { font: 500 11px/1 var(--font-mono); padding: 3px 6px; border-radius: 6px; background: var(--card-2); border: 1px solid var(--line); white-space: nowrap; }
+@media (max-width: 767px) { .sheet-scroll { height: calc(100dvh - 360px); } }

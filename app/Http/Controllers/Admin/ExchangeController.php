@@ -148,7 +148,7 @@ class ExchangeController extends Controller
     public function issueToken(Request $request): RedirectResponse
     {
         abort_unless($request->user()->role === 'admin', 403, 'Токены выпускает только администратор');
-        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'abilities' => ['required', 'array'], 'abilities.*' => ['in:read,write'], 'days' => ['nullable', 'integer', 'min:1', 'max:3650']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'abilities' => ['required', 'array'], 'abilities.*' => ['in:'.implode(',', array_keys(ApiToken::ABILITIES))], 'days' => ['nullable', 'integer', 'min:1', 'max:3650']]);
         [$token, $plain] = ApiToken::issue($data['name'], $data['abilities'], $request->user()->id, isset($data['days']) ? now()->addDays((int) $data['days']) : null);
 
         return redirect()->route('admin.exchange.tokens')->with('status', "Токен «{$token->name}» выпущен.")->with('plain_token', $plain);
