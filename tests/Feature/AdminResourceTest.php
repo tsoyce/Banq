@@ -44,7 +44,7 @@ class AdminResourceTest extends TestCase
             $this->actingAs($admin)->get("/admin/{$key}/create")->assertOk();
         }
         $this->actingAs($admin)->get('/admin/banks/'.Bank::first()->id.'/edit')->assertOk()->assertSee('Вклады банка');
-        $this->actingAs($admin)->get('/admin/deposits/'.DepositProduct::first()->id.'/edit')->assertOk()->assertSee('Действующие ставки')->assertSee('14,5%');
+        $this->actingAs($admin)->get('/admin/deposits/'.DepositProduct::first()->id.'/edit')->assertOk()->assertSee('Действующие ставки')->assertSee('14,50%');
         $this->actingAs($admin)->get('/admin/countries/'.Country::first()->id.'/edit')->assertOk()->assertSee('КФГД');
         $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Что заполнить');
     }

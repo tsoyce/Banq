@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureInstalled;
 use App\Http\Middleware\ResolveCountry;
+use App\Http\Middleware\Typography;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(EnsureInstalled::class);
         $middleware->redirectGuestsTo('/login');
         // A21 · Текущая страна витрины (после расшифровки cookie)
-        $middleware->web(append: [ResolveCountry::class]);
+        $middleware->web(append: [ResolveCountry::class, Typography::class]); // A29 · неразрывные пробелы в HTML
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

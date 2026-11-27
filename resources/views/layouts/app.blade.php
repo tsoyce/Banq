@@ -38,9 +38,9 @@
 {{-- Шапка --}}
 <header class="sticky top-0 z-40 backdrop-blur-md" style="background: color-mix(in oklab, var(--bg) 85%, transparent)">
     <div class="mx-auto max-w-[1440px] px-4 lg:px-6 h-[72px] flex items-center gap-3">
-        <button class="btn btn-ghost !p-2.5 lg:!hidden" @click="nav = !nav" aria-label="Меню">@include('partials.icon', ['i' => 'menu'])</button>
+        <button class="btn btn-ghost !p-2.5 lg:!hidden" @click="nav = !nav" :aria-expanded="nav" aria-label="Меню">@include('partials.icon', ['i' => 'menu'])</button>
         @include('partials.logo')
-        <nav class="hidden md:flex items-center gap-2 ml-6 lg:ml-24">
+        <nav class="hidden md:flex items-center gap-2 ml-2 lg:ml-24 min-w-0">
             <a href="{{ route('deposits.index') }}" class="pill {{ request()->routeIs('deposits.index', 'deposits.show') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'piggy', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.index', 'deposits.show') ? '' : 'text-[var(--brand-1)]')]) Вклады</a>
             {{-- A18 · Банки и рейтинги --}}
             <a href="{{ route('banks.index') }}" class="pill {{ request()->routeIs('banks.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'bank', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('banks.*') ? '' : 'text-[var(--brand-2)]')]) Банки</a>
@@ -53,14 +53,14 @@
             @auth
                 @php($me = auth()->user())
                 @if ($me->isStaff())
-                    <a href="{{ route('admin.dashboard') }}" class="btn btn-primary hidden sm:inline-flex">Админка</a>
+                    <a href="{{ route('admin.dashboard') }}" class="btn btn-primary hidden xl:inline-flex">Админка</a>
                 @endif
                 {{-- A28 · меню пользователя: кабинет, профиль, избранное, настройки, выход --}}
                 <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
-                    <button type="button" class="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-[var(--card)] transition text-sm font-semibold" @click="open = !open" :aria-expanded="open" aria-haspopup="menu">
+                    <button type="button" class="flex items-center gap-2 rounded-full p-1 xl:pr-3 hover:bg-[var(--card)] transition text-sm font-semibold" @click="open = !open" :aria-expanded="open" aria-haspopup="menu">
                         @include('partials.avatar', ['u' => $me, 'c' => '!w-9 !h-9 text-sm'])
-                        <span class="hidden sm:block max-w-[9rem] truncate">{{ $me->name }}</span>
-                        @include('partials.icon', ['i' => 'down', 'c' => 'w-4 h-4 muted hidden sm:block'])
+                        <span class="hidden xl:block max-w-[9rem] truncate">{{ $me->name }}</span>
+                        @include('partials.icon', ['i' => 'down', 'c' => 'w-4 h-4 muted hidden xl:block'])
                     </button>
                     <div class="pop" x-show="open" x-cloak x-transition.origin.top.right role="menu">
                         <div class="px-3 pt-2 pb-3 border-b border-[var(--line)] mb-1">
@@ -72,7 +72,7 @@
                         <a href="{{ route('account.reviews') }}" role="menuitem">@include('partials.icon', ['i' => 'pen', 'c' => 'w-[18px] h-[18px] muted']) Мои отзывы</a>
                         <a href="{{ route('account.favorites') }}" role="menuitem">@include('partials.icon', ['i' => 'heart', 'c' => 'w-[18px] h-[18px] muted']) Избранное</a>
                         <a href="{{ route('account.settings') }}" role="menuitem">@include('partials.icon', ['i' => 'settings', 'c' => 'w-[18px] h-[18px] muted']) Настройки</a>
-                        @if ($me->isStaff())<a href="{{ route('admin.dashboard') }}" role="menuitem" class="sm:!hidden">@include('partials.icon', ['i' => 'shield', 'c' => 'w-[18px] h-[18px] muted']) Админка</a>@endif
+                        @if ($me->isStaff())<a href="{{ route('admin.dashboard') }}" role="menuitem" class="xl:!hidden">@include('partials.icon', ['i' => 'shield', 'c' => 'w-[18px] h-[18px] muted']) Админка</a>@endif
                         <form method="POST" action="{{ route('logout') }}" class="border-t border-[var(--line)] mt-1 pt-1">@csrf<button role="menuitem">@include('partials.icon', ['i' => 'logout', 'c' => 'w-[18px] h-[18px] muted']) Выйти</button></form>
                     </div>
                 </div>

@@ -25,7 +25,8 @@ if (! function_exists('project_years')) {
 if (! function_exists('rate_format')) {
     function rate_format(float|string|null $rate): string
     {
-        return $rate === null ? '—' : rtrim(rtrim(number_format((float) $rate, 2, ',', ' '), '0'), ',').'%';
+        // A29 · всегда две цифры после запятой (DESIGN §3.3): «18,00%» рядом с «18,04%» — столбцы ровные
+        return $rate === null ? '—' : number_format((float) $rate, 2, ',', ' ').'%';
     }
 }
 

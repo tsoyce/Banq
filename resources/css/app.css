@@ -221,8 +221,23 @@ body {
     .switch:has(input:focus-visible) > i { outline: 2px solid var(--brand-1); outline-offset: 2px; }
 
     /* Карточка предложения в каталоге */
-    .offer { display: grid; gap: 1rem 1.5rem; align-items: center; grid-template-columns: minmax(0, 1fr) auto; padding: 1.25rem 1.35rem; }
-    @media (min-width: 900px) { .offer { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto auto; padding: 1.35rem 1.6rem; } }
+    /* A29 · раскладка от ширины списка (.offers — контейнер), а не экрана: в колонке рядом с фильтрами было тесно */
+    .offers { container-type: inline-size; }
+    .offer {
+        display: grid; gap: 1rem 1.5rem; align-items: center; padding: 1.25rem 1.35rem;
+        grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'head rate' 'feats feats' 'actions actions';
+    }
+    .offer-head { grid-area: head; }
+    .offer-rate { grid-area: rate; }
+    .offer-feats { grid-area: feats; padding-top: 0.9rem; border-top: 1px solid var(--line); }
+    .offer-actions { grid-area: actions; display: flex; align-items: center; gap: 0.5rem; }
+    .offer-more { flex: 1; min-width: 0; }
+    @container (min-width: 820px) {
+        .offer { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto auto; grid-template-areas: 'head feats rate actions'; padding: 1.35rem 1.6rem; }
+        .offer-feats { padding-top: 0; border-top: 0; }
+        .offer-more { flex: none; width: 40px; height: 40px; padding: 0; }
+        .offer-more-label { display: none; }
+    }
     .offer .rate-big { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
     .offer.is-first { box-shadow: 0 0 0 2px var(--brand-1), var(--shadow); }
 
@@ -382,6 +397,40 @@ body {
     /* Колонка, по которой отсортирована таблица */
     .table .is-sorted { color: var(--text); }
     .table td.is-sorted { font-weight: 800; }
+}
+
+/* ---------- A29 · Полировка: типографика, герой главной, сегментная форма ---------- */
+/* Заголовки переносятся сбалансированно (без «вдовы» в последней строке), абзацы — без висячего короткого слова */
+h1, h2, h3, h4, .font-display { text-wrap: balance; }
+p, li, dd, figcaption, blockquote { text-wrap: pretty; }
+
+@layer components {
+    /* Кегль героя и цифры — от ширины своей карточки (cqi), а не экрана: в узкой колонке не разваливается */
+    .hero-title { font-size: clamp(2rem, 10.5cqi, 3.4rem); line-height: 1.04; }
+    .hero-rate { font-size: clamp(4.25rem, 30cqi, 7rem); }
+    .ink-plate { padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--ink-text) 9%, transparent); transition: background 0.2s; }
+    .ink-plate:hover { background: color-mix(in oklab, var(--ink-text) 14%, transparent); }
+
+    /* Сегментная форма: [Вклад ▾][Срок ▾][Подобрать]. Узко — два сегмента в ряд, кнопка во всю ширину */
+    .qs-bar { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 6px; border-radius: 20px; background: var(--card-2); }
+    .qs-field { position: relative; display: grid; align-content: center; min-width: 0; padding: 0.55rem 2.2rem 0.6rem 1rem; border-radius: 14px; background: var(--card); cursor: pointer; transition: box-shadow 0.2s; }
+    .qs-field:hover { box-shadow: 0 0 0 1px var(--line); }
+    .qs-field:focus-within { box-shadow: 0 0 0 2px var(--text); }
+    .qs-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .qs-field select { appearance: none; -webkit-appearance: none; background: transparent; border: 0; outline: none; padding: 0; margin-top: 1px; width: 100%; font-weight: 600; font-size: 0.98rem; color: var(--text); cursor: pointer; text-overflow: ellipsis; }
+    .qs-field select option { color: var(--text); background: var(--card); }
+    .qs-chevron { position: absolute; right: 0.85rem; top: 50%; width: 16px; height: 16px; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+    .qs-submit { grid-column: 1 / -1; min-height: 3rem; border-radius: 14px; }
+    /* Совсем узко (телефон): сегменты строками «ВКЛАД   с пополнением ▾» */
+    @container (max-width: 359px) {
+        .qs-field { grid-template-columns: 4.2rem minmax(0, 1fr); align-items: center; padding-block: 0.8rem; }
+        .qs-field select { margin-top: 0; }
+    }
+    @container (min-width: 360px) { .qs-bar { grid-template-columns: 1fr 1fr; } }
+    @container (min-width: 520px) {
+        .qs-bar { grid-template-columns: 1fr 1fr auto; }
+        .qs-submit { grid-column: auto; padding-inline: 1.5rem; }
+    }
 }
 
 @keyframes draw { to { stroke-dashoffset: 0; } }

@@ -15,36 +15,52 @@
 
         {{-- Бенто: герой + лучшая ставка --}}
         <section id="deposits" class="grid md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 scroll-mt-32">
-            <div class="card p-7 md:p-9 flex flex-col justify-between gap-10" data-reveal>
+            {{-- A29 · Герой: заголовок и форма масштабируются от ширины карточки (container queries), а не экрана --}}
+            <div class="card hero-card p-7 md:p-9 flex flex-col justify-between gap-9 @container" data-reveal>
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="chip"><span class="dot"></span>{{ $updatedAt ? 'обновлено '.\Illuminate\Support\Carbon::parse($updatedAt)->translatedFormat('j F') : 'скоро первые данные' }}</span>
-                    <span class="chip">{{ $banksCount }} банков</span>
-                    <span class="chip">{{ $ratesCount }} ставок</span>
+                    <span class="chip tabular">{{ $banksCount }}&nbsp;{{ plural($banksCount, 'банк', 'банка', 'банков') }}@if ($ratesCount) · {{ $ratesCount }}&nbsp;{{ plural($ratesCount, 'ставка', 'ставки', 'ставок') }}@endif</span>
                 </div>
-                <h1 class="font-display font-bold text-[2.2rem] sm:text-5xl xl:text-[3.25rem] leading-[1.04]">
-                    Все вклады {{ country()?->genitive() }}.<br><span class="muted">Одна таблица — <span class="text-grad">лучшая ставка.</span></span>
+                <h1 class="hero-title font-display font-bold">
+                    Все вклады {{ country()?->genitive() }}.<br><span class="muted">Одна таблица&nbsp;— <span class="text-grad whitespace-nowrap">лучшая ставка.</span></span>
                 </h1>
-                {{-- A14 · Быстрый подбор → каталог вкладов --}}
-                <form action="{{ route('deposits.index') }}" method="get" class="plate p-2 flex flex-wrap items-center gap-2 text-[15px]">
-                    <span class="px-3 muted">Хочу вклад</span>
-                    <select name="type[]" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Тип вклада"><option value="term">с пополнением</option><option value="demand">со снятием</option><option value="savings">без операций</option><option value="">любой</option></select>
-                    <span class="muted">на</span>
-                    <select name="term" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Срок"><option value="12">12 месяцев</option><option value="6">6 месяцев</option><option value="3">3 месяца</option><option value="24">24 месяца</option><option value="">любой срок</option></select>
-                    <button class="btn btn-primary ml-auto">Подобрать @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</button>
+                {{-- A14 · Быстрый подбор → каталог вкладов. A29: сегменты «Вклад / Срок» + кнопка; на узкой карточке кнопка уходит на всю ширину --}}
+                <form action="{{ route('deposits.index') }}" method="get" class="qs-bar">
+                    <label class="qs-field">
+                        <span class="qs-label">Вклад</span>
+                        <select name="type[]" aria-label="Тип вклада"><option value="term">с пополнением</option><option value="demand">со снятием</option><option value="savings">без операций</option><option value="">любой</option></select>
+                        @include('partials.icon', ['i' => 'down', 'c' => 'qs-chevron'])
+                    </label>
+                    <label class="qs-field">
+                        <span class="qs-label">Срок</span>
+                        <select name="term" aria-label="Срок"><option value="12">12 месяцев</option><option value="6">6 месяцев</option><option value="3">3 месяца</option><option value="24">24 месяца</option><option value="">любой</option></select>
+                        @include('partials.icon', ['i' => 'down', 'c' => 'qs-chevron'])
+                    </label>
+                    <button class="btn btn-primary qs-submit">Подобрать @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</button>
                 </form>
             </div>
 
-            <div class="card card-ink p-7 md:p-9 flex flex-col justify-between gap-6 overflow-hidden" data-reveal style="--d:.06s">
+            <div class="card card-ink p-7 md:p-9 flex flex-col justify-between gap-6 overflow-hidden @container" data-reveal style="--d:.06s">
                 <div class="flex items-start justify-between gap-4">
                     <span class="text-sm font-semibold opacity-70">Лучшая ставка<br>сегодня</span>
                     @if ($leader)<span class="bank-mark" style="--c: {{ $leader->product->bank->brand_color ?? 'var(--brand-1)' }}">{{ $mark($leader->product->bank) }}</span>@endif
                 </div>
-                <p class="font-display font-semibold tabular leading-none text-[5.5rem] sm:text-[7rem]">
-                    @if ($leader)<span x-data x-count="{{ number_format((float) $leader->rate, 1, '.', '') }}">{{ number_format((float) $leader->rate, 1, ',', '') }}</span><span class="text-[0.4em] align-top opacity-60">%</span>@else—@endif
+                {{-- A29 · две цифры после запятой (16,35 не округляется до 16,4); кегль — от ширины карточки --}}
+                <p class="hero-rate font-display font-semibold tabular leading-none whitespace-nowrap">
+                    @if ($leader)<span x-data x-count="{{ number_format((float) $leader->rate, 2, '.', '') }}">{{ number_format((float) $leader->rate, 2, ',', '') }}</span><span class="text-[0.4em] align-top opacity-60">%</span>@else—@endif
                 </p>
-                <div class="text-sm">
-                    <p class="font-semibold">{{ $leader?->product->bank->displayName() ?? 'Загрузите ставки' }}</p>
-                    <p class="opacity-60">@if ($leader){{ $leader->product->type->label() }} · ГЭСВ {{ rate_format($leader->effective_rate) }}@else в админке → Импорт Excel @endif</p>
+                <div class="text-sm space-y-4">
+                    <div>
+                        <p class="font-semibold">{{ $leader?->product->bank->displayName() ?? 'Загрузите ставки' }}</p>
+                        <p class="opacity-60">@if ($leader){{ $leader->product->type->label() }} · ГЭСВ&nbsp;{{ rate_format($leader->effective_rate) }}@else в&nbsp;админке → Обмен данными @endif</p>
+                    </div>
+                    @if ($leader)
+                        @php($perYear = 1_000_000 * (float) ($leader->effective_rate ?? $leader->rate) / 100)
+                        <a href="{{ route('deposits.show', $leader->product) }}" class="ink-plate flex items-center justify-between gap-3 group">
+                            <span><span class="opacity-60 block text-xs">С&nbsp;{{ money_format(1_000_000) }} за&nbsp;год</span><b class="tabular text-base">+{{ money_format($perYear) }}</b></span>
+                            @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition'])
+                        </a>
+                    @endif
                 </div>
             </div>
         </section>
