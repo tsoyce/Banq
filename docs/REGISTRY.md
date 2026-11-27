@@ -46,6 +46,12 @@ app/
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
 ├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат
 ├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
+├─ Services/Currency/ CurrencyRates (scoped: sync, backfill, ensureFresh → defer, board, available, статус в кеше), RateProvider,
+│                    Providers/{Nbrk (KZ), Cbu (UZ), Cbr (RU)}Provider   A40 официальные курсы центробанков
+├─ Services/Ticker/ Ticker (scoped: группы ленты, длительность круга), TickerSource, Sources/{Currency,DepositRates,Text}Source   A40
+├─ Models/CurrencyRate · Support/CurrencyInfo (название, знак, флаг валюты)   A40
+├─ Http/Controllers/Admin/{Ticker,Currency}Controller   A40 /admin/ticker, /admin/currency
+├─ views: partials/ticker (лента), partials/fx-card (карточка на главной), admin/ticker/edit, admin/currency/index   A40
 ├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
@@ -194,6 +200,7 @@ HTTP запрос
 | `card_networks` (A30) | card_id, payment_system_id, card_tier_id nullable | CardEntity (networks), CardResource (флажки) | Card::networks() |
 | `service_packages` (A30) + `card_service_package` | bank_id, name, slug, segment, monthly/annual fee, fee_note, perks json, conditions, description, color, source_url, is_active, sort | админка, обмен | /packages, карточка карты, банк |
 | `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
+| `currency_rates` (A40) | country_id, currency ISO, name, nominal (курс за N единиц), rate, change (к прошлому курсу по источнику), date, source (nbrk/cbu/cbr); unique(country_id, currency, date) | CurrencyRates::sync (cron `banq:fx-sync`, заход посетителя, админка) | карточка курсов, лента, админка → Курсы валют |
 
 ## 4. Переменные окружения (.env)
 
@@ -208,6 +215,7 @@ HTTP запрос
 | `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
 | `BANQ_TYPOGRAPH` | phpunit.xml (`false`), вручную | true — A36 middleware типографики включён |
+| `BANQ_FX_AUTO_REFRESH` | .env (A40) | `true` — обновлять курсы при первом заходе за день; в тестах `false` |
 | `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
@@ -223,6 +231,8 @@ HTTP запрос
 | `site.counters` | админка | вставляется как HTML в `<head>` (только admin может менять) |
 | `theme.default` | админка | `data-theme` на `<html>` |
 | `country.default` | админка → Настройки (A21) | CurrentCountry: страна нового посетителя (slug, по умолчанию первая по sort) |
+| `ticker.enabled`, `ticker.sources` (порядок ключей из `banq.ticker.sources`), `ticker.text`, `ticker.speed` 1–10 | админка → Бегущая строка (A40) | Ticker → partials/ticker в шапке |
+| `fx.currencies` {"KZ": ["USD","EUR","RUB","CNY"]}, `fx.home_card` | админка → Курсы валют (A40) | CurrencyRates::codes(), карточка на главной |
 
 ## 6. Маршруты
 
@@ -261,6 +271,8 @@ HTTP запрос
 | GET | `/cards?kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=`, `/cards/compare?ids=`, `/cards/{card:slug}` | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
 | GET | `/payment-systems`, `/payment-systems/{system:slug}` | payment-systems.* | все (A33) |
 | GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |
+| GET, PUT | `/admin/ticker` | admin.ticker.* | admin, editor (A40) |
+| GET, PUT, POST | `/admin/currency`, `/admin/currency/{country}/sync` (`days=30` — история) | admin.currency.* | admin, editor (A40); sync — throttle 10/мин |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -302,6 +314,7 @@ HTTP запрос
 | `php artisan banq:import {file} [--entity] [--format] [--mode] [--country] [--dry-run] [--json]` | A22 импорт в любом формате |
 | `php artisan banq:export [entities*] [--format] [--country] [--bank=*] [--current] [--output]` | A22 экспорт |
 | `php artisan banq:schema [entity]`, `php artisan banq:token {name} [--write] [--days]` | A22 схема формата, A23 токен API |
+| `php artisan banq:fx-sync [--country=KZ] [--days=N] [--date=Y-m-d]` | A40 курсы центробанков; в расписании — каждый час (:07) |
 
 ## 9. Конфиг `config/banq.php`
 
@@ -316,6 +329,9 @@ HTTP запрос
 | `typograph` | A36: вкл/выкл неразрывных пробелов (env `BANQ_TYPOGRAPH`) | Middleware Typography |
 | `cards.compare_limit` | до 4 карт в сравнении | $store.cardCompare (A33) |
 | `cards.score.debit`, `cards.score.credit` | веса «Оценки Banq» | CardScore (A33) |
+| `fx.providers` | A40: код страны → класс RateProvider (KZ → НБРК, UZ → ЦБ РУз, RU → ЦБ РФ) | CurrencyRates::provider() |
+| `fx.defaults`, `fx.auto_refresh` (env `BANQ_FX_AUTO_REFRESH`), `fx.retry_minutes`, `fx.trend_days` | A40: валюты по умолчанию, обновление при заходе, пауза между попытками (30 мин), глубина спарклайна (30 дн.) | CurrencyRates |
+| `ticker.sources` | A40: типы контента ленты (ключ → TickerSource) | Ticker, админка → Бегущая строка |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
 
 ## 10. Как добавить новый раздел (карты, кредиты…) — A21–A24
@@ -326,3 +342,10 @@ HTTP запрос
 4. Витрина: выборки через `Bank::inCountry()`, суммы — `currency_symbol()`, национальные названия — из `country()`.
 
 Пример раздела по этой схеме — «Карты» (A30–A33): `Card` + `CardEntity` + `CardResource` + `CardCatalog`. Международная сущность без страны — `PaymentSystem` (`home_country`, `countries`), карты страны выбираются через банк.
+
+## 11. Курсы валют и бегущая строка — A40
+
+- **Новая страна с курсами:** класс `App\Services\Currency\Providers\XxxProvider implements RateProvider` (fetch → `{date, rates[{currency, name, nominal, rate, change}]}`) + строка в `config('banq.fx.providers')` и валюты по умолчанию в `fx.defaults`. Всё остальное (хранение, карточка, лента, админка, cron) общее.
+- **Новый тип ленты** (новости блога, лучшие карты…): класс `TickerSource` (label, hint, group(country) → `{title, href, items[{label, value?, delta?, href?}]}`) + строка в `config('banq.ticker.sources')` — появится в админке сам.
+- Фолбэк: источник недоступен → статус в кеше `banq.fx.status.{KZ}`, витрина показывает последний сохранённый курс (`stale` — старше 3 дней — с пометкой).
+

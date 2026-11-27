@@ -14,23 +14,11 @@
     </div>
 @endif
 
-{{-- Лента: статус + бегущая строка ставок --}}
+{{-- Лента: страна + бегущая строка (A40: тип контента — админка «Бегущая строка») --}}
 <div class="topline text-[13px]">
     <div class="mx-auto max-w-[1440px] px-4 lg:px-6 h-11 flex items-center gap-4">
         @include('partials.country-switch')
-        <div class="ticker flex-1 min-w-0">
-            <div class="ticker-track mono text-[12px]">
-                @if (isset($ticker) && $ticker->isNotEmpty())
-                    @foreach ([1, 2] as $_)
-                        @foreach ($ticker as $r)
-                            <span class="whitespace-nowrap"><span class="text-white/55">{{ $r->product->bank->code }}</span> {{ mb_strtolower($r->product->type->label()) }} <b class="text-white">{{ rate_format($r->rate) }}</b></span>
-                        @endforeach
-                    @endforeach
-                @else
-                    <span class="text-white/60">Скоро здесь побегут ставки банков — данные уже загружаются</span>
-                @endif
-            </div>
-        </div>
+        @include('partials.ticker')
         <a href="{{ route('ratings') }}" class="hidden md:inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 font-semibold whitespace-nowrap" style="color: #fdba74">народный рейтинг →</a>
     </div>
 </div>

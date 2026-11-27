@@ -222,6 +222,17 @@ Alpine.data('bulkSelect', (total = 0) => ({
     },
 }));
 
+// A40 · Конвертер в карточке курсов: rates — курс за 1 единицу в нацвалюте
+Alpine.data('fxConvert', (rates = {}, symbol = '₸') => ({
+    rates, symbol, amount: 100, code: Object.keys(rates)[0] || 'USD', reverse: false,
+    get result() {
+        const r = this.rates[this.code] || 0;
+        return this.reverse ? (r ? this.amount / r : 0) : this.amount * r;
+    },
+    parse(v) { return parseFloat(String(v).replace(/\s/g, '').replace(',', '.')) || 0; },
+    fmt(v, d = 2) { return (+v).toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d }); },
+}));
+
 // A28 · Избранное: переключение без перезагрузки (FavoriteController отвечает JSON), без JS — обычная форма
 Alpine.data('favorite', (on = false) => ({
     on,

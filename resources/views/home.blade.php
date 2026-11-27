@@ -161,6 +161,11 @@
 
     {{-- ===== Правая колонка ===== --}}
     <aside class="space-y-5">
+        {{-- A40 · Курсы валют центробанка страны --}}
+        @if ($fx)
+            @include('partials.fx-card', ['fx' => $fx])
+        @endif
+
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>
             <div>

@@ -8,16 +8,21 @@ use App\Models\PaymentSystem;
 use App\Models\Review;
 use App\Models\ServicePackage;
 use App\Services\Cards\CardCatalog;
+use App\Services\Currency\CurrencyRates;
 use App\Services\Ratings\RatingBoard;
 use App\Support\Market;
 use Illuminate\View\View;
 
-/** A10/A13/A18 · Главная-дашборд. Данные — App\Support\Market. */
+/** A10/A13/A18/A40 · Главная-дашборд. Данные — App\Support\Market. */
 class HomeController extends Controller
 {
-    public function __invoke(Market $market, RatingBoard $board, CardCatalog $cards): View
+    public function __invoke(Market $market, RatingBoard $board, CardCatalog $cards, CurrencyRates $fx): View
     {
         $rates = $market->rates();
+        // A40 · Карточка курсов валют (если у страны есть источник и карточка не выключена в админке)
+        if ($showFx = (bool) settings('fx.home_card', true)) {
+            $fx->ensureFresh(country());
+        }
 
         return view('home', [
             'leaders' => $market->leaders(),
@@ -35,6 +40,7 @@ class HomeController extends Controller
             'topCashback' => $cards->all()->max(fn ($c) => (float) $c->cashback_max) ?: null,
             'systemsCount' => PaymentSystem::query()->active()->count(),
             'packagesCount' => ServicePackage::query()->active()->inCountry()->count(),
+            'fx' => $showFx ? $fx->board(country()) : null,
         ]);
     }
 }
