@@ -18,8 +18,11 @@ COMPOSER_BIN="${COMPOSER_BIN:-$PHP_BIN $(command -v composer || echo /usr/local/
 # Поэтому по умолчанию кеши только очищаются; ARTISAN_CACHE=1 — включить кеширование на сервере без chroot.
 ARTISAN_CACHE="${ARTISAN_CACHE:-0}"
 
-echo "→ git pull"
-git pull --ff-only
+# A35 · Автодеплой (deploy/banq-deploy) сам ставит проверенный CI коммит и просит не тянуть main дальше.
+if [ "${DEPLOY_SKIP_PULL:-0}" != "1" ]; then
+    echo "→ git pull"
+    git pull --ff-only
+fi
 
 echo "→ composer install"
 $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction
