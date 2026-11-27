@@ -124,6 +124,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::delete('/tokens/{token}', 'revokeToken')->name('tokens.destroy');
     });
 
+    // A34 · База данных: переключение SQLite ⇄ MySQL с переносом данных (только admin)
+    Route::get('/database', [Admin\DatabaseController::class, 'index'])->name('database.index');
+    Route::post('/database/test', [Admin\DatabaseController::class, 'test'])->middleware('throttle:20,1')->name('database.test');
+    Route::post('/database/switch', [Admin\DatabaseController::class, 'switch'])->middleware('throttle:5,1')->name('database.switch');
+    Route::post('/database/restore', [Admin\DatabaseController::class, 'restore'])->middleware('throttle:5,1')->name('database.restore');
+
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');
 

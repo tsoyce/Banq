@@ -45,6 +45,16 @@ class EnvWriter
         file_put_contents($this->path, $content);
     }
 
+    /** A34 · Закомментировать ключи (как в исходном .env): значение по умолчанию снова берётся из config. */
+    public function forget(array $keys): void
+    {
+        $content = is_file($this->path) ? (string) file_get_contents($this->path) : '';
+        foreach ($keys as $key) {
+            $content = preg_replace('/^'.preg_quote($key, '/').'=/m', '# '.$key.'=', $content);
+        }
+        file_put_contents($this->path, $content);
+    }
+
     private function quote(string $value): string
     {
         if ($value === '' || preg_match('/^[A-Za-z0-9_.:\/+=@-]+$/', $value)) {

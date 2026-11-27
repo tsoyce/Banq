@@ -43,6 +43,8 @@ app/
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
 ├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
+├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат
+├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
 ├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
@@ -87,7 +89,7 @@ resources/
    ├─ partials/plastic (объёмная карта, x-tilt), partials/ps-mark (знак платёжной системы)  A33
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
    └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
-            resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), exchange/{index,report,_rows,show,tokens} (A22 A23)
+            resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23)
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
@@ -197,7 +199,7 @@ HTTP запрос
 | `APP_NAME`, `APP_ENV=production`, `APP_DEBUG=false` | мастер установки (шаг 3) | из .env.example |
 | `APP_URL` | мастер установки (шаг 2) | http://localhost |
 | `APP_TIMEZONE` | вручную | Asia/Almaty |
-| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2) | sqlite |
+| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2); A34: админка → База данных (копии прежнего .env — `storage/app/env-backups`) | sqlite |
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
 | `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
@@ -246,6 +248,7 @@ HTTP запрос
 | любой | все публичные страницы `?country=kz` | — | A21: выбрать страну (запоминается в cookie `banq_country`) |
 | GET, GET, POST, POST, GET, PUT, DELETE | `/admin/{key}`, `/{key}/create`, `/{key}`, `/{key}/bulk`, `/{key}/{id}/edit`, `/{key}/{id}` — key: countries\|banks\|deposits\|rates\|users\|cards\|packages\|payment-systems\|card-tiers (A32) | admin.resource.* | admin, editor; users — только admin (A24). Список: `q`, фильтры ресурса, `sort`, `dir`, `per` |
 | GET | `/admin/search?q=` | admin.search | JSON для ⌘K (A24) |
+| GET, POST, POST, POST | `/admin/database`, `/database/test`, `/database/switch`, `/database/restore` | admin.database.* | только admin (A34); switch/restore — throttle 5/мин, switch требует `confirm` |
 | GET, POST, POST, GET, GET, GET, GET | `/admin/exchange?tab=`, `/exchange/check`, `/exchange/apply`, `/exchange/export`, `/exchange/schema`, `/exchange/template/{entity}/{format}`, `/exchange/history/{import}` | admin.exchange.* | admin, editor (A22) |
 | GET, POST, DELETE | `/admin/exchange/tokens`, `/exchange/tokens/{token}` | admin.exchange.tokens* | выпуск/отзыв — только admin (A23) |
 | GET | `/api/v1/schema`, `/api/v1/export`, `/api/v1/imports`, `/api/v1/imports/{id}`, `/api/v1/{entity}` | api.* | токен с правом read (A23), throttle 120/мин |

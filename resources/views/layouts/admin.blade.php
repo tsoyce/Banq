@@ -23,7 +23,10 @@
             ['admin.reviews.index', [], 'Отзывы', 'quote', request()->routeIs('admin.reviews.*')],
             $role === 'admin' ? ['admin.resource.index', ['users'], 'Пользователи', 'users', request()->route('key') === 'users'] : null,
         ]),
-        'Сайт' => [['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')]],
+        'Сайт' => array_filter([
+            ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
+            $role === 'admin' ? ['admin.database.index', [], 'База данных', 'layers', request()->routeIs('admin.database.*')] : null, // A34
+        ]),
     ];
 @endphp
 <div class="min-h-dvh grid lg:grid-cols-[260px_1fr]">
