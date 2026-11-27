@@ -4,9 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Bank;
 use App\Models\User;
+use App\Services\Database\DatabaseSwitcher;
 use Database\Seeders\BankSeeder;
+use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use PDO;
+use PDOException;
 use Tests\TestCase;
 
 /** A34 · Переключение базы из админки: перенос данных в новую SQLite, запись .env, откат из копии. */
@@ -63,7 +68,7 @@ class DatabaseSwitchTest extends TestCase
 
         $pdo = new PDO('sqlite:'.$target);
         $this->assertSame($banks, (int) $pdo->query('select count(*) from banks')->fetchColumn());
-        $this->assertSame(1, (int) $pdo->query("select count(*) from users where email = ".$pdo->quote($admin->email))->fetchColumn());
+        $this->assertSame(1, (int) $pdo->query('select count(*) from users where email = '.$pdo->quote($admin->email))->fetchColumn());
         $this->assertGreaterThan(0, (int) $pdo->query('select count(*) from payment_systems')->fetchColumn());
         $this->assertGreaterThan(0, (int) $pdo->query('select count(*) from migrations')->fetchColumn());
 
@@ -83,5 +88,49 @@ class DatabaseSwitchTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/^DB_DATABASE=/m', $env);
 
         $this->actingAs($admin)->post('/admin/database/restore', ['file' => '../.env'])->assertSessionHasErrors('database');
+    }
+
+    /**
+     * A37 · На MySQL сервер видит и чужие базы: getTables() без схемы отдавал их таблицы,
+     * и перенос падал «Table 'tsoy_banq.audit_logs' doesn't exist». Здесь чужая база — ATTACH к новой SQLite.
+     */
+    public function test_switch_ignores_tables_of_other_databases_on_server(): void
+    {
+        $other = $this->dir.'/other.sqlite';
+        $pdo = new PDO('sqlite:'.$other);
+        $pdo->exec('create table audit_logs (id integer primary key, note text)');
+        $pdo->exec("insert into audit_logs (note) values ('чужая')");
+        $pdo = null;
+
+        Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $e) use ($other) {
+            if ($e->connectionName === DatabaseSwitcher::TARGET) {
+                $e->connection->statement("attach database '{$other}' as other");
+            }
+        });
+
+        $target = $this->dir.'/new.sqlite';
+        $this->actingAs($this->admin())->post('/admin/database/switch', ['driver' => 'sqlite', 'database' => $target, 'copy' => 1, 'confirm' => 1])
+            ->assertRedirect('/admin/database')->assertSessionHasNoErrors();
+
+        $pdo = new PDO('sqlite:'.$target);
+        $this->assertSame(Bank::count(), (int) $pdo->query('select count(*) from banks')->fetchColumn());
+        $this->assertSame(0, (int) $pdo->query("select count(*) from sqlite_master where name = 'audit_logs'")->fetchColumn(), 'чужая таблица не попала в новую базу');
+        $this->assertSame(1, (int) (new PDO('sqlite:'.$other))->query('select count(*) from audit_logs')->fetchColumn(), 'чужая база не тронута');
+    }
+
+    public function test_sql_errors_are_explained_without_connection_dump(): void
+    {
+        $pdoError = new PDOException("SQLSTATE[42S02]: Base table or view not found: 1146 Table 'tsoy_banq.audit_logs' doesn't exist");
+        $pdoError->errorInfo = ['42S02', 1146, "Table 'tsoy_banq.audit_logs' doesn't exist"];
+        $e = new QueryException('banq_target', 'select exists(select * from `audit_logs`) as `exists`', [], $pdoError);
+
+        $text = app(DatabaseSwitcher::class)->explain($e);
+        $this->assertStringContainsString('нет нужной таблицы', $text);
+        $this->assertStringNotContainsString('Connection:', $text);
+        $this->assertStringNotContainsString('select exists', $text);
+
+        $denied = new PDOException('SQLSTATE[HY000] [1045] Access denied');
+        $denied->errorInfo = ['HY000', 1045, 'Access denied'];
+        $this->assertStringContainsString('логин, пароль', app(DatabaseSwitcher::class)->explain(new QueryException('banq_target', 'x', [], $denied)));
     }
 }
