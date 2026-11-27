@@ -3,6 +3,7 @@
 <html lang="ru" data-theme="{{ settings('theme.default', 'light') }}" data-currency="{{ currency_symbol() }}">
 <head>
     @include('partials.head')
+    @stack('head'){{-- A37 · RSS, Open Graph публикации --}}
     {!! settings('site.counters') !!}
 </head>
 <body x-data="{ nav: false }">
@@ -35,6 +36,8 @@
             {{-- A18 · Банки и рейтинги --}}
             <a href="{{ route('banks.index') }}" class="pill {{ request()->routeIs('banks.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'bank', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('banks.*') ? '' : 'text-[var(--brand-2)]')]) Банки</a>
             <a href="{{ route('ratings') }}" class="pill {{ request()->routeIs('ratings') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'star', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('ratings') ? '' : 'text-[var(--brand-3)]')]) Рейтинги</a>
+            {{-- A37 · Журнал --}}
+            <a href="{{ route('blog.index') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('blog.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'news', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('blog.*') ? '' : 'text-[var(--brand-1)]')]) Журнал</a>
             @php($cmpStore = request()->routeIs('cards.*', 'payment-systems.*', 'packages.*') ? 'cardCompare' : 'compare') {{-- A33 · в разделе карт — сравнение карт --}}
             <a href="{{ route($cmpStore === 'cardCompare' ? 'cards.compare' : 'deposits.compare') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('deposits.compare', 'cards.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare', 'cards.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.{{ $cmpStore }}.items.length" x-text="$store.{{ $cmpStore }}.items.length" x-cloak></span></a>
         </nav>
@@ -89,7 +92,7 @@
                     ['gift', 'Пакеты услуг', route('packages.index')],
                     ['globe', 'Платёжные системы', route('payment-systems.index')],
                     ['loan', 'Кредиты', '#soon'],
-                    ['news', 'Новости', '#soon'],
+                    ['news', 'Журнал', route('blog.index')], // A37
                 ] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-[var(--card)] transition">
                         @include('partials.icon', ['i' => $icon, 'c' => 'w-[19px] h-[19px] muted'])

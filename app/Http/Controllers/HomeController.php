@@ -41,6 +41,8 @@ class HomeController extends Controller
             'systemsCount' => PaymentSystem::query()->active()->count(),
             'packagesCount' => ServicePackage::query()->active()->inCountry()->count(),
             'fx' => $showFx ? $fx->board(country()) : null,
+            // A37 · свежие публикации журнала
+            'news' => \App\Models\Post::query()->feed()->limit(4)->get(),
         ]);
     }
 }

@@ -224,6 +224,7 @@
                     </div>
                 </section>
             @endif
+            @include('blog._about', ['about' => $card, 'title' => 'О карте в журнале']) {{-- A37 --}}
         </aside>
     </div>
 

@@ -178,6 +178,30 @@
             </div>
         </section>
 
+        {{-- A37 · Журнал: свежие публикации --}}
+        @if ($news->isNotEmpty())
+            <section class="card p-6" data-reveal style="--d:.03s">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h2 class="font-display font-bold text-xl">Журнал</h2>
+                    <a href="{{ route('blog.index') }}" class="btn btn-ghost !py-1.5 !px-3 text-sm">Все @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
+                </div>
+                @php $lead = $news->first(); @endphp
+                <a href="{{ $lead->url() }}" class="block group">
+                    <span class="block aspect-[16/9] rounded-[14px] overflow-hidden">@include('blog._cover', ['post' => $lead, 'c' => 'group-hover:scale-[1.03] transition duration-700'])</span>
+                    <span class="flex items-center gap-2 mt-3">@include('blog._category', ['post' => $lead])</span>
+                    <span class="block font-semibold leading-snug mt-1.5 group-hover:underline underline-offset-4">{{ $lead->title }}</span>
+                </a>
+                <div class="mt-2">
+                    @foreach ($news->skip(1) as $p)
+                        <a href="{{ $p->url() }}" class="list-row group !items-start">
+                            <span class="min-w-0"><span class="font-medium leading-snug line-clamp-2 group-hover:underline underline-offset-4">{{ $p->title }}</span>
+                                <span class="text-xs muted block mt-1">{{ $p->published_at->isToday() ? 'сегодня, '.$p->published_at->format('H:i') : $p->published_at->translatedFormat('j F') }} · {{ $p->category?->name ?? $p->kindLabel() }}</span></span>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <section id="calc" class="card p-6 space-y-5 scroll-mt-32" x-data="calc({{ (float) ($best?->rate ?? 15) }})" data-reveal style="--d:.06s">
             <div>
                 <h2 class="font-display font-bold text-xl">Калькулятор дохода</h2>

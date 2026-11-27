@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
  * Контроллер — App\Http\Controllers\Admin\ResourceController, шаблоны — resources/views/admin/resource/*.
  * Новый раздел (карты, кредиты) = новый класс в App\Admin\Resources + строка в ResourceRegistry.
  *
- * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|list|json|password|email|url|checks (A32: набор флажков),
+ * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|datetime (A37)|list|json|password|email|url|checks (A32: набор флажков),
  *              'virtual' => true (A32: не атрибут модели — значение 'value' => fn (Model), запись — в saved()),
  *              'rules' => [...], 'options' => [v => label] | Closure, 'help', 'span' => 2, 'group' => 'Основное', 'placeholder'].
  * Имя с точкой (regulator.short) пишется внутрь JSON-поля модели.
@@ -120,6 +120,12 @@ abstract class Resource
     public function editAside(Model $m): ?string
     {
         return null;
+    }
+
+    /** A37 · Шаблон формы создания/правки (у публикаций — свой редактор). */
+    public function formView(): string
+    {
+        return 'admin.resource.form';
     }
 
     /** Ссылка «на сайте». */
@@ -233,7 +239,7 @@ abstract class Resource
         }
         $v = $m ? data_get($m, $f['name']) : ($defaults[$f['name']] ?? ($f['default'] ?? null));
         $v = $v instanceof \BackedEnum ? $v->value : $v;
-        $v = $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : $v;
+        $v = $v instanceof \DateTimeInterface ? $v->format(($f['type'] ?? '') === 'datetime' ? 'Y-m-d\TH:i' : 'Y-m-d') : $v; // A37: datetime
 
         return match ($f['type'] ?? 'text') {
             'list' => is_array($v) ? implode("\n", $v) : $v,
