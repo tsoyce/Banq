@@ -19,7 +19,7 @@ use Throwable;
  * → сверка числа строк → копия .env в storage/app/env-backups → запись .env.
  * Старая база не трогается, поэтому «Вернуть прежнюю» просто восстанавливает .env из копии.
  *
- * A37 · Список таблиц берётся только из текущей базы подключения: на MySQL getTables() без схемы
+ * A38 · Список таблиц берётся только из текущей базы подключения: на MySQL getTables() без схемы
  * отдаёт таблицы всех баз сервера (так в перенос попадала чужая audit_logs → «Table doesn't exist»).
  * Миграции проверяются по коду выхода; после них все таблицы старой базы должны быть в новой;
  * ошибки SQL переводятся в понятный текст без дампа подключения.
@@ -134,7 +134,7 @@ class DatabaseSwitcher
         return ['tables' => count($copied), 'rows' => array_sum($copied), 'backup' => $backup, 'copied' => $copied];
     }
 
-    /** A37 · Ошибка SQL → короткий русский текст без «(Connection: …, SQL: …)». */
+    /** A38 · Ошибка SQL → короткий русский текст без «(Connection: …, SQL: …)». */
     public function explain(QueryException $e): string
     {
         $code = (int) ($e->errorInfo[1] ?? 0);
@@ -267,7 +267,7 @@ class DatabaseSwitcher
         return $ra !== false && $rb !== false ? $ra === $rb : $a === $b;
     }
 
-    /** Таблицы только текущей базы подключения (A37: не всех баз сервера MySQL). */
+    /** Таблицы только текущей базы подключения (A38: не всех баз сервера MySQL). */
     private function tables(Connection $c): array
     {
         $prefix = $c->getTablePrefix();

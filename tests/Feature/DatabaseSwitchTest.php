@@ -91,7 +91,7 @@ class DatabaseSwitchTest extends TestCase
     }
 
     /**
-     * A37 · На MySQL сервер видит и чужие базы: getTables() без схемы отдавал их таблицы,
+     * A38 · На MySQL сервер видит и чужие базы: getTables() без схемы отдавал их таблицы,
      * и перенос падал «Table 'tsoy_banq.audit_logs' doesn't exist». Здесь чужая база — ATTACH к новой SQLite.
      */
     public function test_switch_ignores_tables_of_other_databases_on_server(): void
