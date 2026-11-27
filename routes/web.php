@@ -138,6 +138,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::post('/tokens', 'issueToken')->name('tokens.store');
         Route::delete('/tokens/{token}', 'revokeToken')->name('tokens.destroy');
     });
+    // A39 · Табличный редактор («как Excel»): строки любой сущности, вставка из Excel, сохранение через движок обмена
+    Route::prefix('exchange/grid')->name('exchange.grid')->controller(Admin\GridController::class)->group(function () {
+        Route::get('/', 'index')->name('.index');
+        Route::get('/{entity}', 'show')->name('');
+        Route::get('/{entity}/rows', 'rows')->name('.rows');
+        Route::post('/{entity}', 'save')->middleware('throttle:60,1')->name('.save');
+    });
 
     // A40 · Бегущая строка и официальные курсы валют
     Route::get('/ticker', [Admin\TickerController::class, 'edit'])->name('ticker.edit');

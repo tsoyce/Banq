@@ -2,31 +2,41 @@
 
 namespace App\Services\Exchange\Formats;
 
-/** A22 · CSV: одна сущность на файл (или колонка _entity). Разделитель угадывается: , ; или табуляция. */
+/**
+ * A22 · CSV: одна сущность на файл (или колонка _entity). Разделитель угадывается: , ; или табуляция.
+ * A39 · С разделителем "\t" — формат TSV (так Excel и Google Таблицы кладут ячейки в буфер обмена).
+ */
 class CsvFormat implements Format
 {
     use Tabular;
 
+    public function __construct(private ?string $delimiter = null) {}
+
+    private function tsv(): bool
+    {
+        return $this->delimiter === "\t";
+    }
+
     public function key(): string
     {
-        return 'csv';
+        return $this->tsv() ? 'tsv' : 'csv';
     }
 
     public function extension(): string
     {
-        return 'csv';
+        return $this->key();
     }
 
     public function mime(): string
     {
-        return 'text/csv';
+        return $this->tsv() ? 'text/tab-separated-values' : 'text/csv';
     }
 
     public function read(string $content, ?string $entity = null): array
     {
         $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
         $first = strtok($content, "\n") ?: '';
-        $delimiter = collect([',', ';', "\t"])->sortByDesc(fn ($d) => substr_count($first, $d))->first();
+        $delimiter = $this->delimiter ?? collect([',', ';', "\t"])->sortByDesc(fn ($d) => substr_count($first, $d))->first();
 
         $fh = fopen('php://memory', 'r+');
         fwrite($fh, $content);
@@ -52,9 +62,10 @@ class CsvFormat implements Format
         [$headers, $data] = $this->flatten($rows);
         $fh = fopen('php://memory', 'r+');
         fwrite($fh, "\xEF\xBB\xBF"); // BOM — чтобы Excel открыл кириллицу
-        fputcsv($fh, $headers, ',', '"', '');
+        $d = $this->delimiter ?? ',';
+        fputcsv($fh, $headers, $d, '"', '');
         foreach ($data as $r) {
-            fputcsv($fh, $r, ',', '"', '');
+            fputcsv($fh, $r, $d, '"', '');
         }
         rewind($fh);
 

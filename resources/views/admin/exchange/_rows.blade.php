@@ -1,5 +1,5 @@
 {{-- A22 · Строки отчёта импорта: действие, ключ, дифф полей, причина. $rows, $entities --}}
-@php($actionLabels = ['created' => ['новая', 'var(--ok)'], 'updated' => ['изменена', 'var(--brand-1)'], 'unchanged' => ['без изменений', 'var(--faint)'], 'skipped' => ['пропущена', 'var(--warn)'], 'error' => ['ошибка', 'var(--bad)']])
+@php($actionLabels = ['created' => ['новая', 'var(--ok)'], 'updated' => ['изменена', 'var(--brand-1)'], 'deleted' => ['удалена', 'var(--bad)'], 'unchanged' => ['без изменений', 'var(--faint)'], 'skipped' => ['пропущена', 'var(--warn)'], 'error' => ['ошибка', 'var(--bad)']])
 <div x-data="{ show: 'changes' }" class="card overflow-hidden">
     <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-[var(--line)]">
         <p class="font-semibold mr-auto">Построчно</p>

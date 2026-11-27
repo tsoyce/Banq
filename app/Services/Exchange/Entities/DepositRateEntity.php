@@ -104,9 +104,23 @@ class DepositRateEntity extends Entity
     public function persist(array $row, ImportContext $ctx): array
     {
         $a = $this->attributes($row, $ctx, null);
-        $same = fn (Builder $q) => $q->where('deposit_product_id', $a['deposit_product_id'])->where('currency', $a['currency'])
-            ->where(fn ($w) => $a['term_months'] === null ? $w->whereNull('term_months') : $w->where('term_months', $a['term_months']))
-            ->where(fn ($w) => $a['amount_from'] === null ? $w->whereNull('amount_from') : $w->where('amount_from', $a['amount_from']));
+        $same = self::sameKey($a);
+
+        // A39 · строка из табличного редактора (_id): историческую запись правим на месте (исправление опечатки),
+        // у действующей сменили ключ (срок, валюту, порог) — закрываем её, дальше обычная логика
+        if ($ctx->rowId !== null) {
+            $own = DepositRate::query()->find($ctx->rowId) ?? throw new RowError("ставка #{$ctx->rowId} не найдена — её уже удалили?");
+            if ($own->valid_to !== null) {
+                $own->fill(array_diff_key($a, ['source' => 1]));
+                $changes = self::diff($own);
+                $own->save();
+
+                return $changes ? ['updated', $changes, null] : ['unchanged', [], null];
+            }
+            if (! $same(DepositRate::query())->whereKey($own->id)->exists()) {
+                $own->update(['valid_to' => $a['valid_from']]);
+            }
+        }
 
         // историческая запись
         if ($a['valid_to'] !== null) {
@@ -147,6 +161,35 @@ class DepositRateEntity extends Entity
         DepositRate::create($a + ['import_id' => $ctx->importId]);
 
         return [$current ? 'updated' : 'created', $changes, null];
+    }
+
+    /** Ставки с тем же ключом: вклад + валюта + срок + порог суммы. */
+    private static function sameKey(array $a): \Closure
+    {
+        return fn (Builder $q) => $q->where('deposit_product_id', $a['deposit_product_id'])->where('currency', $a['currency'])
+            ->where(fn ($w) => $a['term_months'] === null ? $w->whereNull('term_months') : $w->where('term_months', $a['term_months']))
+            ->where(fn ($w) => $a['amount_from'] === null ? $w->whereNull('amount_from') : $w->where('amount_from', $a['amount_from']));
+    }
+
+    /** A39 · «Удалить» ставку = закрыть (valid_to = сегодня): история не теряется (правило 5). Закрытая — не трогаем. */
+    public function remove(array $row, ImportContext $ctx): array
+    {
+        if ($ctx->rowId !== null) {
+            $rate = DepositRate::query()->find($ctx->rowId);
+        } else {
+            $row['rate'] ??= 0;
+            $rate = self::sameKey($this->attributes($row, $ctx, null))(DepositRate::query())->whereNull('valid_to')->latest('valid_from')->first();
+        }
+        if (! $rate) {
+            return ['skipped', [], 'действующей ставки нет — закрывать нечего'];
+        }
+        if ($rate->valid_to !== null) {
+            return ['skipped', [], 'ставка уже закрыта — история не удаляется'];
+        }
+        $today = today()->toDateString();
+        $rate->update(['valid_to' => $rate->valid_from->toDateString() > $today ? $rate->valid_from->toDateString() : $today]);
+
+        return ['deleted', ['valid_to' => [null, $rate->valid_to->toDateString()]], 'ставка закрыта, история сохранена'];
     }
 
     private static function num(mixed $v): ?float

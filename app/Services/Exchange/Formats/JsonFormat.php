@@ -31,7 +31,7 @@ class JsonFormat implements Format
         $data = json_decode($content, true);
         if (! is_array($data) && str_contains($content, "\n")) {
             // JSON Lines
-            $data = array_values(array_filter(array_map(fn ($l) => json_decode($l, true), preg_split('/\R/', $content))));
+            $data = array_values(array_filter(array_map(fn ($l) => json_decode($l, true), preg_split('/\R/u', $content))));
         }
         if (! is_array($data)) {
             throw new InvalidArgumentException('Это не JSON: '.json_last_error_msg());

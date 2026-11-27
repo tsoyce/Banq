@@ -44,7 +44,7 @@ class DataExchangeTest extends TestCase
     public function test_nested_bundle_imports_and_reimport_is_idempotent(): void
     {
         $r = $this->run_(self::BUNDLE);
-        $this->assertSame(['created' => 6, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'error' => 0], $r['totals'], json_encode($r['rows'], JSON_UNESCAPED_UNICODE));
+        $this->assertSame(['created' => 6, 'updated' => 0, 'deleted' => 0, 'unchanged' => 0, 'skipped' => 0, 'error' => 0], $r['totals'], json_encode($r['rows'], JSON_UNESCAPED_UNICODE));
 
         $bcc = Bank::query()->whereHas('country', fn ($q) => $q->where('code', 'KZ'))->where('code', 'BCC')->firstOrFail();
         $this->assertSame(['ЦентрКредит', 'CenterCredit'], $bcc->aliases);
@@ -90,7 +90,7 @@ class DataExchangeTest extends TestCase
     {
         $this->run_(self::BUNDLE);
         $ex = app(DataExchange::class);
-        foreach (['json', 'csv', 'xlsx'] as $format) {
+        foreach (array_keys($ex->formats()) as $format) { // A39 · + ndjson, xml, yaml, tsv
             $bundle = $ex->export();
             $content = $ex->render($bundle, $format);
             $r = $ex->import($ex->parse($content, $format), new ImportOptions)->toArray();

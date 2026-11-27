@@ -17,6 +17,7 @@
         'Блог' => collect(['posts', 'post-categories', 'comments'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
             ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
+            ['admin.exchange.grid.index', [], 'Таблица', 'grid', request()->routeIs('admin.exchange.grid', 'admin.exchange.grid.*')], // A39
             ['admin.exchange.tokens', [], 'Токены API', 'key', request()->routeIs('admin.exchange.tokens')],
             ['admin.import.index', [], 'Матрица Excel', 'upload', request()->routeIs('admin.import.*')],
         ],
