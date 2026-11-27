@@ -9,6 +9,8 @@ use App\Services\Exchange\Entities\CountryEntity;
 use App\Services\Exchange\Entities\DepositProductEntity;
 use App\Services\Exchange\Entities\DepositRateEntity;
 use App\Services\Exchange\Entities\PaymentSystemEntity;
+use App\Services\Exchange\Entities\PostCategoryEntity;
+use App\Services\Exchange\Entities\PostEntity;
 use App\Services\Exchange\Entities\ServicePackageEntity;
 
 /**
@@ -25,7 +27,8 @@ class EntityRegistry
     {
         // A31 · карты: платёжные системы → уровни → карты (ссылаются на системы) → пакеты (ссылаются на карты)
         foreach ([new CountryEntity, new BankEntity, new DepositProductEntity, new DepositRateEntity,
-            new PaymentSystemEntity, new CardTierEntity, new CardEntity, new ServicePackageEntity] as $e) {
+            new PaymentSystemEntity, new CardTierEntity, new CardEntity, new ServicePackageEntity,
+            new PostCategoryEntity, new PostEntity] as $e) { // A37 · блог: рубрики → публикации (ссылаются на банки и продукты)
             $this->entities[$e->key()] = $e;
         }
     }
@@ -66,7 +69,7 @@ class EntityRegistry
     {
         return [
             'version' => 1,
-            'about' => 'TSOY.IN Banq — формат обмена данными. Пакет JSON: {"countries": [...], "banks": [...], "deposit_products": [...], "deposit_rates": [...], "payment_systems": [...], "card_tiers": [...], "cards": [...], "service_packages": [...]}; '
+            'about' => 'TSOY.IN Banq — формат обмена данными. Пакет JSON: {"countries": [...], "banks": [...], "deposit_products": [...], "deposit_rates": [...], "payment_systems": [...], "card_tiers": [...], "cards": [...], "service_packages": [...], "post_categories": [...], "posts": [...]}; '
                 .'строки ищутся по естественным ключам, повторная заливка не плодит дубли. Банк можно вложить в страну (banks), вклад — в банк (deposit_products), ставки — во вклад (rates), карты и пакеты — в банк (cards, service_packages), уровни — в платёжную систему (tiers). '
                 .'CSV/XLSX: заголовки = имена полей, вложенный JSON — через точку (deposit_guarantee.limits.term), списки — через «|». В XLSX лист = сущность.',
             'order' => $this->keys(),

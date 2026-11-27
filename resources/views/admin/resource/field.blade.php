@@ -58,7 +58,7 @@
                 @break
             @default
                 <input id="{{ $id }}" name="{{ $name }}" value="{{ $val }}" class="input {{ $f['class'] ?? '' }}"
-                       type="{{ ['number' => 'number', 'decimal' => 'number', 'date' => 'date', 'email' => 'email', 'url' => 'url', 'password' => 'password'][$type] ?? 'text' }}"
+                       type="{{ ['number' => 'number', 'decimal' => 'number', 'date' => 'date', 'datetime' => 'datetime-local', 'email' => 'email', 'url' => 'url', 'password' => 'password'][$type] ?? 'text' }}"
                        @if ($type === 'decimal') step="any" inputmode="decimal" @endif @if ($type === 'number') step="1" inputmode="numeric" @endif
                        @if ($type === 'password') autocomplete="new-password" @endif placeholder="{{ $f['placeholder'] ?? '' }}">
         @endswitch

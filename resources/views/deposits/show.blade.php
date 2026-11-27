@@ -198,6 +198,7 @@
                     @endforeach
                 </section>
             @endif
+            @include('blog._about', ['about' => $product, 'title' => 'О вкладе в журнале']) {{-- A37 --}}
         </aside>
     </div>
 

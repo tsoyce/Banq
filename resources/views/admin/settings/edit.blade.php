@@ -54,6 +54,13 @@
             <label class="field sm:col-span-2"><span>Счётчики и метрики (HTML, вставляется в &lt;head&gt;)</span><textarea name="counters" class="input font-mono text-xs">{{ old('counters', $s['site.counters']) }}</textarea></label>
         </section>
 
+        {{-- A37 · Журнал --}}
+        <section class="glass p-6 grid gap-3">
+            <h2 class="font-display font-bold text-lg">Журнал</h2>
+            <label class="switch"><span>Премодерация комментариев<span class="block text-xs muted font-normal">Новые комментарии читателей появятся после проверки в «Блог → Комментарии»</span></span>
+                <input type="hidden" name="blog_premoderation" value="0"><input type="checkbox" name="blog_premoderation" value="1" class="sr-only" @checked(old('blog_premoderation', $s['blog.premoderation'] ?? false))><i></i></label>
+        </section>
+
         @if ($errors->any())<ul class="error space-y-1">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>@endif
         <button class="btn btn-primary">Сохранить</button>
     </div>
