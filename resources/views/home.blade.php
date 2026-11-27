@@ -51,8 +51,8 @@
                 </p>
                 <div class="text-sm space-y-4">
                     <div>
-                        <p class="font-semibold">{{ $leader?->product->bank->displayName() ?? 'Загрузите ставки' }}</p>
-                        <p class="opacity-60">@if ($leader){{ $leader->product->type->label() }} · ГЭСВ&nbsp;{{ rate_format($leader->effective_rate) }}@else в&nbsp;админке → Обмен данными @endif</p>
+                        <p class="font-semibold">{{ $leader?->product->bank->displayName() ?? 'Лучшая ставка рынка' }}</p>
+                        <p class="opacity-60">@if ($leader){{ $leader->product->type->label() }} · ГЭСВ&nbsp;{{ rate_format($leader->effective_rate) }}@else данные скоро появятся @endif</p>
                     </div>
                     @if ($leader)
                         @php $perYear = 1_000_000 * (float) ($leader->effective_rate ?? $leader->rate) / 100; @endphp
@@ -115,7 +115,7 @@
                             <td class="text-right tabular muted text-sm hidden sm:table-cell">{{ rate_format($r->effective_rate) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center py-12 muted">Ставок пока нет. Загрузите Excel в админке → Импорт.</td></tr>
+                        <tr><td colspan="6" class="text-center py-12 muted">Ставки появятся совсем скоро — мы загружаем данные банков.</td></tr>
                     @endforelse
                     </tbody>
                 </table>

@@ -27,7 +27,7 @@
                         @endforeach
                     @endforeach
                 @else
-                    <span class="text-white/60">Скоро здесь появятся ставки — загрузите Excel в админке</span>
+                    <span class="text-white/60">Скоро здесь побегут ставки банков — данные уже загружаются</span>
                 @endif
             </div>
         </div>
@@ -128,8 +128,9 @@
             <span class="bank-mark" :style="'--c:' + i.color" x-text="i.code" :title="i.name"></span>
         </template>
     </div>
-    <span class="text-sm font-semibold whitespace-nowrap" x-text="$store.{{ $cmpStore }}.full ? 'Максимум ' + $store.{{ $cmpStore }}.limit + ' {{ $cmpStore === 'cardCompare' ? 'карты' : 'вклада' }}' : 'К сравнению: ' + $store.{{ $cmpStore }}.items.length + ' из ' + $store.{{ $cmpStore }}.limit"></span>
-    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.{{ $cmpStore }}.clear()">очистить</button>
+    <span class="cb-short text-sm font-semibold tabular whitespace-nowrap" x-text="$store.{{ $cmpStore }}.items.length + '/' + $store.{{ $cmpStore }}.limit"></span>
+    <span class="cb-long text-sm font-semibold whitespace-nowrap" x-text="$store.{{ $cmpStore }}.full ? 'Максимум ' + $store.{{ $cmpStore }}.limit + ' {{ $cmpStore === 'cardCompare' ? 'карты' : 'вклада' }}' : 'К сравнению: ' + $store.{{ $cmpStore }}.items.length + ' из ' + $store.{{ $cmpStore }}.limit"></span>
+    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.{{ $cmpStore }}.clear()" aria-label="Очистить сравнение"><span class="cb-long">очистить</span><span class="cb-short">@include('partials.icon', ['i' => 'x', 'c' => 'w-4 h-4'])</span></button>
     <a :href="$store.{{ $cmpStore }}.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
 </div>
 @endunless

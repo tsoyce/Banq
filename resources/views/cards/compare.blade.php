@@ -48,9 +48,9 @@
             <a href="{{ route('cards.index') }}" class="btn btn-primary">В каталог карт</a>
         </section>
     @else
-        <section class="card p-3 sm:p-5 overflow-x-auto" data-reveal>
+        <section class="card p-3 sm:p-5 overflow-x-auto cmp-scroll" data-reveal x-data="{ s: false }" @scroll.passive="s = $el.scrollLeft > 4" :class="s && 'is-scrolled'">{{-- A36: тень у закреплённой колонки при прокрутке --}}
             <table class="table cmp-table tabular min-w-[680px]" style="table-layout: fixed">
-                <colgroup><col class="w-[190px]">@foreach ($offers as $o)<col>@endforeach @if ($offers->count() < $limit)<col class="w-[170px]">@endif</colgroup>
+                <colgroup><col class="w-[128px] sm:w-[190px]">@foreach ($offers as $o)<col>@endforeach @if ($offers->count() < $limit)<col class="w-[170px]">@endif</colgroup>
                 <thead>
                 <tr>
                     <th></th>

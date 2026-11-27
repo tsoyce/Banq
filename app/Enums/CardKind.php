@@ -28,6 +28,16 @@ enum CardKind: string
         };
     }
 
+    /** A36 · «среди дебетовых карт» — родительный падеж множественного числа, со строчной. */
+    public function genitivePlural(): string
+    {
+        return match ($this) {
+            self::Debit => 'дебетовых',
+            self::Credit => 'кредитных',
+            self::Prepaid => 'предоплаченных',
+        };
+    }
+
     public function hint(): string
     {
         return match ($this) {

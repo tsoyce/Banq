@@ -36,7 +36,7 @@
             <span class="text-[11px] muted leading-tight">оценка<br>Banq</span>
         </span>
         <span class="flex items-center gap-2">
-            @include('partials.fav', ['type' => 'card', 'id' => $c->id, 'on' => auth()->user()?->hasFavorite($c), 'label' => false])
+            @include('partials.fav', ['type' => 'card', 'id' => $c->id, 'on' => auth()->user()?->hasFavorite($c), 'wide' => false])
             <button type="button" class="cmp-btn" x-data :class="$store.cardCompare.has({{ $c->id }}) && 'is-on'" @click="$store.cardCompare.toggle(@js($cmp))"
                     :title="$store.cardCompare.has({{ $c->id }}) ? 'Убрать из сравнения' : 'Добавить к сравнению'" aria-label="Сравнить">
                 <span x-show="!$store.cardCompare.has({{ $c->id }})">@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px]'])</span>

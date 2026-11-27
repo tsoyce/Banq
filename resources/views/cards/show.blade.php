@@ -85,7 +85,7 @@
                     @include('partials.icon', ['i' => 'scale', 'c' => 'w-4 h-4'])
                     <span x-text="$store.cardCompare.has({{ $card->id }}) ? 'В сравнении' : 'Добавить к сравнению'">Добавить к сравнению</span>
                 </button>
-                @include('partials.fav', ['type' => 'card', 'id' => $card->id, 'on' => auth()->user()?->hasFavorite($card), 'label' => true])
+                @include('partials.fav', ['type' => 'card', 'id' => $card->id, 'on' => auth()->user()?->hasFavorite($card), 'wide' => true])
                 @if ($card->source_url || $bank->website)
                     <a href="{{ $card->source_url ?: $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline">Оформить на сайте банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>
                 @endif
@@ -99,7 +99,7 @@
                 @include('partials.gauge', ['score' => $offer->score, 'color' => 'var(--brand-2)', 'size' => 112, 'sub' => 'из 5'])
                 <div class="min-w-0">
                     <p class="font-semibold">@if ($rank)<span class="text-grad font-display text-2xl">{{ $rank }}</span> место из {{ $sameKind }}@else Оценка Banq @endif</p>
-                    <p class="text-sm opacity-60 mt-1">среди {{ mb_strtolower($card->kind->plural()) }} карт {{ country()?->genitive() }} — по данным, без рекламы</p>
+                    <p class="text-sm opacity-60 mt-1">среди {{ $card->kind->genitivePlural() }} карт {{ country()?->genitive() }} — по данным, без рекламы</p>
                     <a href="#score" class="text-sm font-semibold mt-2 inline-flex items-center gap-1 opacity-80 hover:opacity-100">Как считаем @include('partials.icon', ['i' => 'arrow', 'c' => 'w-3.5 h-3.5'])</a>
                 </div>
             </div>

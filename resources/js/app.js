@@ -90,7 +90,8 @@ export function depositIncome(amount, months, rate, effective = null, cap = true
     return cap ? amount * (Math.pow(1 + rate / 100 / 12, months) - 1) : amount * (rate / 100) * (months / 12);
 }
 // A21 · знак валюты страны — из <html data-currency>
-const money = (v) => Math.round(v).toLocaleString('ru-RU') + ' ' + (document.documentElement.dataset.currency || '₸');
+// A36 · неразрывный пробел перед знаком валюты (как money_format() на сервере): «₸» не уезжает на новую строку
+const money = (v) => Math.round(v).toLocaleString('ru-RU') + '\u00A0' + (document.documentElement.dataset.currency || '₸');
 const parseMoney = (s) => +(String(s).replace(/\D/g, '')) || 0;
 
 // A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц.

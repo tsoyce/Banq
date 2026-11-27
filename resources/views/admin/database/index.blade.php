@@ -116,14 +116,14 @@
 
     <aside class="space-y-4">
         <section class="card-ink p-6 rounded-[var(--radius,1.5rem)]">
-            <p class="kicker !text-white/60">Как это работает</p>
-            <ol class="mt-3 space-y-2 text-sm text-white/85 list-decimal pl-4">
+            <p class="kicker !text-[var(--ink-text)] opacity-60">Как это работает</p>{{-- A36: в тёмной теме чернила белые — цвет от --ink-text, а не text-white --}}
+            <ol class="mt-3 space-y-2 text-sm opacity-85 list-decimal pl-4">
                 <li>Проверка подключения к новой базе.</li>
                 <li>Миграции: все таблицы проекта.</li>
                 <li>Перенос таблиц по 500 строк и сверка числа строк. Кеш и очереди не переносятся.</li>
                 <li>Копия <code>.env</code> → <code>storage/app/env-backups</code>, запись новых <code>DB_*</code>.</li>
             </ol>
-            <p class="text-xs text-white/60 mt-4">Если что-то пошло не так на шагах 1–3, сайт остаётся на прежней базе.</p>
+            <p class="text-xs opacity-60 mt-4">Если что-то пошло не так на шагах 1–3, сайт остаётся на прежней базе.</p>
         </section>
 
         <section class="card p-6">
