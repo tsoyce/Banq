@@ -9,7 +9,7 @@
         <div class="card col-span-6 lg:col-span-4 p-6 lg:p-7" data-reveal>
             <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <h2 class="font-display font-bold text-xl">Мои отзывы</h2>
-                <nav class="seg max-w-full overflow-x-auto" aria-label="Статус">
+                <nav class="seg max-w-full max-sm:grid max-sm:grid-cols-2" aria-label="Статус">{{-- A36 --}}
                     <a href="{{ route('account.reviews') }}" class="{{ $status ? '' : 'is-active' }}">Все</a>
                     <a href="{{ route('account.reviews', ['status' => 'approved']) }}" class="{{ $status === 'approved' ? 'is-active' : '' }}">Опубликованы <span class="tabular muted">{{ $stats['published'] }}</span></a>
                     <a href="{{ route('account.reviews', ['status' => 'pending']) }}" class="{{ $status === 'pending' ? 'is-active' : '' }}">На модерации <span class="tabular muted">{{ $stats['pending'] }}</span></a>

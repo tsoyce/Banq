@@ -18,6 +18,7 @@ app/
 │  ├─ Middleware/EnsureInstalled.php  A03 глобальный: .env/APP_KEY, редирект на /install
 │  ├─ Middleware/EnsureAdmin.php .... A09 роль admin|editor для /admin
 │  ├─ Middleware/ResolveCountry.php . A21 текущая страна витрины (?country= → cookie → настройка)
+│  ├─ Middleware/Typography.php ..... A36 неразрывные пробелы в HTML-ответах (web, после ResolveCountry) → Support/Typograph
 │  ├─ Middleware/AuthenticateApiToken A23 Bearer-токен для /api/v1, право read|write
 │  └─ Controllers/
 │     ├─ HomeController.php ......... A10 главная-дашборд
@@ -61,7 +62,8 @@ app/
 │              RatingBoard (три оценки, места, ▲▼, snapshot), BankScore (DTO)   A18
 ├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка, A21 — по стране)  A03 A05 A13
 │          CurrentCountry (текущая страна, scoped)  A21
-└─ helpers.php ...................... settings(), project_years(), rate_format(), plural(), country(), currency_symbol() (A21)
+├─ Support/Typograph.php ........... A36 экранная типографика русского текста (только текст между тегами)
+└─ helpers.php ...................... settings(), project_years(), rate_format(), plural(), country(), currency_symbol() (A21), percent_format() (A36)
 ├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка)  A03 A05 A13
 │          Username (генерация/правила адреса профиля), Countries (страны для анкеты, ISO-2)  A28
 └─ helpers.php ...................... settings(), project_years(), rate_format(), plural()
@@ -205,6 +207,7 @@ HTTP запрос
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
 | `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
+| `BANQ_TYPOGRAPH` | phpunit.xml (`false`), вручную | true — A36 middleware типографики включён |
 | `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
@@ -269,6 +272,7 @@ HTTP запрос
 - A18: токены `--s-author --s-objective --s-people`; классы `.kicker .num-hero .num-card .cells(.cols-2|.cols-3, .cell-label) .delta(-up|-down|-flat) .gauge .stars .star-pick .dist-row .bank-card .avatar`, `.seg > a(.is-active)` (сегмент-ссылки), `.table .is-sorted`. Partials: `gauge` ($score, $color, $size, $sub), `stars` ($score, $starSize), `delta` ($d, $unit). Иконки: pen users thumb quote award info user.
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
+- A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
 - A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.
@@ -280,7 +284,8 @@ HTTP запрос
 |---|---|
 | `settings($key = null, $default = null)` | значение настройки или сам сервис Settings |
 | `project_years()` | годы жизни проекта |
-| `rate_format($rate)` | 16.350 → «16,35%» |
+| `rate_format($rate)` | 16.350 → «16,35%»; A36: всегда два знака — 18 → «18,00%» |
+| `percent_format($v)` | A36: без лишних нулей — 10 → «10%», 1.5 → «1,5%» (кэшбэк, доли) |
 | `Bank::findByIdentifier($s)` | поиск по коду/имени/алиасу без учёта регистра, пробелов, дефисов |
 | `DepositType::fromLabel($s)` | «Табу» → Savings и т.п. |
 | `plural($n, 'вклад', 'вклада', 'вкладов')` | русское склонение по числу (A14) |
@@ -308,6 +313,7 @@ HTTP запрос
 | `ratings.people_prior_weight`, `ratings.people_prior_mean` | байесовское среднее народного: 5 оценок по 3,5 | PeopleRating (A18) |
 | `ratings.review_min_length` | минимум символов в отзыве (80) | ReviewController, форма (A18) |
 | `cards.features`, `cards.wallets` | подписи возможностей карт и кошельков (A30) | фильтры, карточка, админка |
+| `typograph` | A36: вкл/выкл неразрывных пробелов (env `BANQ_TYPOGRAPH`) | Middleware Typography |
 | `cards.compare_limit` | до 4 карт в сравнении | $store.cardCompare (A33) |
 | `cards.score.debit`, `cards.score.credit` | веса «Оценки Banq» | CardScore (A33) |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |

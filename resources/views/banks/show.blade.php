@@ -93,7 +93,7 @@
     </section>
 
     {{-- Вклады — на всю ширину: карточке предложения нужна широкая сетка --}}
-    <section id="deposits" class="space-y-3 scroll-mt-32">
+    <section id="deposits" class="offers space-y-3 scroll-mt-32">{{-- A36: .offers — контейнер для раскладки карточки вклада --}}
         <div class="flex items-end justify-between gap-3 px-1">
             <div>
                 <p class="kicker"><b>01</b> / Вклады</p>

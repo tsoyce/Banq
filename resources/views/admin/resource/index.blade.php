@@ -34,15 +34,16 @@
 @endif
 
 {{-- Поиск и фильтры: обычная GET-форма, состояние в URL --}}
-<form method="GET" class="card p-3 flex flex-wrap items-center gap-2" x-data @change="$el.requestSubmit()">
-    <label class="relative flex-1 min-w-56">
+{{-- A36 · на телефоне фильтры — ровной сеткой 2 колонки, а не лесенкой --}}
+<form method="GET" class="card p-3 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2" x-data @change="$el.requestSubmit()">
+    <label class="relative col-span-2 sm:flex-1 sm:min-w-56">
         <span class="sr-only">Поиск</span>
         @include('partials.icon', ['i' => 'search', 'c' => 'w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 faint'])
         <input name="q" value="{{ request('q') }}" class="input !pl-10 !py-2.5" placeholder="Поиск…" @change.stop>
     </label>
     @foreach ($filters as $name => $f)
         @if (isset($f['options']))
-            <select name="{{ $name }}" class="input !w-auto !py-2.5 text-sm" aria-label="{{ $f['label'] }}">
+            <select name="{{ $name }}" class="input sm:!w-auto !py-2.5 text-sm min-w-0" aria-label="{{ $f['label'] }}">
                 <option value="">{{ $f['label'] }}: все</option>
                 @foreach ($resource->options($f['options']) as $v => $l)<option value="{{ $v }}" @selected((string) request($name) === (string) $v)>{{ $l }}</option>@endforeach
             </select>
@@ -51,7 +52,7 @@
             <span class="chip">{{ $f['label'] }}: {{ request($name) }}</span>
         @endif
     @endforeach
-    <select name="per" class="input !w-auto !py-2.5 text-sm" aria-label="На странице">
+    <select name="per" class="input sm:!w-auto !py-2.5 text-sm min-w-0" aria-label="На странице">
         @foreach ([25, 50, 100, 200] as $n)<option value="{{ $n }}" @selected($perPage === $n)>по {{ $n }}</option>@endforeach
     </select>
     @if (request('sort'))<input type="hidden" name="sort" value="{{ request('sort') }}"><input type="hidden" name="dir" value="{{ request('dir') }}">@endif

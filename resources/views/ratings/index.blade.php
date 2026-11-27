@@ -22,8 +22,14 @@
             <span class="chip !bg-white/15 !text-white w-fit relative">@include('partials.icon', ['i' => 'users', 'c' => 'w-3.5 h-3.5']) народный рейтинг</span>
             <div class="relative flex flex-wrap items-end justify-between gap-6">
                 <div>
-                    <p class="font-display font-bold text-[56px] sm:text-[72px] leading-none tracking-[-.05em] tabular"><span x-data x-count="{{ $reviewsCount }}">{{ $reviewsCount }}</span></p>
-                    <p class="mt-2 text-white/80 max-w-sm">{{ plural($reviewsCount, 'отзыв', 'отзыва', 'отзывов') }} клиентов прошли модерацию. Оцените свой банк — это займёт две минуты.</p>
+                    @if ($reviewsCount)
+                        <p class="font-display font-bold text-[56px] sm:text-[72px] leading-none tracking-[-.05em] tabular"><span x-data x-count="{{ $reviewsCount }}">{{ $reviewsCount }}</span></p>
+                        <p class="mt-2 text-white/80 max-w-sm">{{ plural($reviewsCount, 'отзыв', 'отзыва', 'отзывов') }} клиентов прошли модерацию. Оцените свой банк — это займёт две минуты.</p>
+                    @else
+                        {{-- A36 · пока отзывов нет — приглашение вместо крупного «0» --}}
+                        <p class="font-display font-bold text-4xl sm:text-5xl leading-[1.05] tracking-[-.03em]">Ваш отзыв<br>может стать первым</p>
+                        <p class="mt-3 text-white/80 max-w-sm">Народный рейтинг складывается из оценок клиентов. Расскажите о своём банке — это займёт две минуты.</p>
+                    @endif
                 </div>
                 <a href="{{ route('banks.index', ['sort' => 'people']) }}" class="btn bg-white text-[#0a0a0b] hover:opacity-90">Оценить банк @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
             </div>
