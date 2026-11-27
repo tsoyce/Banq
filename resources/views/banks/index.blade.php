@@ -1,15 +1,15 @@
 {{-- A18 · Каталог банков: лидер объективного рейтинга, поиск, сортировка, карточки с тремя цифрами. --}}
 @php use App\Enums\RatingKind; @endphp
 @extends('layouts.app', [
-    'title' => 'Банки Казахстана — ставки, рейтинги, отзывы',
-    'description' => 'Все банки Казахстана: лучшие ставки по вкладам, объективный, народный и авторский рейтинг, отзывы клиентов.',
+    'title' => 'Банки '.(country()?->genitive() ?? '').' — ставки, рейтинги, отзывы',
+    'description' => 'Все банки '.(country()?->genitive() ?? '').': лучшие ставки по вкладам, объективный, народный и авторский рейтинг, отзывы клиентов.',
 ])
 
 @section('content')
 <div class="space-y-6">
     <header class="px-1 pt-2 space-y-3" data-reveal>
         <p class="kicker"><b>01</b> / Банки</p>
-        <h1 class="font-display font-bold text-[30px] sm:text-4xl leading-[1.1]">Банки Казахстана. <span class="muted">Ставки, рейтинги и отзывы — на одной странице.</span></h1>
+        <h1 class="font-display font-bold text-[30px] sm:text-4xl leading-[1.1]">Банки {{ country()?->genitive() }}. <span class="muted">Ставки, рейтинги и отзывы — на одной странице.</span></h1>
     </header>
 
     {{-- Бенто: лидер (чернила) + цифры справочника --}}
@@ -37,7 +37,7 @@
                 <p class="num-card">{{ $total }}</p>
                 <p class="text-sm muted mt-1">{{ plural($total, 'банк', 'банка', 'банков') }} второго уровня</p>
             </div>
-            <div class="list-row !pb-0 text-sm justify-between"><span class="flex items-center gap-2">@include('partials.icon', ['i' => 'shield', 'c' => 'w-4 h-4 text-[var(--ok)]']) участники КФГД</span><b class="tabular">{{ $kdifCount }}</b></div>
+            <div class="list-row !pb-0 text-sm justify-between"><span class="flex items-center gap-2">@include('partials.icon', ['i' => 'shield', 'c' => 'w-4 h-4 text-[var(--ok)]']) участники {{ country()?->guaranteeName() ?? 'гарантирования вкладов' }}</span><b class="tabular">{{ $kdifCount }}</b></div>
         </div>
     </section>
 
@@ -73,7 +73,7 @@
                     @if ($rank && $sort !== 'name')<span class="kicker tabular whitespace-nowrap" title="Место в объективном рейтинге"><b>#{{ $rank }}</b></span>@endif
                 </div>
                 <div class="flex flex-wrap gap-1.5">
-                    @if ($b->is_kdif_member)<span class="chip">@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 text-[var(--ok)]']) КФГД</span>@endif
+                    @if ($b->deposit_insured)<span class="chip">@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 text-[var(--ok)]']) {{ country()?->guaranteeName() ?? 'гарантия' }}</span>@endif
                     @foreach ($st['types'] as $t)<span class="chip">{{ mb_strtolower($t->label()) }}</span>@endforeach
                 </div>
                 <div class="plate cells cols-3 mt-auto !rounded-[var(--radius-sm)]">
@@ -105,6 +105,6 @@
         @endforelse
     </section>
 
-    <p class="text-xs faint px-1">Справочник сверяется с реестром АРРФР. Ставки — действующие, из базы портала. Методика рейтингов — <a href="{{ route('ratings') }}#method" class="underline">на странице рейтингов</a>.</p>
+    <p class="text-xs faint px-1">@if (country()?->regulatorName())Справочник сверяется с реестром {{ country()->regulatorName() }}.@endif Ставки — действующие, из базы портала. Методика рейтингов — <a href="{{ route('ratings') }}#method" class="underline">на странице рейтингов</a>.</p>
 </div>
 @endsection

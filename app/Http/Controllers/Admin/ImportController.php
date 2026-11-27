@@ -28,7 +28,7 @@ class ImportController extends Controller
         $stored = $file->storeAs('imports', now()->format('Ymd-His').'-'.Str::random(6).'.'.$file->getClientOriginalExtension());
 
         try {
-            $preview = $this->importer->preview(storage_path('app/private/'.$stored));
+            $preview = $this->importer->preview(storage_path('app/private/'.$stored), country());
         } catch (Throwable $e) {
             return back()->withErrors(['file' => 'Не удалось прочитать файл: '.$e->getMessage()]);
         }
@@ -44,7 +44,7 @@ class ImportController extends Controller
         abort_unless($pending, 419, 'Сначала загрузи файл');
 
         $sheets = $request->validate(['sheets' => ['nullable', 'array'], 'sheets.*' => ['string']])['sheets'] ?? null;
-        $import = $this->importer->import(storage_path('app/private/'.$pending['path']), $pending['name'], $request->user()->id, $request->boolean('create_banks'), $sheets);
+        $import = $this->importer->import(storage_path('app/private/'.$pending['path']), $pending['name'], $request->user()->id, $request->boolean('create_banks'), $sheets, country());
         $import->update(['path' => $pending['path']]);
         session()->forget('import.pending');
 

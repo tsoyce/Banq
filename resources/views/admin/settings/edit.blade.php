@@ -20,6 +20,13 @@
                     <option value="dark" @selected(old('theme_default', $s['theme.default']) === 'dark')>Тёмная</option>
                     <option value="light" @selected(old('theme_default', $s['theme.default']) === 'light')>Светлая</option>
                 </select></label>
+            {{-- A21 · Страна, которую видит новый посетитель --}}
+            <label class="field"><span>Страна по умолчанию</span>
+                <select name="default_country" class="input">
+                    @foreach (\App\Models\Country::query()->active()->ordered()->get() as $c)
+                        <option value="{{ $c->slug }}" @selected(old('default_country', settings('country.default', 'kz')) === $c->slug)>{{ $c->flag }} {{ $c->name }}</option>
+                    @endforeach
+                </select></label>
         </section>
 
         <section class="glass p-6 grid sm:grid-cols-2 gap-6">

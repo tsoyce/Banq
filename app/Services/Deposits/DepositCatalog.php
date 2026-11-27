@@ -6,6 +6,7 @@ use App\Enums\DepositType;
 use App\Models\Bank;
 use App\Models\DepositProduct;
 use App\Models\DepositRate;
+use App\Support\CurrentCountry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -50,24 +51,26 @@ class DepositCatalog
     /** Банки, у которых есть активные вклады с действующими ставками. */
     public function banks(): Collection
     {
-        return Bank::query()->active()
+        return Bank::query()->active()->inCountry()
             ->whereHas('depositProducts', fn ($q) => $q->active()->whereHas('currentRates'))
             ->withCount(['depositProducts as offers_count' => fn ($q) => $q->active()->whereHas('currentRates')])
             ->orderBy('sort')->orderBy('name')->get();
     }
 
-    /** Валюты, в которых есть действующие ставки (KZT — всегда). */
+    /** Валюты страны, в которых есть действующие ставки (основная валюта страны — всегда). A21 */
     public function currencies(): array
     {
-        $have = DepositRate::query()->current()->distinct()->pluck('currency')->all();
+        $country = app(CurrentCountry::class);
+        $have = DepositRate::query()->current()->whereHas('product.bank', fn ($b) => $b->inCountry())->distinct()->pluck('currency')->all();
+        $order = $country->get()?->currencyList() ?? config('banq.currencies');
 
-        return array_values(array_unique(['KZT', ...array_intersect(config('banq.currencies'), $have)]));
+        return array_values(array_unique([$country->currency(), ...array_intersect($order, $have), ...$have]));
     }
 
     /** Сколько вкладов каждого типа — для подписей в фильтре. */
     public function typeCounts(): array
     {
-        $counts = DepositProduct::query()->active()->whereHas('currentRates')
+        $counts = DepositProduct::query()->active()->whereHas('currentRates')->whereHas('bank', fn ($b) => $b->inCountry())
             ->selectRaw('type, count(*) as c')->groupBy('type')->pluck('c', 'type');
 
         return collect(DepositType::cases())->mapWithKeys(fn ($t) => [$t->value => (int) ($counts[$t->value] ?? 0)])->all();
@@ -81,7 +84,7 @@ class DepositCatalog
     public function matrix(DepositProduct $product): array
     {
         return $product->currentRates->groupBy('currency')
-            ->sortBy(fn ($_, $cur) => array_search($cur, config('banq.currencies'), true))
+            ->sortBy(fn ($_, $cur) => array_search($cur, $product->bank?->country?->currencyList() ?? config('banq.currencies'), true))
             ->map(function (Collection $rates) {
                 $terms = $rates->pluck('term_months')->unique()->sort()->values()->all();
                 $amounts = $rates->map(fn ($r) => $r->amount_from === null ? null : (float) $r->amount_from)->unique()->sort()->values()->all();
@@ -100,8 +103,9 @@ class DepositCatalog
      *
      * @return list<array{date: Carbon, rate: float}>
      */
-    public function history(DepositProduct $product, string $currency = 'KZT'): array
+    public function history(DepositProduct $product, ?string $currency = null): array
     {
+        $currency ??= $product->bank?->country?->currency ?? 'KZT';
         $rates = $product->rates()->where('currency', $currency)->orderBy('valid_from')->get();
         $dates = $rates->pluck('valid_from')->push(today())->unique(fn ($d) => $d->toDateString())->sort()->values();
 
@@ -124,7 +128,7 @@ class DepositCatalog
     private function productQuery(DepositFilters $f): Builder
     {
         return DepositProduct::query()->active()
-            ->whereHas('bank', fn ($q) => $q->active())
+            ->whereHas('bank', fn ($q) => $q->active()->inCountry()) // A21
             ->when($f->types, fn ($q) => $q->whereIn('type', array_map(fn ($t) => $t->value, $f->types)))
             ->when($f->banks, fn ($q) => $q->whereHas('bank', fn ($b) => $b->whereIn('slug', $f->banks)))
             ->when($f->replenish, fn ($q) => $q->where('can_replenish', true))

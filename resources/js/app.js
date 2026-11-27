@@ -47,7 +47,7 @@ Alpine.data('calc', (rate = 16) => ({
             ? this.amount * (Math.pow(1 + r / 12, this.months) - 1)
             : this.amount * r * (this.months / 12);
     },
-    money(v) { return Math.round(v).toLocaleString('ru-RU') + ' ₸'; },
+    money(v) { return money(v); },
 }));
 
 // A14 · Доход по вкладу: по ГЭСВ (она уже учитывает капитализацию), иначе номинал с ежемесячной капитализацией.
@@ -57,7 +57,8 @@ export function depositIncome(amount, months, rate, effective = null, cap = true
     if (effective) return amount * (Math.pow(1 + effective / 100, months / 12) - 1);
     return cap ? amount * (Math.pow(1 + rate / 100 / 12, months) - 1) : amount * (rate / 100) * (months / 12);
 }
-const money = (v) => Math.round(v).toLocaleString('ru-RU') + ' ₸';
+// A21 · знак валюты страны — из <html data-currency>
+const money = (v) => Math.round(v).toLocaleString('ru-RU') + ' ' + (document.documentElement.dataset.currency || '₸');
 const parseMoney = (s) => +(String(s).replace(/\D/g, '')) || 0;
 
 // A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц
@@ -134,6 +135,38 @@ Alpine.data('depositCalc', (opts = {}) => ({
     income(rate = this.rate, effective = this.effective) { return depositIncome(this.amount, this.months, rate, effective); },
     money,
     setAmount(e) { this.amount = parseMoney(e.target.value); },
+}));
+
+// A24 · Админка: палитра поиска ⌘K
+Alpine.data('adminPalette', (endpoint) => ({
+    open: false, q: '', items: [], active: 0, loading: false, ctrl: null,
+    show() { this.open = true; this.$nextTick(() => this.$refs.q.focus()); },
+    async search() {
+        if (this.q.trim().length < 2) { this.items = []; return; }
+        this.ctrl?.abort(); this.ctrl = new AbortController(); this.loading = true;
+        try {
+            const r = await fetch(`${endpoint}?q=${encodeURIComponent(this.q)}`, { headers: { Accept: 'application/json' }, signal: this.ctrl.signal });
+            this.items = await r.json(); this.active = 0;
+        } catch (e) { /* отменён — пришёл новый запрос */ } finally { this.loading = false; }
+    },
+    move(d) { if (this.items.length) this.active = (this.active + d + this.items.length) % this.items.length; },
+    go() { const it = this.items[this.active]; if (it) location.href = it.url; },
+}));
+
+// A24 · Админка: выбор строк для массовых действий (+ «все по фильтру»)
+Alpine.data('bulkSelect', (total = 0) => ({
+    ids: [], all: false, total,
+    get count() { return this.all ? this.total : this.ids.length; },
+    toggleAll(e) {
+        const boxes = [...this.$root.querySelectorAll('input[data-row]')];
+        this.ids = e.target.checked ? boxes.map((b) => b.value) : [];
+        if (!e.target.checked) this.all = false;
+    },
+    clear() { this.ids = []; this.all = false; },
+    confirmRun(e) {
+        const opt = e.target.querySelector('select[name=action]')?.selectedOptions[0];
+        if (opt?.dataset.confirm && !window.confirm(opt.dataset.confirm)) e.preventDefault();
+    },
 }));
 
 // A28 · Избранное: переключение без перезагрузки (FavoriteController отвечает JSON), без JS — обычная форма

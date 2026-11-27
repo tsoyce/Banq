@@ -42,7 +42,7 @@ class ObjectiveRating
             return $this->result;
         }
 
-        $rates = $this->market->rates()->filter(fn ($r) => $r->currency === 'KZT' && $r->product->bank?->status === 'active');
+        $rates = $this->market->rates()->filter(fn ($r) => $r->currency === ($r->product->bank?->country?->currency ?? 'KZT') && $r->product->bank?->status === 'active');
         // лучшая ставка: [тип][bank_id] => ставка
         $best = [];
         foreach ($rates as $r) {
@@ -70,7 +70,7 @@ class ObjectiveRating
             $criteria = [
                 'rates' => $rateParts ? array_sum($rateParts) / count($rateParts) : 0.0,
                 'reliability' => self::weighted([
-                    [$bank->is_kdif_member ? 1.0 : 0.0, 0.4],
+                    [$bank->deposit_insured ? 1.0 : 0.0, 0.4],
                     [$maxAssets > 0 && $bank->assets_bn > 0 ? log1p((float) $bank->assets_bn) / log1p($maxAssets) : null, 0.4],
                     [$bank->founded_year ? min(30, max(0, (int) date('Y') - $bank->founded_year)) / 30 : null, 0.2],
                 ]),

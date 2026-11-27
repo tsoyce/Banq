@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' ₸';
+    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' '.currency_symbol($filters->currency);
     $ids = $columns->map(fn ($col) => $col['product']->id);
     $storeItems = $columns->map(fn ($col) => ['id' => $col['product']->id, 'code' => \Illuminate\Support\Str::limit($col['product']->bank->code, 4, ''), 'color' => $col['product']->bank->brand_color ?? '#8b5cf6', 'name' => $col['product']->bank->displayName()])->values();
 @endphp
@@ -86,7 +86,13 @@
                         ['Открытие онлайн', fn ($col) => $col['product']->online_opening ? '✓' : '—', fn ($col) => $col['product']->online_opening],
                         ['Мин. сумма', fn ($col) => $col['product']->min_amount ? $money($col['product']->min_amount) : 'не указана', null],
                         ['Срок ставки', fn ($col) => $col['rate']?->term_months ? $col['rate']->term_months.' мес' : 'любой', null],
-                        ['Гарантия КФГД', fn ($col) => $col['product']->bank->is_kdif_member ? 'до '.number_format(config('banq.kdif_limits.'.($col['rate']?->currency === 'KZT' || ! $col['rate'] ? $col['product']->type->value : 'foreign')) / 1e6, 0).' млн ₸' : 'нет', null],
+                        // A21 · гарантия — по системе страны банка
+                        ['Гарантия вклада', function ($col) {
+                            $c = $col['product']->bank->country;
+                            $limit = $col['product']->bank->deposit_insured ? $c?->guaranteeLimit($col['product']->type->value, $col['rate']?->currency) : null;
+
+                            return $limit ? ($c->guaranteeName() ? $c->guaranteeName().', ' : '').'до '.number_format($limit / 1e6, 0, ',', ' ').' млн '.$c->symbol() : 'нет';
+                        }, null],
                     ];
                     $incomes = $columns->map(fn ($col) => $col['rate'] ? ['rate' => (float) $col['rate']->rate, 'eff' => $col['rate']->effective_rate === null ? null : (float) $col['rate']->effective_rate] : null)->values();
                 @endphp

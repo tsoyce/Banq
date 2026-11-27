@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Bank;
+use App\Models\Country;
 use Illuminate\Database\Seeder;
 
 /**
@@ -35,8 +36,10 @@ class BankSeeder extends Seeder
 
     public function run(): void
     {
+        // A21 · справочник — банки Казахстана (страна KZ создаётся миграцией и CountrySeeder)
+        $kz = Country::query()->where('code', 'KZ')->value('id');
         foreach (self::BANKS as $i => $bank) {
-            Bank::updateOrCreate(['code' => $bank['code']], $bank + ['sort' => ($i + 1) * 10]);
+            Bank::updateOrCreate(['country_id' => $kz, 'code' => $bank['code']], $bank + ['sort' => ($i + 1) * 10]);
         }
     }
 }

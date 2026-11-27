@@ -96,7 +96,9 @@ class BankRatingTest extends TestCase
         $kaspi = $this->bank('KASPI');
         $halyk = $this->bank('HSBK');
         $this->review($kaspi, 5);                                      // один восторженный
-        foreach (range(1, 20) as $_) { $this->review($halyk, 5); }    // много хороших
+        foreach (range(1, 20) as $_) {
+            $this->review($halyk, 5);
+        }    // много хороших
         $this->review($halyk, 1, 'rejected');
 
         $board = app(RatingBoard::class);
@@ -170,7 +172,7 @@ class BankRatingTest extends TestCase
 
         // вчерашняя оценка → сегодняшняя
         Rating::create(['bank_id' => $bank->id, 'kind' => RatingKind::Author, 'score' => 4.0, 'period' => today()->subDay()]);
-        $this->put("/admin/ratings/{$bank->id}", ['score' => 4.5, 'verdict' => 'Удобное приложение.', 'pros' => "Быстро\nОнлайн", 'cons' => 'Мало вкладов', 'assets_bn' => 9000, 'founded_year' => 1993, 'is_kdif_member' => 1])
+        $this->put("/admin/ratings/{$bank->id}", ['score' => 4.5, 'verdict' => 'Удобное приложение.', 'pros' => "Быстро\nОнлайн", 'cons' => 'Мало вкладов', 'assets_bn' => 9000, 'founded_year' => 1993, 'deposit_insured' => 1])
             ->assertRedirect('/admin/ratings');
         $this->assertSame(2, Rating::where('kind', 'author')->where('bank_id', $bank->id)->count());
         $this->assertEquals(9000, $bank->fresh()->assets_bn);

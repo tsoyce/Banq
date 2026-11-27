@@ -10,6 +10,7 @@ use App\Services\Deposits\DepositFilters;
 use App\Services\Ratings\BankScore;
 use App\Services\Ratings\ObjectiveRating;
 use App\Services\Ratings\RatingBoard;
+use App\Support\CurrentCountry;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -49,13 +50,14 @@ class BankController extends Controller
             'q' => $q,
             'leader' => $this->board->top(RatingKind::Objective, 1)->first(),
             'total' => $this->board->all()->count(),
-            'kdifCount' => $this->board->all()->filter(fn (BankScore $s) => $s->bank->is_kdif_member)->count(),
+            'kdifCount' => $this->board->all()->filter(fn (BankScore $s) => $s->bank->deposit_insured)->count(),
         ]);
     }
 
     public function show(Request $request, Bank $bank, DepositCatalog $catalog): View
     {
         abort_unless($bank->status === 'active', 404);
+        app(CurrentCountry::class)->set($bank->country); // A21 · страница живёт в стране банка
         $score = $this->board->for($bank);
         $offers = $catalog->search(new DepositFilters(banks: [$bank->slug]));
 

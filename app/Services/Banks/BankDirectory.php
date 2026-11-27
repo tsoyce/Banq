@@ -2,7 +2,9 @@
 
 namespace App\Services\Banks;
 
+use App\Enums\DepositType;
 use App\Models\Bank;
+use App\Models\DepositRate;
 use App\Support\Market;
 use Illuminate\Support\Collection;
 
@@ -14,14 +16,14 @@ class BankDirectory
 {
     public function __construct(private Market $market) {}
 
-    /** @return Collection<int, array{best: ?\App\Models\DepositRate, offers: int, types: list<\App\Enums\DepositType>}> по bank_id */
+    /** @return Collection<int, array{best: ?DepositRate, offers: int, types: list<DepositType>}> по bank_id */
     public function stats(): Collection
     {
         return $this->market->rates()
             ->filter(fn ($r) => $r->product->bank?->status === 'active')
             ->groupBy(fn ($r) => $r->product->bank_id)
             ->map(fn (Collection $rates) => [
-                'best' => $rates->where('currency', 'KZT')->sortByDesc(fn ($r) => (float) $r->rate)->first(),
+                'best' => $rates->filter(fn ($r) => $r->currency === ($r->product->bank->country?->currency ?? 'KZT'))->sortByDesc(fn ($r) => (float) $r->rate)->first(),
                 'offers' => $rates->pluck('deposit_product_id')->unique()->count(),
                 'types' => $rates->pluck('product.type')->unique(fn ($t) => $t->value)->sortBy(fn ($t) => $t->value)->values()->all(),
             ]);
