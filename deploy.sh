@@ -29,6 +29,19 @@ mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache p
 chmod -R ug+rwX storage bootstrap/cache public/uploads
 [ -f .env ] && chmod ug+rw .env
 
+# A29 · SQLite в chroot: в .env путь как его видит сайт (/sites/...), из консоли файл лежит глубже
+# (/home/tsoy/sites/...). Если файла по пути из .env нет — ищем его под родительскими папками проекта.
+if [ -z "${DB_DATABASE:-}" ] && [ -f .env ] && grep -q '^DB_CONNECTION=sqlite' .env; then
+    db="$(grep '^DB_DATABASE=' .env | head -1 | cut -d= -f2- | tr -d "\"' ")"
+    if [ -n "$db" ] && [ "${db#/}" != "$db" ] && [ ! -f "$db" ]; then
+        dir="$(pwd)"
+        while [ "$dir" != "/" ]; do
+            dir="$(dirname "$dir")"
+            if [ -f "$dir$db" ]; then export DB_DATABASE="$dir$db"; echo "→ SQLite (chroot): $DB_DATABASE"; break; fi
+        done
+    fi
+fi
+
 if [ -f storage/app/installed.json ]; then
     echo "→ миграции и кеши"
     "$PHP_BIN" artisan migrate --force
