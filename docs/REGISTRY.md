@@ -44,7 +44,7 @@ app/
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
 ├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
-├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат
+├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат; A38 только таблицы своей базы, explain() ошибок SQL
 ├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
 ├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
