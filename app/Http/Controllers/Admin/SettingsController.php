@@ -35,6 +35,7 @@ class SettingsController extends Controller
             'favicon' => ['nullable', 'file', 'mimes:png,ico,svg', 'max:512'],
             'remove_logo' => ['nullable', 'boolean'],
             'remove_favicon' => ['nullable', 'boolean'],
+            'blog_premoderation' => ['nullable', 'boolean'], // A37
         ]);
 
         $values = [
@@ -47,6 +48,7 @@ class SettingsController extends Controller
             'site.contact_email' => $data['contact_email'] ?? null,
             'site.counters' => $data['counters'] ?? null,
             'theme.default' => $data['theme_default'],
+            'blog.premoderation' => (bool) ($data['blog_premoderation'] ?? false), // A37
         ];
         if (! empty($data['default_country'])) {
             $values['country.default'] = $data['default_country'];

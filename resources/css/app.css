@@ -4,6 +4,7 @@
    tsoy.in (фирменный градиент фиолет → циан).
    Токены → база → компоненты (@layer components) → анимации. Темы: [data-theme=light|dark]. */
 @import 'tailwindcss';
+@import './blog.css'; /* A37 · журнал и редактор */
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../**/*.blade.php';

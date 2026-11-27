@@ -253,6 +253,7 @@
             </section>
 
             @include('reviews._form', ['bank' => $bank, 'mine' => $mine, 'products' => $products])
+            @include('blog._about', ['about' => $bank, 'title' => 'О банке в журнале']) {{-- A37 --}}
         </aside>
     </div>
 </div>

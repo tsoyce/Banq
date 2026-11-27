@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\DepositController;
@@ -60,6 +61,20 @@ Route::get('/ratings', RatingController::class)->name('ratings');
 Route::middleware('auth')->group(function () {
     Route::post('/banks/{bank:slug}/reviews', [ReviewController::class, 'store'])->middleware('throttle:6,1')->name('reviews.store');
     Route::post('/reviews/{review}/vote', [ReviewController::class, 'vote'])->middleware('throttle:30,1')->name('reviews.vote');
+});
+
+// A37 · Блог: лента, рубрики, теги, RSS, публикация; реакции и комментарии — для вошедших
+Route::prefix('blog')->name('blog.')->controller(BlogController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/rss.xml', 'rss')->name('rss');
+    Route::get('/c/{category:slug}', 'category')->name('category');
+    Route::get('/tag/{tag:slug}', 'tag')->name('tag');
+    Route::get('/{post:slug}', 'show')->name('show');
+    Route::middleware('auth')->group(function () {
+        Route::post('/{post:slug}/react', 'react')->middleware('throttle:blog-reactions')->name('react');
+        Route::post('/{post:slug}/comments', 'comment')->middleware('throttle:blog-comments')->name('comments.store');
+        Route::delete('/comments/{comment}', 'destroyComment')->name('comments.destroy');
+    });
 });
 
 // A28 · Личный кабинет, избранное, сохранённые сравнения, публичный профиль автора
@@ -136,6 +151,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::post('/database/test', [Admin\DatabaseController::class, 'test'])->middleware('throttle:20,1')->name('database.test');
     Route::post('/database/switch', [Admin\DatabaseController::class, 'switch'])->middleware('throttle:5,1')->name('database.switch');
     Route::post('/database/restore', [Admin\DatabaseController::class, 'restore'])->middleware('throttle:5,1')->name('database.restore');
+
+    // A37 · Редактор публикаций: загрузка картинок, поиск связей и вставок, превью вставки
+    Route::post('/blog/upload', [Admin\BlogController::class, 'upload'])->middleware('throttle:60,1')->name('blog.upload');
+    Route::get('/blog/lookup', [Admin\BlogController::class, 'lookup'])->name('blog.lookup');
+    Route::get('/blog/embed', [Admin\BlogController::class, 'embed'])->name('blog.embed');
 
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');

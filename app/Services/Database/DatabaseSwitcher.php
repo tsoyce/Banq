@@ -5,6 +5,7 @@ namespace App\Services\Database;
 use App\Services\Installer\DatabaseConfigurator;
 use App\Services\Installer\EnvWriter;
 use Illuminate\Database\Connection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,11 @@ use Throwable;
  * Порядок: проверка подключения → миграции на новой базе → перенос всех таблиц (по желанию)
  * → сверка числа строк → копия .env в storage/app/env-backups → запись .env.
  * Старая база не трогается, поэтому «Вернуть прежнюю» просто восстанавливает .env из копии.
+ *
+ * A38 · Список таблиц берётся только из текущей базы подключения: на MySQL getTables() без схемы
+ * отдаёт таблицы всех баз сервера (так в перенос попадала чужая audit_logs → «Table doesn't exist»).
+ * Миграции проверяются по коду выхода; после них все таблицы старой базы должны быть в новой;
+ * ошибки SQL переводятся в понятный текст без дампа подключения.
  */
 class DatabaseSwitcher
 {
@@ -95,25 +101,55 @@ class DatabaseSwitcher
             throw new RuntimeException($test['message']);
         }
 
-        $target = $this->connect($db);
-        $source = DB::connection();
-        $tables = array_values(array_diff($this->tables($source), self::SKIP));
+        $step = 'подключение к новой базе';
+        try {
+            $target = $this->connect($db);
+            $source = DB::connection();
+            $tables = array_values(array_diff($this->tables($source), self::SKIP));
 
-        // проверка до миграций: миграции сами заливают справочники (платёжные системы)
-        $busy = array_filter($this->tables($target), fn ($t) => ! in_array($t, self::SKIP, true) && $target->table($t)->exists());
-        if ($copy && $busy && ! $overwrite) {
-            throw new RuntimeException('В новой базе уже есть данные ('.implode(', ', array_slice(array_values($busy), 0, 5)).'). Отметь «Перезаписать данные в новой базе» или выбери пустую базу.');
+            // проверка до миграций: миграции сами заливают справочники (платёжные системы)
+            $step = 'проверка новой базы';
+            $busy = array_filter($this->tables($target), fn ($t) => ! in_array($t, self::SKIP, true) && $target->table($t)->exists());
+            if ($copy && $busy && ! $overwrite) {
+                throw new RuntimeException('В новой базе уже есть данные ('.implode(', ', array_slice(array_values($busy), 0, 5)).'). Отметь «Перезаписать данные в новой базе» или выбери пустую базу.');
+            }
+
+            $step = 'создание таблиц (миграции) в новой базе';
+            $this->migrate();
+
+            $step = 'перенос данных';
+            $missing = array_values(array_diff($tables, $this->tables($target)));
+            if ($copy && $missing) {
+                throw new RuntimeException('После миграций в новой базе нет таблиц: '.implode(', ', $missing).'. Данные не переносились, сайт остался на прежней базе.');
+            }
+            $copied = $copy ? $this->copy($source, $target, $tables) : [];
+        } catch (QueryException $e) {
+            throw new RuntimeException('Не получилось на шаге «'.$step.'»: '.$this->explain($e).' Сайт остался на прежней базе.', 0, $e);
         }
-
-        $this->migrate();
-
-        $copied = $copy ? $this->copy($source, $target, $tables) : [];
 
         $backup = $this->backupEnv();
         (new EnvWriter)->set($this->configurator->envValues($db));
         $this->forgetConfigCache();
 
         return ['tables' => count($copied), 'rows' => array_sum($copied), 'backup' => $backup, 'copied' => $copied];
+    }
+
+    /** A38 · Ошибка SQL → короткий русский текст без «(Connection: …, SQL: …)». */
+    public function explain(QueryException $e): string
+    {
+        $code = (int) ($e->errorInfo[1] ?? 0);
+        $raw = $e->getPrevious()?->getMessage() ?? $e->getMessage();
+        $raw = trim(preg_replace('/\s*\(Connection: .*$/s', '', $raw));
+        $raw = preg_replace('/^SQLSTATE\[\w+\]:?\s*(\[\d+\]\s*)?/', '', $raw);
+
+        return match ($code) {
+            1044, 1045 => 'MySQL не пустил пользователя — проверь логин, пароль и права на базу.',
+            1049 => 'такой базы на сервере MySQL нет — создай её в панели или поправь имя.',
+            1142, 1227 => 'у пользователя MySQL не хватает прав (нужны CREATE, ALTER, INSERT, DELETE, INDEX, REFERENCES).',
+            1146 => 'в базе нет нужной таблицы ('.$raw.').',
+            2002, 2003, 2006 => 'сервер MySQL не отвечает — проверь хост и порт.',
+            default => $raw.'.',
+        };
     }
 
     /** Список копий .env: новые сверху. */
@@ -155,7 +191,10 @@ class DatabaseSwitcher
         $default = Config::get('database.default');
         DB::setDefaultConnection(self::TARGET);
         try {
-            Artisan::call('migrate', ['--database' => self::TARGET, '--force' => true]);
+            $code = Artisan::call('migrate', ['--database' => self::TARGET, '--force' => true]);
+            if ($code !== 0) {
+                throw new RuntimeException('Миграции на новой базе не прошли: '.trim(Artisan::output()));
+            }
         } finally {
             DB::setDefaultConnection($default);
         }
@@ -228,16 +267,18 @@ class DatabaseSwitcher
         return $ra !== false && $rb !== false ? $ra === $rb : $a === $b;
     }
 
+    /** Таблицы только текущей базы подключения (A38: не всех баз сервера MySQL). */
     private function tables(Connection $c): array
     {
         $prefix = $c->getTablePrefix();
+        $schema = $c->getSchemaBuilder();
 
-        return collect($c->getSchemaBuilder()->getTables())
+        return collect($schema->getTables($schema->getCurrentSchemaName()))
             ->pluck('name')
             ->filter(fn ($t) => $prefix === '' || str_starts_with($t, $prefix))
             ->map(fn ($t) => substr($t, strlen($prefix)))
             ->reject(fn ($t) => str_starts_with($t, 'sqlite_'))
-            ->values()->all();
+            ->unique()->values()->all();
     }
 
     /** @return array<string,int> */

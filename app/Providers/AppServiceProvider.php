@@ -40,7 +40,12 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
 
         // A28 · Короткие имена типов в favorites (deposit, bank) — не зависят от имён классов
-        Relation::morphMap(Favorite::TYPES);
+        Relation::morphMap(Favorite::TYPES + \App\Models\Post::LINK_TYPES); // A37: + package, payment_system (связи публикаций)
+
+        // A37 · Свои лимиты для журнала: обычный throttle:N,M считает все маршруты пользователя одним счётчиком —
+        // десяток реакций не должен блокировать комментарий
+        \Illuminate\Support\Facades\RateLimiter::for('blog-comments', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(6)->by('comment:'.($r->user()?->id ?: $r->ip())));
+        \Illuminate\Support\Facades\RateLimiter::for('blog-reactions', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('react:'.($r->user()?->id ?: $r->ip())));
 
         // A13 · Бегущая строка ставок в шапке витрины
         View::composer('layouts.app', fn ($view) => $view->with('ticker', app(Market::class)->top(14)));

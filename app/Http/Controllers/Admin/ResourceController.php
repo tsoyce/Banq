@@ -56,7 +56,7 @@ class ResourceController extends Controller
         $r = $this->resource($request, $key);
         abort_unless($r->canCreate(), 403);
 
-        return view('admin.resource.form', ['resource' => $r, 'model' => null, 'defaults' => $r->defaults($request)]);
+        return view($r->formView(), ['resource' => $r, 'model' => null, 'defaults' => $r->defaults($request)]);
     }
 
     public function store(Request $request, string $key): RedirectResponse
@@ -84,7 +84,7 @@ class ResourceController extends Controller
         $model = $this->find($r, $id);
         abort_unless($r->canEdit($model), 404);
 
-        return view('admin.resource.form', ['resource' => $r, 'model' => $model, 'defaults' => []]);
+        return view($r->formView(), ['resource' => $r, 'model' => $model, 'defaults' => []]);
     }
 
     public function update(Request $request, string $key, string $id): RedirectResponse

@@ -44,10 +44,16 @@ app/
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
 ├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
-├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат
+├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат; A38 только таблицы своей базы, explain() ошибок SQL
 ├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
 ├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
+├─ Models/ Post, PostCategory, Tag, PostReaction, Comment  A37 журнал; Post::LINK_TYPES, cascade(), syncLinks(), about()
+├─ Support/Blog/ HtmlSanitizer (белый список тегов/атрибутов), PostRenderer (оглавление, якоря, живые вставки, таблицы)  A37
+├─ Http/Controllers/BlogController (лента, рубрика, тег, статья, реакции, комментарии, RSS)  A37
+├─ Http/Controllers/Admin/BlogController (загрузка картинок, поиск связей, превью вставки)  A37
+├─ Admin/Resources/{Post,PostCategory,Comment}Resource  A37 (раздел меню «Блог»; PostResource — свой редактор admin.posts.editor)
+├─ Services/Exchange/Entities/ PostCategoryEntity, PostEntity (tags, links «type:slug», body или body_markdown)  A37
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
@@ -77,6 +83,9 @@ database/seeders/BankSeeder.php ..... 18 банков РК с алиасами (
 resources/
 ├─ css/app.css ...................... A13 дизайн-система v2 «Bento» (токены, карточки, пилюли, темы)
 ├─ js/app.js ........................ A04 Alpine: тема, x-count, калькулятор, reveal
+├─ css/blog.css ..................... A37 журнал: лента, обложки, статья (.prose-banq), реакции, комментарии, вставки .embed, редактор .ed-*
+├─ js/blog.js ....................... A37 loadMore, share, $store.post (реакции), readProgress, tocSpy
+├─ js/editor.js ..................... A37 редактор Tiptap (грузится отдельным чанком только на странице [data-post-editor])
 └─ views/
    ├─ layouts/ app (витрина), admin, install
    ├─ partials/ head, logo, icon (линейные иконки), theme-toggle, backdrop (пусто в v2)
@@ -92,6 +101,9 @@ resources/
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
    └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
             resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23)
+            posts/editor (A37: редактор публикации — Tiptap, обложка, связи с каскадом, SEO)
+   ├─ blog/ index, show, rss, _card, _cover, _meta, _category, _grid, _reactions, _share, _linked, _comment(s), _about,
+   │        embeds/{bank,deposit,card,package,payment_system}  A37 (_about — блок «В журнале» на страницах банка, вклада, карты, пакета, системы)
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
@@ -166,6 +178,13 @@ HTTP запрос
   banks/show, home, account/favorites ──► Card, ServicePackage
 
 Админка (A24, A32): /admin/{countries|banks|deposits|rates|users|cards|packages|payment-systems|card-tiers} ──► ResourceController ──► ResourceRegistry ──► Resource
+
+Журнал (A37): /blog ──► BlogController ──► Post::feed() (published + forCountry) ──► blog/index, _grid (подгрузка X-Partial)
+  /blog/{slug} ──► PostRenderer ──► HtmlSanitizer-чистый body + embeds (BankDirectory, DepositCatalog::bestRate, Card, ServicePackage)
+  Админка posts ──► PostResource::saving (санитайзер, обложка, статус) / saved ──► Tag::idsFor, Post::syncLinks
+  Связи: postables (post_id, postable_type, postable_id, is_primary). Каскад Post::cascade():
+    card → банк, пакеты, платёжные системы, уровни · deposit → банк · package → банк, карты · card_tier → система
+  Страницы банка/вклада/карты/пакета/системы ──► Post::about($model) ──► blog/_about; главная ──► 4 последние
 ```
 
 ## 3. Таблицы
@@ -194,6 +213,12 @@ HTTP запрос
 | `card_networks` (A30) | card_id, payment_system_id, card_tier_id nullable | CardEntity (networks), CardResource (флажки) | Card::networks() |
 | `service_packages` (A30) + `card_service_package` | bank_id, name, slug, segment, monthly/annual fee, fee_note, perks json, conditions, description, color, source_url, is_active, sort | админка, обмен | /packages, карточка карты, банк |
 | `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
+| `post_categories` (A37) | slug, name, description, color, icon, is_active, sort (сидер: news, analytics, reviews, guides, opinion) | миграция, админка, обмен | лента, рубрики |
+| `posts` (A37) | country_id?, category_id?, author_id?, kind (article/news/review/guide/analytics), status draft/published, published_at (в будущем — отложено), title, slug, lead, body (HTML после санитайзера), cover, cover_alt, cover_caption, reading_minutes, is_featured (один), allow_comments, views, seo_title, seo_description, source_name, source_url, meta | редактор, обмен | /blog, главная, страницы продуктов |
+| `tags`, `post_tag` (A37) | slug, name · post_id + tag_id | Tag::idsFor (редактор, обмен) | /blog/tag/{slug} |
+| `postables` (A37) | post_id, postable_type (morph: bank, deposit, card, package, payment_system, card_tier), postable_id, **is_primary** (выбрано автором; false — добавлено каскадом) | Post::syncLinks | Post::about(), блок «О ком материал» |
+| `post_reactions` (A37) | post_id, user_id, kind (like/fire/think/money); unique тройка | BlogController::react | реакции |
+| `comments` (A37) | post_id, user_id, parent_id (один уровень ответов), body, status approved/pending/hidden, ip | BlogController::comment, админка | статья, модерация |
 
 ## 4. Переменные окружения (.env)
 
@@ -223,6 +248,7 @@ HTTP запрос
 | `site.counters` | админка | вставляется как HTML в `<head>` (только admin может менять) |
 | `theme.default` | админка | `data-theme` на `<html>` |
 | `country.default` | админка → Настройки (A21) | CurrentCountry: страна нового посетителя (slug, по умолчанию первая по sort) |
+| `blog.premoderation` | админка → Настройки → Журнал (A37) | новые комментарии читателей — на модерацию (pending) |
 
 ## 6. Маршруты
 
@@ -261,6 +287,9 @@ HTTP запрос
 | GET | `/cards?kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=`, `/cards/compare?ids=`, `/cards/{card:slug}` | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
 | GET | `/payment-systems`, `/payment-systems/{system:slug}` | payment-systems.* | все (A33) |
 | GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |
+| GET | `/blog?q=&kind=`, `/blog/c/{category:slug}`, `/blog/tag/{tag:slug}`, `/blog/rss.xml`, `/blog/{post:slug}` | blog.index, blog.category, blog.tag, blog.rss, blog.show | все (A37); черновик — только сотрудникам; лента — частичный ответ при `X-Partial: posts` |
+| POST, POST, DELETE | `/blog/{post}/react`, `/blog/{post}/comments`, `/blog/comments/{comment}` | blog.react, blog.comment, blog.comments.destroy | вошедшие (A37); лимиты `blog-reactions` 60/мин, `blog-comments` 6/мин |
+| POST, GET, GET | `/admin/blog/upload`, `/admin/blog/lookup?q=&type=&keys=`, `/admin/blog/embed?type=&slug=` | admin.blog.* | admin, editor (A37): картинка в текст, поиск связей с каскадом, превью вставки |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -273,6 +302,7 @@ HTTP запрос
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
 - A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. `CardKind::genitivePlural()`; `.cmp-scroll` (закреплённая колонка сравнения), `.cb-short/.cb-long` (панель сравнения на телефоне). Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
+- A37 журнал: `.blog-hero`, `.post-grid` (`.is-3`), `.post-card`, `.post-cover` (сгенерированная обложка с цветом рубрики, если картинки нет), `.read-progress`, `.post-sheet/.post-title/.post-byline`, `.toc` (+ `.toc-inline` на телефоне), `.reactions`, `.prose-banq` (типографика статьи: врезки `aside[data-tone=info|tip|warn|money]`, `.prose-table`, `td.num`), `.embed` (живая карточка продукта в тексте), `.ed-*` (редактор, `.ed-focus` — режим фокуса). Иконки: eye, share, copy, rss, tag, send, image, bold…redo, table, hr, bulb, box, save, highlight, maximize, reply.
 - A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.
@@ -316,6 +346,7 @@ HTTP запрос
 | `typograph` | A36: вкл/выкл неразрывных пробелов (env `BANQ_TYPOGRAPH`) | Middleware Typography |
 | `cards.compare_limit` | до 4 карт в сравнении | $store.cardCompare (A33) |
 | `cards.score.debit`, `cards.score.credit` | веса «Оценки Banq» | CardScore (A33) |
+| `Post::cascade($type, $model)`, `Post::syncLinks($keys, &$missing)`, `Post::about($model)`, `Post::linked()`, `Post::resolveLink('card:slug')` | A37 связи публикации с каскадом (не конфиг — справка) | редактор, обмен, страницы продуктов |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
 
 ## 10. Как добавить новый раздел (карты, кредиты…) — A21–A24

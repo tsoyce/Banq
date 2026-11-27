@@ -13,6 +13,8 @@
         'Данные' => collect(['countries', 'banks', 'deposits', 'rates'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         // A32 · раздел «Карты»
         'Карты' => collect(['cards', 'packages', 'payment-systems', 'card-tiers'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
+        // A37 · блог: публикации, рубрики, комментарии
+        'Блог' => collect(['posts', 'post-categories', 'comments'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
             ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
             ['admin.exchange.tokens', [], 'Токены API', 'key', request()->routeIs('admin.exchange.tokens')],
@@ -52,6 +54,7 @@
                                 {{ $label }}
                                 {{-- A18 · очередь модерации --}}
                                 @if ($route === 'admin.reviews.index' && ($pending = \App\Models\Review::pending()->count()))<span class="ml-auto chip !py-0 !px-2 !bg-[var(--brand-3)] !text-white">{{ $pending }}</span>@endif
+                                @if (($params[0] ?? null) === 'comments' && ($pendingC = \App\Models\Comment::where('status', 'pending')->count()))<span class="ml-auto chip !py-0 !px-2 !bg-[var(--brand-3)] !text-white">{{ $pendingC }}</span>@endif
                             </a>
                         @endforeach
                     </div>
