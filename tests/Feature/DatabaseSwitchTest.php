@@ -133,4 +133,23 @@ class DatabaseSwitchTest extends TestCase
         $denied->errorInfo = ['HY000', 1045, 'Access denied'];
         $this->assertStringContainsString('логин, пароль', app(DatabaseSwitcher::class)->explain(new QueryException('banq_target', 'x', [], $denied)));
     }
+
+    /** A39 · Остатки прошлой попытки: пустая users без записи в migrations → раньше «1050 Table 'users' already exists». */
+    public function test_switch_recreates_leftover_empty_tables_and_keeps_foreign_ones(): void
+    {
+        $target = $this->dir.'/new.sqlite';
+        $pdo = new PDO('sqlite:'.$target);
+        $pdo->exec('create table users (id integer primary key)');
+        $pdo->exec('create table my_own (id integer primary key)');
+        $pdo->exec('insert into my_own (id) values (7)');
+        $pdo = null;
+
+        $this->actingAs($this->admin())->post('/admin/database/switch', ['driver' => 'sqlite', 'database' => $target, 'copy' => 1, 'confirm' => 1])
+            ->assertRedirect('/admin/database')->assertSessionHasNoErrors();
+
+        $pdo = new PDO('sqlite:'.$target);
+        $this->assertSame(Bank::count(), (int) $pdo->query('select count(*) from banks')->fetchColumn());
+        $this->assertSame(1, (int) $pdo->query('select count(*) from users')->fetchColumn());
+        $this->assertSame(1, (int) $pdo->query('select count(*) from my_own')->fetchColumn(), 'чужая таблица в той же базе не тронута');
+    }
 }

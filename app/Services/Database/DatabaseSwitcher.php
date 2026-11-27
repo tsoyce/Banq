@@ -109,9 +109,18 @@ class DatabaseSwitcher
 
             // проверка до миграций: миграции сами заливают справочники (платёжные системы)
             $step = 'проверка новой базы';
-            $busy = array_filter($this->tables($target), fn ($t) => ! in_array($t, self::SKIP, true) && $target->table($t)->exists());
+            $busy = array_filter(array_intersect($this->tables($target), $tables), fn ($t) => $target->table($t)->exists()); // A39: только наши таблицы
             if ($copy && $busy && ! $overwrite) {
                 throw new RuntimeException('В новой базе уже есть данные ('.implode(', ', array_slice(array_values($busy), 0, 5)).'). Отметь «Перезаписать данные в новой базе» или выбери пустую базу.');
+            }
+
+            // A39 · остатки прошлой неудачной попытки (пустые таблицы без записи в migrations) мешали
+            // миграциям: «1050 Table 'users' already exists». Наши таблицы в новой базе удаляем и создаём
+            // заново, если данные всё равно переносятся (пусто или «перезаписать»), либо если они пустые.
+            $step = 'очистка новой базы';
+            $ours = array_values(array_intersect($this->tables($target), array_merge($tables, self::SKIP)));
+            if ($ours && ($copy || ! $busy)) {
+                $this->drop($target, $ours);
             }
 
             $step = 'создание таблиц (миграции) в новой базе';
@@ -197,6 +206,19 @@ class DatabaseSwitcher
             }
         } finally {
             DB::setDefaultConnection($default);
+        }
+    }
+
+    /** A39 · Удалить таблицы новой базы (только перечисленные — чужие таблицы в той же базе не трогаем). */
+    private function drop(Connection $c, array $tables): void
+    {
+        $this->foreignKeys($c, false);
+        try {
+            foreach ($tables as $t) {
+                $c->getSchemaBuilder()->dropIfExists($t);
+            }
+        } finally {
+            $this->foreignKeys($c, true);
         }
     }
 
