@@ -22,7 +22,7 @@
                     <span class="chip">{{ $ratesCount }} ставок</span>
                 </div>
                 <h1 class="font-display font-bold text-[2.2rem] sm:text-5xl xl:text-[3.25rem] leading-[1.04]">
-                    Все вклады Казахстана.<br><span class="muted">Одна таблица — <span class="text-grad">лучшая ставка.</span></span>
+                    Все вклады {{ country()?->genitive() }}.<br><span class="muted">Одна таблица — <span class="text-grad">лучшая ставка.</span></span>
                 </h1>
                 {{-- A14 · Быстрый подбор → каталог вкладов --}}
                 <form action="{{ route('deposits.index') }}" method="get" class="plate p-2 flex flex-wrap items-center gap-2 text-[15px]">
@@ -127,7 +127,7 @@
                 </div>
             </a>
             <div id="soon" class="grid grid-cols-2 gap-5 scroll-mt-32">
-                @foreach ([['card', 'Карты', 'Кешбэк и лимиты'], ['loan', 'Кредиты', 'Ставки и переплата'], ['globe', 'Платёжные системы', 'Visa, Mastercard, UnionPay'], ['news', 'Новости', 'Рынок и решения НБРК']] as $i => [$icon, $name, $text])
+                @foreach ([['card', 'Карты', 'Кешбэк и лимиты'], ['loan', 'Кредиты', 'Ставки и переплата'], ['globe', 'Платёжные системы', 'Visa, Mastercard, UnionPay'], ['news', 'Новости', 'Рынок и решения '.(country()?->centralBankName() ?? 'регулятора')]] as $i => [$icon, $name, $text])
                     <article class="card lift p-5 flex flex-col justify-between gap-6 {{ $i === 0 ? 'card-soft' : '' }}" data-reveal style="--d: {{ 0.04 * $i }}s">
                         <span class="icon-tile {{ $i === 0 ? '!bg-white/60' : '' }}">@include('partials.icon', ['i' => $icon])</span>
                         <div><h4 class="font-semibold">{{ $name }}</h4><p class="text-sm muted mt-0.5">{{ $text }}</p></div>
@@ -142,7 +142,7 @@
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>
             <div>
-                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию КФГД', '#soon'], ['star', 'Оценить свой банк', route('banks.index')], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
+                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию '.(country()?->guaranteeName() ?? 'вклада'), '#soon'], ['star', 'Оценить свой банк', route('banks.index')], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="list-row group">
                         <span class="icon-tile group-hover:bg-[var(--ink)] group-hover:text-[var(--ink-text)] transition">@include('partials.icon', ['i' => $icon, 'c' => 'w-[19px] h-[19px]'])</span>
                         <span class="font-medium">{{ $label }}</span>
@@ -175,7 +175,7 @@
         <section class="card p-6" data-reveal style="--d:.1s">
             <h2 class="font-display font-bold text-xl mb-4">Сейчас ищут</h2>
             <div class="flex flex-wrap gap-2">
-                @foreach (['вклад Kaspi', 'Halyk депозит', 'ставка НБРК', 'ГЭСВ что это', 'сберегательный вклад', 'КФГД 20 млн', 'вклад в долларах'] as $tag)
+                @foreach (['вклад Kaspi', 'Halyk депозит', 'базовая ставка', 'ГЭСВ что это', 'сберегательный вклад', 'гарантия вкладов', 'вклад в долларах'] as $tag)
                     <a href="#top" class="btn btn-ghost !py-1.5 !px-3 text-sm !font-medium">{{ $tag }}</a>
                 @endforeach
             </div>

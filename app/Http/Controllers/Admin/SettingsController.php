@@ -30,6 +30,7 @@ class SettingsController extends Controller
             'contact_email' => ['nullable', 'email', 'max:160'],
             'counters' => ['nullable', 'string', 'max:5000'],
             'theme_default' => ['required', 'in:dark,light'],
+            'default_country' => ['nullable', 'exists:countries,slug'], // A21
             'logo' => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'],
             'favicon' => ['nullable', 'file', 'mimes:png,ico,svg', 'max:512'],
             'remove_logo' => ['nullable', 'boolean'],
@@ -47,6 +48,9 @@ class SettingsController extends Controller
             'site.counters' => $data['counters'] ?? null,
             'theme.default' => $data['theme_default'],
         ];
+        if (! empty($data['default_country'])) {
+            $values['country.default'] = $data['default_country'];
+        }
 
         foreach (['logo', 'favicon'] as $field) {
             if ($request->boolean("remove_{$field}")) {

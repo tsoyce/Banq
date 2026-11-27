@@ -8,11 +8,16 @@
 
 ```
 app/
+├─ Admin/ Resource (A24 описание ресурса: колонки, поля, фильтры, массовые действия), ResourceRegistry,
+│         Resources/{Country,Bank,DepositProduct,DepositRate,User}Resource   A24
+├─ Console/Commands/ banq:import, banq:export, banq:schema, banq:token   A22 A23
 ├─ Enums/DepositType.php ............ A07 типы вкладов КФГД + подписи из Excel
 ├─ Enums/RatingKind.php ............. A18 вид рейтинга: author / objective / people (подпись, иконка, цвет серии)
 ├─ Http/
 │  ├─ Middleware/EnsureInstalled.php  A03 глобальный: .env/APP_KEY, редирект на /install
 │  ├─ Middleware/EnsureAdmin.php .... A09 роль admin|editor для /admin
+│  ├─ Middleware/ResolveCountry.php . A21 текущая страна витрины (?country= → cookie → настройка)
+│  ├─ Middleware/AuthenticateApiToken A23 Bearer-токен для /api/v1, право read|write
 │  └─ Controllers/
 │     ├─ HomeController.php ......... A10 главная-дашборд
 │     ├─ DepositController.php ...... A14 каталог вкладов, карточка, сравнение
@@ -27,23 +32,37 @@ app/
 │     ├─ ComparisonController ....... A28 сохранённые сравнения: сохранить, переименовать, удалить
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
-│     └─ Admin/{Dashboard,Settings,Bank,Import}Controller  A05 A06 A08 A09
+│     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports
+│     └─ Admin/{Dashboard,Settings,Import}Controller  A05 A08 A09 (A24: обзор со «здоровьем данных»)
+│        Admin/ResourceController ... A24 универсальный CRUD по App\Admin\Resource (+ /bulk)
+│        Admin/ExchangeController ... A22 обмен данными: check (dry-run) → apply, export, schema, шаблоны, токены
+│        Admin/SearchController ..... A24 поиск ⌘K (JSON)
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
+├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
-│  ├─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08
+│  ├─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08 — старая «матрица Excel», A21 учитывает страну
+│  ├─ Exchange/ DataExchange (parse/import/export/render), EntityRegistry (+schema), Entity (поля, типы, normalize, persist),
+│  │            Entities/{Country,Bank,DepositProduct,DepositRate}Entity, Formats/{Json,Csv,Xlsx}Format (+Tabular),
+│  │            ImportOptions (mode, dryRun, country, source), ImportContext, ImportReport, RowError   A22
 │  └─ Deposits/ DepositCatalog (подбор, сетка, история, похожие), DepositFilters (URL ⇄ фильтры),
 │               DepositOffer (вклад + лучшая ставка), Income (доход по ГЭСВ/капитализации)   A14
 │  ├─ Banks/ BankDirectory (по банку: лучшая ставка ₸, число вкладов, типы)   A18
 │  └─ Ratings/ ObjectiveRating (расчёт из данных), PeopleRating (байес. среднее отзывов),
 │              RatingBoard (три оценки, места, ▲▼, snapshot), BankScore (DTO)   A18
+├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка, A21 — по стране)  A03 A05 A13
+│          CurrentCountry (текущая страна, scoped)  A21
+└─ helpers.php ...................... settings(), project_years(), rate_format(), plural(), country(), currency_symbol() (A21)
 ├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка)  A03 A05 A13
 │          Username (генерация/правила адреса профиля), Countries (страны для анкеты, ISO-2)  A28
 └─ helpers.php ...................... settings(), project_years(), rate_format(), plural()
 config/banq.php ..................... версия, путь lock-файла, валюты, сроки
 database/migrations/2026_11_26_* .... settings+role, banks, deposit_*, imports, ratings+reviews+review_votes+поля banks (A18)
+database/migrations/2026_11_27_* .... countries + banks.country_id/deposit_insured (A21), api_tokens (A23), поля imports (A22)
+lang/ru/validation.php .............. A22 русские сообщения валидации
+routes/api.php ...................... A23 /api/v1
 database/seeders/BankSeeder.php ..... 18 банков РК с алиасами (черновик, сверить с АРРФР)
 resources/
 ├─ css/app.css ...................... A13 дизайн-система v2 «Bento» (токены, карточки, пилюли, темы)
@@ -58,14 +77,18 @@ resources/
    ├─ profile/ show (публичный профиль)  A28 · partials/ avatar, fav (кнопка-сердце)  A28
    ├─ deposits/ index (каталог), _results (список, отдаётся и по fetch), _offer (строка), show (карточка), compare  A14
    ├─ install/ welcome, database, site
-   └─ admin/ dashboard, settings/edit, banks/{index,edit}, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
+   ├─ partials/country-switch ....... A21 переключатель стран в ленте
+   └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
+            resource/{index,form,field,aside-bank,aside-deposit} (A24), exchange/{index,report,_rows,show,tokens} (A22 A23)
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
+tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
+                                       обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
 deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить)
-docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры)
+docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры), API.md (A23)
 ```
 
 ## 2. Граф зависимостей
@@ -111,6 +134,17 @@ HTTP запрос
                                                    → DepositProduct::firstOrCreate → DepositRate, Import
 
 Все шаблоны ──► settings()/project_years() ──► Support\Settings ──► кеш 'banq.settings' ──► settings
+Витрина ──► ResolveCountry ──► CurrentCountry ──► countries; country()/currency_symbol() в шаблонах
+           Market, DepositCatalog, RatingBoard, BankDirectory, Home ──► Bank::inCountry() (A21)
+
+Обмен данными (A22/A23):
+  /admin/exchange (check → apply) ─┐
+  php artisan banq:import/export ──┼─► DataExchange ──► Formats (json/csv/xlsx) ──► пакет {entity: rows}
+  /api/v1/import, /export ─────────┘        └─► EntityRegistry ──► Country/Bank/DepositProduct/DepositRate Entity
+     (AuthenticateApiToken → api_tokens)          normalize → find (естественный ключ) → persist (дифф) ──► imports
+  ResourceController::storeRate ──► DataExchange (новая ставка закрывает старую)
+
+Админка (A24): /admin/{countries|banks|deposits|rates|users} ──► ResourceController ──► ResourceRegistry ──► Resource
 ```
 
 ## 3. Таблицы
@@ -127,6 +161,10 @@ HTTP запрос
 | `ratings` | bank_id, kind (author/objective/people), score 0–5, breakdown json, votes, verdict, pros/cons json, user_id, **period** (unique bank+kind+period) | Admin\RatingController (author), RatingBoard::snapshot (objective, people) | RatingBoard: текущая авторская, прошлые снимки → ▲▼ |
 | `reviews` | user_id, bank_id, deposit_product_id?, score 1–5, title, body, status pending/approved/rejected, reject_reason, reply, reply_author, helpful, moderated_by/at, published_at, ip; unique user+bank | ReviewController, Admin\ReviewController | страница банка, /ratings, PeopleRating |
 | `review_votes` | review_id + user_id (PK) | ReviewController::vote | счётчик reviews.helpful |
+| `countries` (A21) | code ISO (unique), slug, name + name_genitive/locative/en/native, flag, currency, currency_symbol, currencies json, locale, timezone, phone_code, regulator json, central_bank json, deposit_guarantee json {short, name, url, limits{savings,term,demand,foreign}}, meta, is_active, sort | миграция (KZ), админка, обмен | CurrentCountry, все витрины, Country::guaranteeLimit |
+| `banks` (+A21) | **country_id** (FK, restrict), unique(country_id, code), `is_kdif_member` → **deposit_insured** | админка, обмен | всё, что выше, — по стране |
+| `api_tokens` (A23) | name, token_hash sha256 (unique), prefix, abilities json [read, write], last_used_at, last_ip, expires_at, user_id | админка, banq:token | AuthenticateApiToken |
+| `imports` (+A22) | api_token_id, format (json/csv/xlsx/matrix/form), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
 | `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
 | `favorites` | user_id, favoritable_type (`deposit`\|`bank`), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
 | `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
@@ -157,6 +195,7 @@ HTTP запрос
 | `site.contact_email` | админка | подвал |
 | `site.counters` | админка | вставляется как HTML в `<head>` (только admin может менять) |
 | `theme.default` | админка | `data-theme` на `<html>` |
+| `country.default` | админка → Настройки (A21) | CurrentCountry: страна нового посетителя (slug, по умолчанию первая по sort) |
 
 ## 6. Маршруты
 
@@ -181,10 +220,16 @@ HTTP запрос
 | GET/POST | `/login`, POST `/logout` | login, logout | гости / вошедшие |
 | GET | `/admin` | admin.dashboard | admin, editor |
 | GET/PUT | `/admin/settings` | admin.settings.* | admin, editor |
-| GET/PUT | `/admin/banks`, `/admin/banks/{bank}/edit` | admin.banks.* | admin, editor |
 | GET/POST | `/admin/import`, `/admin/import/preview` | admin.import.* | admin, editor |
 | GET, POST, GET/PUT | `/admin/ratings`, `/admin/ratings/snapshot`, `/admin/ratings/{bank}/edit` | admin.ratings.* | admin, editor (A18) |
 | GET, PUT, DELETE | `/admin/reviews?status=`, `/admin/reviews/{review}` (action=approve\|reject\|reply) | admin.reviews.* | admin, editor (A18) |
+| любой | все публичные страницы `?country=kz` | — | A21: выбрать страну (запоминается в cookie `banq_country`) |
+| GET, GET, POST, POST, GET, PUT, DELETE | `/admin/{key}`, `/{key}/create`, `/{key}`, `/{key}/bulk`, `/{key}/{id}/edit`, `/{key}/{id}` — key: countries\|banks\|deposits\|rates\|users | admin.resource.* | admin, editor; users — только admin (A24). Список: `q`, фильтры ресурса, `sort`, `dir`, `per` |
+| GET | `/admin/search?q=` | admin.search | JSON для ⌘K (A24) |
+| GET, POST, POST, GET, GET, GET, GET | `/admin/exchange?tab=`, `/exchange/check`, `/exchange/apply`, `/exchange/export`, `/exchange/schema`, `/exchange/template/{entity}/{format}`, `/exchange/history/{import}` | admin.exchange.* | admin, editor (A22) |
+| GET, POST, DELETE | `/admin/exchange/tokens`, `/exchange/tokens/{token}` | admin.exchange.tokens* | выпуск/отзыв — только admin (A23) |
+| GET | `/api/v1/schema`, `/api/v1/export`, `/api/v1/imports`, `/api/v1/imports/{id}`, `/api/v1/{entity}` | api.* | токен с правом read (A23), throttle 120/мин |
+| POST | `/api/v1/import` | api.import | токен с правом write (A23) |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -214,6 +259,14 @@ HTTP запрос
 | `User::hasFavorite($model)`, `User::wants($key)`, `User::level($reviews, $helpful)`, `User::profileUrl()`, `avatarUrl()`, `location()` | избранное (один запрос на страницу), уведомления с умолчаниями `User::NOTIFY`, ступень автора `User::LEVELS` (A28) |
 | `Username::generate($name)` | латиница из имени, уникально, без служебных слов (A28) |
 | `Income::calc($amount, $months, $rate, $effective)` | доход: по ГЭСВ, иначе номинал с ежемесячной капитализацией (A14) |
+| `country()` | текущая страна витрины или null (A21) |
+| `currency_symbol($code = null)` | знак валюты: основная валюта страны → её знак (₸, сум), иначе $ € ₽ ¥ или код (A21) |
+| `money_format($v, $sign = null)` | A21: по умолчанию знак валюты текущей страны |
+| `Bank::findByIdentifier($s, $country = null)`, `Bank::inCountry($c = null)` | A21: поиск и выборка внутри страны (null — текущая) |
+| `Country::guaranteeLimit($type, $currency)`, `guaranteeName()`, `regulatorName()`, `centralBankName()`, `genitive()` | A21: национальные данные страны |
+| `php artisan banq:import {file} [--entity] [--format] [--mode] [--country] [--dry-run] [--json]` | A22 импорт в любом формате |
+| `php artisan banq:export [entities*] [--format] [--country] [--bank=*] [--current] [--output]` | A22 экспорт |
+| `php artisan banq:schema [entity]`, `php artisan banq:token {name} [--write] [--days]` | A22 схема формата, A23 токен API |
 
 ## 9. Конфиг `config/banq.php`
 
@@ -224,4 +277,11 @@ HTTP запрос
 | `ratings.objective_weights` | веса критериев объективного рейтинга: rates .40, reliability .30, range .15, terms .15 | ObjectiveRating, методика на /ratings (A18) |
 | `ratings.people_prior_weight`, `ratings.people_prior_mean` | байесовское среднее народного: 5 оценок по 3,5 | PeopleRating (A18) |
 | `ratings.review_min_length` | минимум символов в отзыве (80) | ReviewController, форма (A18) |
-| `kdif_limits.{savings,term,demand,foreign}` | гарантия КФГД, ₸: 20 / 10 / 10 / 5 млн (сверено с kdif.kz 26.11.2026) | карточка, сравнение (A14) |
+| ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
+
+## 10. Как добавить новый раздел (карты, кредиты…) — A21–A24
+
+1. Модель и миграция с `bank_id` (страна — через банк; для международных сущностей вроде платёжных систем — свой `country_id` nullable или связь многие-ко-многим).
+2. Сущность обмена `App\Services\Exchange\Entities\XxxEntity` + строка в `EntityRegistry` → сразу работает импорт/экспорт в админке, CLI и API, появляется в схеме.
+3. Ресурс админки `App\Admin\Resources\XxxResource` + строка в `ResourceRegistry` → список, фильтры, форма, массовые действия; пункт меню — в `layouts/admin`.
+4. Витрина: выборки через `Bank::inCountry()`, суммы — `currency_symbol()`, национальные названия — из `country()`.

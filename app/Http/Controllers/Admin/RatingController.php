@@ -45,7 +45,7 @@ class RatingController extends Controller
             'financials_at' => ['nullable', 'date'],
             'founded_year' => ['nullable', 'integer', 'between:1850,'.date('Y')],
             'license' => ['nullable', 'string', 'max:255'],
-            'is_kdif_member' => ['boolean'],
+            'deposit_insured' => ['boolean'],
         ]);
         $lines = fn (?string $t) => array_values(array_filter(array_map('trim', preg_split('/\R/u', (string) $t))));
 
@@ -60,7 +60,7 @@ class RatingController extends Controller
             'financials_at' => $data['financials_at'] ?? null,
             'founded_year' => $data['founded_year'] ?? null,
             'license' => $data['license'] ?? null,
-            'is_kdif_member' => $request->boolean('is_kdif_member'),
+            'deposit_insured' => $request->boolean('deposit_insured'),
         ]);
 
         return redirect()->route('admin.ratings.index')->with('status', "Оценка «{$bank->displayName()}» сохранена");

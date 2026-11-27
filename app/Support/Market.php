@@ -16,6 +16,9 @@ class Market
 {
     private ?Collection $rates = null;
 
+    // A21 · срез — по текущей стране витрины
+    public function __construct(private CurrentCountry $country) {}
+
     /** Действующие ставки активных продуктов, по убыванию. */
     public function rates(): Collection
     {
@@ -28,8 +31,8 @@ class Market
 
         try {
             return $this->rates = DepositRate::query()->current()
-                ->with('product.bank')
-                ->whereHas('product', fn ($q) => $q->active())
+                ->with('product.bank.country')
+                ->whereHas('product', fn ($q) => $q->active()->whereHas('bank', fn ($b) => $b->inCountry($this->country->id())))
                 ->orderByDesc('rate')
                 ->get();
         } catch (Throwable) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DepositProduct;
 use App\Services\Deposits\DepositCatalog;
 use App\Services\Deposits\DepositFilters;
+use App\Support\CurrentCountry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -44,9 +45,10 @@ class DepositController extends Controller
     public function show(DepositProduct $product): View
     {
         abort_unless($product->is_active && $product->bank?->status === 'active', 404);
-        $product->load(['bank', 'currentRates']);
+        $product->load(['bank.country', 'currentRates']);
+        app(CurrentCountry::class)->set($product->bank->country); // A21 · страница живёт в стране банка
         $matrix = $this->catalog->matrix($product);
-        $currency = array_key_first($matrix) ?? 'KZT';
+        $currency = array_key_first($matrix) ?? $product->bank->country?->currency ?? 'KZT';
 
         return view('deposits.show', [
             'product' => $product,
@@ -56,7 +58,7 @@ class DepositController extends Controller
             'similar' => $this->catalog->similar($product),
             'siblings' => $product->bank->depositProducts()->active()->whereKeyNot($product->id)
                 ->whereHas('currentRates')->with('currentRates')->get(),
-            'kdifLimit' => config('banq.kdif_limits.'.($currency === 'KZT' ? $product->type->value : 'foreign')),
+            'kdifLimit' => $product->bank->deposit_insured ? $product->bank->country?->guaranteeLimit($product->type->value, $currency) : null,
         ]);
     }
 
@@ -66,7 +68,7 @@ class DepositController extends Controller
             ->map(fn ($id) => (int) $id)->filter()->unique()->take(self::COMPARE_LIMIT)->values();
         $filters = DepositFilters::fromRequest($request);
 
-        $products = DepositProduct::query()->active()->whereIn('id', $ids)->with('bank')->get()
+        $products = DepositProduct::query()->active()->whereIn('id', $ids)->with('bank.country')->get()
             ->sortBy(fn ($p) => $ids->search($p->id))->values();
         $columns = $products->map(fn (DepositProduct $p) => ['product' => $p, 'rate' => $this->catalog->bestRate($p, $filters)]);
 

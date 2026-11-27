@@ -2,6 +2,8 @@
 
 // A05 · Глобальные хелперы (подключены через composer.json → autoload.files).
 
+use App\Models\Country;
+use App\Support\CurrentCountry;
 use App\Support\Settings;
 
 if (! function_exists('settings')) {
@@ -52,9 +54,32 @@ if (! function_exists('score_format')) {
 }
 
 if (! function_exists('money_format')) {
-    /** A18 · Деньги по DESIGN §3.3: 1180394 → «1 180 394 ₸» (неразрывные пробелы). */
-    function money_format(float|int|string|null $v, string $sign = '₸'): string
+    /** A18 · Деньги по DESIGN §3.3: 1180394 → «1 180 394 ₸» (неразрывные пробелы). A21: знак по умолчанию — валюта текущей страны. */
+    function money_format(float|int|string|null $v, ?string $sign = null): string
     {
+        $sign ??= app(CurrentCountry::class)->symbol();
+
         return $v === null ? '—' : number_format((float) $v, 0, ',', "\u{202F}")."\u{00A0}".$sign;
+    }
+}
+
+if (! function_exists('country')) {
+    /** A21 · Текущая страна витрины (App\Models\Country) или null, пока стран нет. */
+    function country(): ?Country
+    {
+        return app(CurrentCountry::class)->get();
+    }
+}
+
+if (! function_exists('currency_symbol')) {
+    /** A21 · Знак валюты: основная валюта текущей страны → её знак (₸, сум), прочие — $, €, ₽, ¥ или код. */
+    function currency_symbol(?string $code = null): string
+    {
+        $country = country();
+        if ($code === null || ($country && strtoupper($code) === $country->currency)) {
+            return $country?->symbol() ?? '₸';
+        }
+
+        return ['USD' => '$', 'EUR' => '€', 'RUB' => '₽', 'CNY' => '¥', 'KZT' => '₸', 'GBP' => '£'][strtoupper($code)] ?? strtoupper($code);
     }
 }

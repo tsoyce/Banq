@@ -20,13 +20,13 @@ class HomeController extends Controller
             'leaders' => $market->leaders(),
             'best' => $rates->first(),
             'top' => $market->top(8),
-            'banksCount' => Bank::query()->active()->count(),
+            'banksCount' => Bank::query()->active()->inCountry()->count(),
             'ratesCount' => $rates->count(),
             'updatedAt' => $rates->max('updated_at'),
             // A18 · Живой блок рейтингов: народный, а пока отзывов нет — объективный
             'ratingKind' => $kind = $board->top(RatingKind::People, 1)->isNotEmpty() ? RatingKind::People : RatingKind::Objective,
             'ratingTop' => $board->top($kind, 3),
-            'reviewsCount' => Review::query()->approved()->count(),
+            'reviewsCount' => Review::query()->approved()->whereHas('bank', fn ($b) => $b->inCountry())->count(),
         ]);
     }
 }

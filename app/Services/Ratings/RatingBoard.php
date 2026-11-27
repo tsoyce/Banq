@@ -26,7 +26,7 @@ class RatingBoard
             return $this->scores;
         }
 
-        $banks = Bank::query()->active()->orderBy('sort')->orderBy('name')->get();
+        $banks = Bank::query()->active()->inCountry()->with('country')->orderBy('sort')->orderBy('name')->get();
         $objective = $this->objective->all($banks);
         $people = $this->people->all();
         $authors = $this->latest(RatingKind::Author);

@@ -3,6 +3,7 @@
 namespace App\Services\Deposits;
 
 use App\Enums\DepositType;
+use App\Support\CurrentCountry;
 use Illuminate\Http\Request;
 
 /**
@@ -22,9 +23,15 @@ final class DepositFilters
      * @param  list<DepositType>  $types
      * @param  list<string>  $banks  slug банков
      */
+    /** A21 · Валюта подборки; по умолчанию — основная валюта текущей страны. */
+    public readonly string $currency;
+
+    /** A21 · Основная валюта страны: её не пишем в URL и не считаем фильтром. */
+    public readonly string $baseCurrency;
+
     public function __construct(
         public readonly array $types = [],
-        public readonly string $currency = 'KZT',
+        ?string $currency = null,
         public readonly ?int $term = null,
         public readonly ?float $amount = null,
         public readonly array $banks = [],
@@ -33,20 +40,24 @@ final class DepositFilters
         public readonly bool $online = false,
         public readonly string $sort = 'rate',
         public readonly ?string $q = null,
-    ) {}
+    ) {
+        $this->baseCurrency = app(CurrentCountry::class)->currency();
+        $this->currency = $currency ?: $this->baseCurrency;
+    }
 
     public static function fromRequest(Request $r): self
     {
         $types = collect((array) $r->query('type', []))
             ->map(fn ($t) => DepositType::tryFrom((string) $t))->filter()->unique()->values()->all();
-        $currency = strtoupper((string) $r->query('currency', 'KZT'));
+        $currency = strtoupper((string) $r->query('currency', ''));
+        $allowed = app(CurrentCountry::class)->get()?->currencyList() ?? config('banq.currencies');
         $term = (int) $r->query('term') ?: null;
         $amount = (float) preg_replace('/[^\d.]/', '', (string) $r->query('amount')) ?: null;
         $sort = (string) $r->query('sort', 'rate');
 
         return new self(
             types: $types,
-            currency: in_array($currency, config('banq.currencies'), true) ? $currency : 'KZT',
+            currency: in_array($currency, [...$allowed, ...config('banq.currencies')], true) ? $currency : null,
             term: $term && $term <= 120 ? $term : null,
             amount: $amount && $amount < 1e13 ? $amount : null,
             banks: array_values(array_filter(array_map('strval', (array) $r->query('bank', [])))),
@@ -63,10 +74,10 @@ final class DepositFilters
         return in_array($t, $this->types, true);
     }
 
-    /** Сколько фильтров включено (валюта KZT и сортировка не считаются). */
+    /** Сколько фильтров включено (основная валюта страны и сортировка не считаются). */
     public function activeCount(): int
     {
-        return count($this->types) + count($this->banks) + ($this->currency !== 'KZT' ? 1 : 0)
+        return count($this->types) + count($this->banks) + ($this->currency !== $this->baseCurrency ? 1 : 0)
             + ($this->term ? 1 : 0) + ($this->amount ? 1 : 0) + (int) $this->replenish + (int) $this->withdraw
             + (int) $this->online + ($this->q ? 1 : 0);
     }
@@ -76,7 +87,7 @@ final class DepositFilters
     {
         return array_filter([
             'type' => array_map(fn (DepositType $t) => $t->value, $this->types),
-            'currency' => $this->currency === 'KZT' ? null : $this->currency,
+            'currency' => $this->currency === $this->baseCurrency ? null : $this->currency,
             'term' => $this->term,
             'amount' => $this->amount ? (int) $this->amount : null,
             'bank' => $this->banks,

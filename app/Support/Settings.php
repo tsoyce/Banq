@@ -22,8 +22,8 @@ class Settings
     {
         return [
             'site.name' => 'TSOY.IN',
-            'site.tagline' => 'Banq of Bank — всё о банках Казахстана',
-            'site.description' => 'Ставки по депозитам, карты, кредиты, рейтинги и новости банков Казахстана.',
+            'site.tagline' => 'Banq of Bank — всё о банках',
+            'site.description' => 'Ставки по депозитам, карты, кредиты, рейтинги и новости банков.',
             'site.logo' => null,
             'site.favicon' => null,
             'site.founded_year' => (int) date('Y'),

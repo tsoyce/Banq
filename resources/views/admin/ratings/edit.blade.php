@@ -29,8 +29,8 @@
                 <label class="field"><span>Данные на дату</span><input name="financials_at" type="date" class="input" value="{{ old('financials_at', $bank->financials_at?->toDateString()) }}"></label>
                 <label class="field"><span>Год основания</span><input name="founded_year" type="number" min="1850" max="{{ date('Y') }}" class="input tabular" value="{{ old('founded_year', $bank->founded_year) }}"></label>
             </div>
-            <label class="field"><span>Лицензия АРРФР</span><input name="license" class="input" value="{{ old('license', $bank->license) }}" placeholder="№ 1.2.47/193/38 от 03.02.2020"></label>
-            <label class="switch"><span>Участник КФГД</span><input type="hidden" name="is_kdif_member" value="0"><input type="checkbox" name="is_kdif_member" value="1" class="sr-only" @checked(old('is_kdif_member', $bank->is_kdif_member))><i></i></label>
+            <label class="field"><span>Лицензия {{ $bank->country?->regulatorName() ?? 'регулятора' }}</span><input name="license" class="input" value="{{ old('license', $bank->license) }}" placeholder="№ 1.2.47/193/38 от 03.02.2020"></label>
+            <label class="switch"><span>Участник {{ $bank->country?->guaranteeName() ?? 'системы гарантирования вкладов' }}</span><input type="hidden" name="deposit_insured" value="0"><input type="checkbox" name="deposit_insured" value="1" class="sr-only" @checked(old('deposit_insured', $bank->deposit_insured))><i></i></label>
             @if ($score)
                 <div class="plate p-4 space-y-2 text-sm">
                     <p class="font-semibold">Сейчас: {{ $score->objective['has_data'] ? score_format($score->objective['score'], 2) : 'нет ставок' }}</p>

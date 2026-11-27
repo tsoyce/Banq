@@ -6,6 +6,7 @@ use App\Models\Favorite;
 use App\Services\Ratings\ObjectiveRating;
 use App\Services\Ratings\PeopleRating;
 use App\Services\Ratings\RatingBoard;
+use App\Support\CurrentCountry;
 use App\Support\Market;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(Settings::class);
         $this->app->scoped(Market::class);
+        $this->app->scoped(CurrentCountry::class); // A21
         // A18 · Рейтинги: один расчёт на запрос
         $this->app->scoped(ObjectiveRating::class);
         $this->app->scoped(PeopleRating::class);

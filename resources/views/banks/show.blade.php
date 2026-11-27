@@ -30,7 +30,7 @@
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span class="chip">@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 '.($bank->is_kdif_member ? 'text-[var(--ok)]' : '')]) {{ $bank->is_kdif_member ? 'участник КФГД' : 'не участник КФГД' }}</span>
+                <span class="chip">@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5 '.($bank->deposit_insured ? 'text-[var(--ok)]' : '')]) {{ $bank->deposit_insured ? 'участник '.($bank->country?->guaranteeName() ?? 'гарантирования вкладов') : 'вклады не застрахованы' }}</span>
                 @if ($bank->license)<span class="chip">лицензия {{ $bank->license }}</span>@endif
                 @if ($bank->founded_year)<span class="chip">с {{ $bank->founded_year }} года</span>@endif
                 <span class="chip mono">{{ $bank->code }}</span>
@@ -219,16 +219,16 @@
                         $bank->swift ? ['SWIFT', $bank->swift] : null,
                         $bank->license ? ['Лицензия', $bank->license] : null,
                         $bank->founded_year ? ['Основан', $bank->founded_year.' г.'] : null,
-                        $bank->assets_bn ? ['Активы', number_format((float) $bank->assets_bn, 0, ',', ' ').' млрд ₸'] : null,
-                        $bank->capital_bn ? ['Капитал', number_format((float) $bank->capital_bn, 0, ',', ' ').' млрд ₸'] : null,
-                        ['КФГД', $bank->is_kdif_member ? 'участник' : 'нет'],
+                        $bank->assets_bn ? ['Активы', number_format((float) $bank->assets_bn, 0, ',', ' ').' млрд '.currency_symbol()] : null,
+                        $bank->capital_bn ? ['Капитал', number_format((float) $bank->capital_bn, 0, ',', ' ').' млрд '.currency_symbol()] : null,
+                        [$bank->country?->guaranteeName() ?? 'Гарантия вкладов', $bank->deposit_insured ? 'участник' : 'нет'],
                         $bank->phone ? ['Телефон', $bank->phone] : null,
                         $bank->website ? ['Сайт', preg_replace('#^https?://(www\.)?#', '', rtrim($bank->website, '/'))] : null,
                     ]) as [$k, $v])
                         <div class="list-row !py-2.5 justify-between"><dt class="muted text-sm">{{ $k }}</dt><dd class="font-semibold text-right tabular text-sm">{{ $v }}</dd></div>
                     @endforeach
                 </dl>
-                @if ($bank->financials_at)<p class="text-xs faint mt-3">Финансы — на {{ $bank->financials_at->translatedFormat('j F Y') }}, источник АРРФР.</p>@endif
+                @if ($bank->financials_at)<p class="text-xs faint mt-3">Финансы — на {{ $bank->financials_at->translatedFormat('j F Y') }}, источник {{ $bank->country?->regulatorName() ?? 'регулятор' }}.</p>@endif
             </section>
 
             @include('reviews._form', ['bank' => $bank, 'mine' => $mine, 'products' => $products])
