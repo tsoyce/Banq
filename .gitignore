@@ -27,3 +27,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# A21 · BrainyCP создаёт эти папки при сохранении настроек сайта
+/cgi-bin/
+/public/cgi-bin/
