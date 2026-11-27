@@ -4,6 +4,7 @@ namespace App\Services\Exchange;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
@@ -187,7 +188,7 @@ abstract class Entity
         }
         try {
             $model->delete();
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             throw new RowError('нельзя удалить: на запись ссылаются другие данные — сначала удали их');
         }
 

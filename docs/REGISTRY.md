@@ -19,7 +19,7 @@ app/
 │  ├─ Middleware/EnsureAdmin.php .... A09 роль admin|editor для /admin
 │  ├─ Middleware/ResolveCountry.php . A21 текущая страна витрины (?country= → cookie → настройка)
 │  ├─ Middleware/Typography.php ..... A36 неразрывные пробелы в HTML-ответах (web, после ResolveCountry) → Support/Typograph
-│  ├─ Middleware/AuthenticateApiToken A23 Bearer-токен для /api/v1, право read|write
+│  ├─ Middleware/AuthenticateApiToken A23 Bearer-токен для /api/v1, право read|write|delete (delete — A39)
 │  └─ Controllers/
 │     ├─ HomeController.php ......... A10 главная-дашборд
 │     ├─ DepositController.php ...... A14 каталог вкладов, карточка, сравнение
@@ -34,10 +34,11 @@ app/
 │     ├─ ComparisonController ....... A28 сохранённые сравнения: сохранить, переименовать, удалить
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
-│     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports
+│     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports; A39 about (без токена), openapi.json, POST/DELETE {entity}, Idempotency-Key, постранично + updated_since
 │     └─ Admin/{Dashboard,Settings,Import}Controller  A05 A08 A09 (A24: обзор со «здоровьем данных»)
 │        Admin/ResourceController ... A24 универсальный CRUD по App\Admin\Resource (+ /bulk)
 │        Admin/ExchangeController ... A22 обмен данными: check (dry-run) → apply, export, schema, шаблоны, токены
+│        Admin/GridController ....... A39 табличный редактор «как Excel»: show, rows (экспорт с _id + подсказки), save (dry-run/запись, allowDelete)
 │        Admin/SearchController ..... A24 поиск ⌘K (JSON)
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
@@ -59,7 +60,7 @@ app/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
 │  ├─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08 — старая «матрица Excel», A21 учитывает страну
 │  ├─ Exchange/ DataExchange (parse/import/export/render), EntityRegistry (+schema), Entity (поля, типы, normalize, persist),
-│  │            Entities/{Country,Bank,DepositProduct,DepositRate}Entity, Formats/{Json,Csv,Xlsx}Format (+Tabular),
+│  │            Entities/{Country,Bank,DepositProduct,DepositRate}Entity, Formats/{Json,Csv,Xlsx}Format (+Tabular), A39: Formats/{Xml,Yaml,Ndjson}Format, CsvFormat("\t") = TSV, OpenApi (спецификация из реестра); служебные поля строки _id/_delete (DataExchange::meta, Entity::locate/remove),
 │  │            ImportOptions (mode, dryRun, country, source), ImportContext, ImportReport, RowError   A22
 │  └─ Deposits/ DepositCatalog (подбор, сетка, история, похожие), DepositFilters (URL ⇄ фильтры),
 │               DepositOffer (вклад + лучшая ставка), Income (доход по ГЭСВ/капитализации)   A14
@@ -83,6 +84,7 @@ database/seeders/BankSeeder.php ..... 18 банков РК с алиасами (
 resources/
 ├─ css/app.css ...................... A13 дизайн-система v2 «Bento» (токены, карточки, пилюли, темы)
 ├─ js/app.js ........................ A04 Alpine: тема, x-count, калькулятор, reveal
+├─ js/sheet.js ...................... A39 табличный редактор: класс Grid (виртуальная отрисовка, выделение, правка, буфер TSV, отмена) + Alpine.data('sheet')
 ├─ css/blog.css ..................... A37 журнал: лента, обложки, статья (.prose-banq), реакции, комментарии, вставки .embed, редактор .ed-*
 ├─ js/blog.js ....................... A37 loadMore, share, $store.post (реакции), readProgress, tocSpy
 ├─ js/editor.js ..................... A37 редактор Tiptap (грузится отдельным чанком только на странице [data-post-editor])
@@ -100,7 +102,7 @@ resources/
    ├─ partials/plastic (объёмная карта, x-tilt), partials/ps-mark (знак платёжной системы)  A33
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
    └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
-            resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23)
+            resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23), exchange/grid (A39)
             posts/editor (A37: редактор публикации — Tiptap, обложка, связи с каскадом, SEO)
    ├─ blog/ index, show, rss, _card, _cover, _meta, _category, _grid, _reactions, _share, _linked, _comment(s), _about,
    │        embeds/{bank,deposit,card,package,payment_system}  A37 (_about — блок «В журнале» на страницах банка, вклада, карты, пакета, системы)
@@ -165,7 +167,8 @@ HTTP запрос
 
 Обмен данными (A22/A23):
   /admin/exchange (check → apply) ─┐
-  php artisan banq:import/export ──┼─► DataExchange ──► Formats (json/csv/xlsx) ──► пакет {entity: rows}
+  /admin/exchange/grid (A39) ──────┤
+  php artisan banq:import/export ──┼─► DataExchange ──► Formats (json/ndjson/xml/yaml/csv/tsv/xlsx) ──► пакет {entity: rows}
   /api/v1/import, /export ─────────┘        └─► EntityRegistry ──► Country/Bank/DepositProduct/DepositRate Entity
      (AuthenticateApiToken → api_tokens)          normalize → find (естественный ключ) → persist (дифф) ──► imports
   ResourceController::storeRate ──► DataExchange (новая ставка закрывает старую)
@@ -204,7 +207,7 @@ HTTP запрос
 | `countries` (A21) | code ISO (unique), slug, name + name_genitive/locative/en/native, flag, currency, currency_symbol, currencies json, locale, timezone, phone_code, regulator json, central_bank json, deposit_guarantee json {short, name, url, limits{savings,term,demand,foreign}}, meta, is_active, sort | миграция (KZ), админка, обмен | CurrentCountry, все витрины, Country::guaranteeLimit |
 | `banks` (+A21) | **country_id** (FK, restrict), unique(country_id, code), `is_kdif_member` → **deposit_insured** | админка, обмен | всё, что выше, — по стране |
 | `api_tokens` (A23) | name, token_hash sha256 (unique), prefix, abilities json [read, write], last_used_at, last_ip, expires_at, user_id | админка, banq:token | AuthenticateApiToken |
-| `imports` (+A22) | api_token_id, format (json/csv/xlsx/matrix/form), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
+| `imports` (+A22) | api_token_id, format (json/ndjson/xml/yaml/csv/tsv/xlsx/grid/matrix/form; A39), rows_updated включает удалённые (A39), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
 | `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
 | `favorites` | user_id, favoritable_type (`deposit`\|`bank`\|`card` A30), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
 | `payment_systems` (A30) | code (unique), slug, name, short_name, aliases json, scope international/regional/national, home_country, countries json, color, color_2, logo, website, founded_year, headquarters, wallets json, description, meta, is_active, sort | миграция (сидер), админка, обмен | /payment-systems, карты |
@@ -283,7 +286,10 @@ HTTP запрос
 | GET, POST, POST, GET, GET, GET, GET | `/admin/exchange?tab=`, `/exchange/check`, `/exchange/apply`, `/exchange/export`, `/exchange/schema`, `/exchange/template/{entity}/{format}`, `/exchange/history/{import}` | admin.exchange.* | admin, editor (A22) |
 | GET, POST, DELETE | `/admin/exchange/tokens`, `/exchange/tokens/{token}` | admin.exchange.tokens* | выпуск/отзыв — только admin (A23) |
 | GET | `/api/v1/schema`, `/api/v1/export`, `/api/v1/imports`, `/api/v1/imports/{id}`, `/api/v1/{entity}` | api.* | токен с правом read (A23), throttle 120/мин |
-| POST | `/api/v1/import` | api.import | токен с правом write (A23) |
+| POST | `/api/v1/import` | api.import | токен с правом write (A23); `allow_delete=1` — ещё право delete (A39) |
+| GET | `/api/v1`, `/api/v1/openapi.json` | api.about, api.openapi | без токена: руководство для агентов и OpenAPI 3.1 (A39) |
+| POST, DELETE | `/api/v1/{entity}` | api.entity.upsert, api.entity.destroy | write; DELETE — ещё право delete (A39) |
+| GET, GET, GET, POST | `/admin/exchange/grid`, `/exchange/grid/{entity}`, `/exchange/grid/{entity}/rows`, `/exchange/grid/{entity}` | admin.exchange.grid* | admin, editor — табличный редактор (A39) |
 | GET | `/cards?kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=`, `/cards/compare?ids=`, `/cards/{card:slug}` | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
 | GET | `/payment-systems`, `/payment-systems/{system:slug}` | payment-systems.* | все (A33) |
 | GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |

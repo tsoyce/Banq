@@ -475,7 +475,7 @@ class Grid {
 
     // ── клавиатура ─────────────────────────────────────────────
     onKey(e) {
-        if (this.editing) return;
+        if (this.editing || e.target === this.editor) return; // клавиши редактора всплывают сюда — не обрабатываем дважды
         const mod = isMac ? e.metaKey : e.ctrlKey;
         const s = this.sel;
         const k = e.key;
@@ -502,7 +502,6 @@ class Grid {
             if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); return this.redo(); }
             if (key === 'a') { e.preventDefault(); return this.selectAll(); }
             if (key === 'd') { e.preventDefault(); return this.fillDown(); }
-            if (key === 's') { e.preventDefault(); return this.opts.onSave?.(e.shiftKey); }
             if (key === 'f') { e.preventDefault(); return this.opts.onFind?.(); }
             if (k === '+' || k === '=' ) { e.preventDefault(); return this.insertRows(!e.altKey); }
             if (k === '-' || k === '_') { e.preventDefault(); return this.deleteRows(); }
@@ -775,12 +774,19 @@ export function sheet(config) {
                     this.canRedo = g.redoStack.length > 0;
                 },
                 toast: (t) => this.toast(t),
-                onSave: (check) => (check ? this.save(true) : this.save(false)),
                 onFind: () => this.$refs.search.focus(),
                 onFilterReset: () => { this.q = ''; },
             });
             this.hiddenKeys = [...this.grid.hidden];
             this.load();
+            // Ctrl+S / Ctrl+Shift+S — с любого места страницы (фокус может быть на кнопке или фильтре)
+            window.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    if (this.grid.editing) this.grid.commit();
+                    if (!this.busy) this.save(e.shiftKey);
+                }
+            });
             window.addEventListener('beforeunload', (e) => {
                 const c = this.counts;
                 if (c.changed + c.added + c.deleted > 0) { e.preventDefault(); e.returnValue = ''; }

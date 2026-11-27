@@ -10,6 +10,9 @@ use App\Services\Exchange\Formats\NdjsonFormat;
 use App\Services\Exchange\Formats\XlsxFormat;
 use App\Services\Exchange\Formats\XmlFormat;
 use App\Services\Exchange\Formats\YamlFormat;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Throwable;
@@ -256,18 +259,18 @@ class DataExchange
     }
 
     /** A39 · Запрос экспорта + общий фильтр updated_since (дата/время ISO 8601) — для инкрементальной выгрузки. */
-    private function query(Entity $entity, array $filters): \Illuminate\Database\Eloquent\Builder
+    private function query(Entity $entity, array $filters): Builder
     {
         $q = $entity->exportQuery($filters);
         if (! empty($filters['updated_since'])) {
-            $since = \Illuminate\Support\Carbon::parse($filters['updated_since']);
+            $since = Carbon::parse($filters['updated_since']);
             $q->where($q->getModel()->qualifyColumn('updated_at'), '>=', $since);
         }
 
         return $q;
     }
 
-    private function row(Entity $entity, \Illuminate\Database\Eloquent\Model $m, bool $withIds): array
+    private function row(Entity $entity, Model $m, bool $withIds): array
     {
         return $withIds ? ['_id' => $m->getKey()] + $entity->toRow($m) : $entity->toRow($m);
     }

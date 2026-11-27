@@ -47,14 +47,14 @@ class ExchangeController extends Controller
             'file' => ['nullable', 'file', 'max:20480'],
             'text' => ['nullable', 'string', 'max:5000000'],
             'entity' => ['nullable', 'string'],
-            'format' => ['nullable', 'in:json,csv,xlsx'],
+            'format' => ['nullable', 'in:'.implode(',', array_keys(DataExchange::FORMAT_LABELS))],
             'mode' => ['required', 'in:'.implode(',', array_keys(ImportOptions::MODES))],
             'country' => ['nullable', 'string', 'max:2'],
         ]);
         $file = $request->file('file');
         $content = $file ? (string) file_get_contents($file->getRealPath()) : (string) ($data['text'] ?? '');
         if (trim($content) === '') {
-            return back()->withErrors(['file' => 'Загрузи файл или вставь данные (JSON или CSV).'])->withInput();
+            return back()->withErrors(['file' => 'Загрузи файл или вставь данные (JSON, XML, YAML, CSV).'])->withInput();
         }
         $filename = $file?->getClientOriginalName() ?? 'вставка.'.($data['format'] ?? $this->exchange->detect($content));
 
@@ -100,7 +100,7 @@ class ExchangeController extends Controller
     public function export(Request $request): Response
     {
         $data = $request->validate([
-            'entities' => ['nullable', 'array'], 'entities.*' => ['string'], 'format' => ['nullable', 'in:json,csv,xlsx'],
+            'entities' => ['nullable', 'array'], 'entities.*' => ['string'], 'format' => ['nullable', 'in:'.implode(',', array_keys(DataExchange::FORMAT_LABELS))],
             'country' => ['nullable', 'string', 'max:2'], 'current' => ['nullable', 'boolean'],
         ]);
         $format = $this->exchange->format($data['format'] ?? 'json');

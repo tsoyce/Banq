@@ -6,7 +6,7 @@
     <div>
         <p class="label">Обмен</p>
         <h1 class="font-display font-bold text-3xl">Импорт и экспорт данных</h1>
-        <p class="muted text-sm mt-1 max-w-2xl">Один формат для всего: страны, банки, вклады, ставки. JSON, CSV или XLSX — через эту страницу, командой <code class="mono">php artisan banq:import</code> или API. Повторная заливка не плодит дублей, новая ставка закрывает старую.</p>
+        <p class="muted text-sm mt-1 max-w-2xl">Один формат для всего: страны, банки, вклады, ставки. JSON, XML, YAML, NDJSON, CSV, TSV или XLSX — через эту страницу, <a href="{{ route('admin.exchange.grid.index') }}" class="underline">таблицу «как Excel»</a>, командой <code class="mono">php artisan banq:import</code> или API. Повторная заливка не плодит дублей, новая ставка закрывает старую.</p>
     </div>
     <nav class="seg">
         @foreach (['import' => 'Импорт', 'export' => 'Экспорт', 'format' => 'Формат и API', 'history' => 'История'] as $k => $l)
@@ -26,13 +26,13 @@
         </div>
         <label x-show="src === 'file'" class="block rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition" :style="{ borderColor: over ? 'var(--ink)' : 'var(--border)' }"
                @dragover.prevent="over = true" @dragleave="over = false" @drop.prevent="over = false; $refs.file.files = $event.dataTransfer.files; name = $refs.file.files[0]?.name">
-            <input x-ref="file" type="file" name="file" accept=".json,.jsonl,.csv,.tsv,.txt,.xlsx,.xls,.ods" class="hidden" @change="name = $event.target.files[0]?.name">
+            <input x-ref="file" type="file" name="file" accept=".json,.jsonl,.ndjson,.xml,.yaml,.yml,.csv,.tsv,.txt,.xlsx,.xls,.ods" class="hidden" @change="name = $event.target.files[0]?.name">
             @include('partials.icon', ['i' => 'upload', 'c' => 'w-8 h-8 mx-auto faint'])
             <p class="font-display font-bold text-xl mt-3">Перетащи файл или нажми</p>
-            <p class="muted text-sm mt-1" x-text="name || 'JSON, CSV, XLSX · до 20 МБ'"></p>
+            <p class="muted text-sm mt-1" x-text="name || 'JSON, XML, YAML, NDJSON, CSV, TSV, XLSX · до 20 МБ'"></p>
         </label>
         <div x-show="src === 'text'" x-cloak class="field">
-            <label for="text" class="text-[0.85rem] font-semibold">JSON или CSV</label>
+            <label for="text" class="text-[0.85rem] font-semibold">JSON, XML, YAML, CSV или ячейки из Excel</label>
             <textarea id="text" name="text" rows="14" class="input font-mono text-[13px]" spellcheck="false" placeholder='{"banks": [{"code": "BCC", "name": "Банк ЦентрКредит", "deposit_products": [{"name": "Срочный", "type": "term", "rates": [{"term_months": 12, "rate": 14.5}]}]}]}'>{{ old('text') }}</textarea>
         </div>
         @error('file')<p class="error text-sm">{{ $message }}</p>@enderror
@@ -49,7 +49,7 @@
         </label>
         <div class="grid grid-cols-2 gap-3">
             <label class="field"><span>Формат</span>
-                <select name="format" class="input"><option value="">По файлу</option>@foreach (['json' => 'JSON', 'csv' => 'CSV', 'xlsx' => 'XLSX'] as $v => $l)<option value="{{ $v }}" @selected(old('format') === $v)>{{ $l }}</option>@endforeach</select></label>
+                <select name="format" class="input"><option value="">По файлу</option>@foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $v => $l)<option value="{{ $v }}" @selected(old('format') === $v)>{{ $l }}</option>@endforeach</select></label>
             <label class="field"><span>Страна по умолчанию</span>
                 <select name="country" class="input">@foreach ($countries as $c)<option value="{{ $c->code }}" @selected(old('country', country()?->code) === $c->code)>{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
         </div>
@@ -80,7 +80,7 @@
         <label class="field"><span>Страна</span>
             <select name="country" class="input"><option value="">Все страны</option>@foreach ($countries as $c)<option value="{{ $c->code }}">{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
         <fieldset class="field"><legend class="text-[0.85rem] font-semibold mb-2">Формат</legend>
-            <div class="seg">@foreach (['json' => 'JSON', 'csv' => 'CSV', 'xlsx' => 'XLSX'] as $v => $l)<label><input type="radio" name="format" value="{{ $v }}" class="sr-only" @checked($v === 'json')>{{ $l }}</label>@endforeach</div>
+            <div class="seg flex-wrap">@foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $v => $l)<label><input type="radio" name="format" value="{{ $v }}" class="sr-only" @checked($v === 'json')>{{ $l }}</label>@endforeach</div>
         </fieldset>
         <label class="switch"><span>Только действующие ставки</span><input type="hidden" name="current" value="0"><input type="checkbox" name="current" value="1" class="sr-only"><i></i></label>
         <button class="btn btn-primary w-full">@include('partials.icon', ['i' => 'download', 'c' => 'w-4 h-4']) Скачать</button>
@@ -104,7 +104,7 @@
         @foreach ($entities as $key => $e)
             <details class="plate p-4" @if ($loop->first) open @endif>
                 <summary class="cursor-pointer font-semibold flex items-center gap-2">{{ $e->label() }} <span class="faint mono text-xs">{{ $key }}</span>
-                    <span class="ml-auto flex gap-1 text-xs font-normal">@foreach (['csv', 'xlsx', 'json'] as $f)<a href="{{ route('admin.exchange.template', [$key, $f]) }}" class="chip hover:bg-[var(--line)]">шаблон {{ $f }}</a>@endforeach</span></summary>
+                    <span class="ml-auto flex gap-1 text-xs font-normal"><a href="{{ route('admin.exchange.grid', $key) }}" class="chip hover:bg-[var(--line)]">таблица</a>@foreach (['csv', 'xlsx', 'json'] as $f)<a href="{{ route('admin.exchange.template', [$key, $f]) }}" class="chip hover:bg-[var(--line)]">шаблон {{ $f }}</a>@endforeach</span></summary>
                 <p class="muted mt-2">{{ $e->description() }}</p>
                 <table class="table text-[13px] mt-2">
                     <tbody>
@@ -125,10 +125,28 @@ php artisan banq:export banks deposit_rates --format=xlsx --current --output=kz.
 php artisan banq:token "Claude" --write              # токен для API
 
 curl -H "Authorization: Bearer $TOKEN" {{ url('/api/v1/schema') }}
-curl -H "Authorization: Bearer $TOKEN" "{{ url('/api/v1/deposit_rates') }}?country=KZ&current=1"
+curl -H "Authorization: Bearer $TOKEN" "{{ url('/api/v1/deposit_rates') }}?country=KZ&amp;current=1"
 curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      --data @data.json "{{ url('/api/v1/import') }}?dry_run=1"</pre>
         <p class="muted">Токены — в разделе <a href="{{ route('admin.exchange.tokens') }}" class="underline">«Токены API»</a>. Подробности — <span class="mono">docs/API.md</span>.</p>
+    </section>
+    {{-- A39 · Инструкция для ИИ-агента: скопировать в промпт вместе с токеном --}}
+    @php($agentPrompt = "Ты наполняешь базу портала о банках через API ".url('/api/v1').". Токен: Authorization: Bearer <ТОКЕН>.\n"
+        ."1) GET /api/v1 и GET /api/v1/schema — прочитай порядок работы, поля, типы и примеры (OpenAPI — /api/v1/openapi.json).\n"
+        ."2) GET /api/v1/{сущность}?country=KZ — посмотри, что уже есть (постранично: limit/offset, next_offset).\n"
+        ."3) Собери пакет JSON {\"banks\": [...], \"deposit_rates\": [...]} — ссылки по кодам банков и slug вкладов, ставки в % годовых, источник — официальный сайт банка.\n"
+        ."4) POST /api/v1/import?dry_run=1 — исправь все строки с action=error и повтори проверку.\n"
+        ."5) POST /api/v1/import с заголовком Idempotency-Key — запиши. Пришли мне отчёт totals.")
+    <section class="card p-6 space-y-3 text-sm xl:col-span-2" x-data="{ copied: false }">
+        <div class="flex flex-wrap items-center gap-3">
+            <h2 class="font-display font-bold text-xl mr-auto">Для ИИ-агентов</h2>
+            <a href="{{ url('/api/v1') }}" target="_blank" class="btn btn-ghost !py-2 text-sm">@include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4']) /api/v1</a>
+            <a href="{{ url('/api/v1/openapi.json') }}" target="_blank" class="btn btn-ghost !py-2 text-sm">@include('partials.icon', ['i' => 'code', 'c' => 'w-4 h-4']) OpenAPI</a>
+            <button type="button" class="btn btn-primary !py-2 text-sm" @click="navigator.clipboard.writeText($refs.prompt.textContent); copied = true; setTimeout(() => copied = false, 2000)">
+                @include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4']) <span x-text="copied ? 'Скопировано' : 'Копировать инструкцию'"></span></button>
+        </div>
+        <p class="muted">Агент (Claude и другие) сам читает описание API без токена, проверяет пакет на dry-run и пишет идемпотентно: повтор того же пакета ничего не меняет, а с <code class="mono">Idempotency-Key</code> повтор запроса вернёт прежний отчёт. Удаление — только токеном с правом «удаление»; ставки при этом закрываются, история остаётся.</p>
+        <pre x-ref="prompt" class="plate p-4 overflow-x-auto mono text-[12px] leading-relaxed whitespace-pre-wrap">{{ $agentPrompt }}</pre>
     </section>
 </div>
 @endif

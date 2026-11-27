@@ -8,6 +8,7 @@ use App\Services\Exchange\DataExchange;
 use App\Services\Exchange\EntityRegistry;
 use App\Services\Exchange\ImportOptions;
 use App\Services\Exchange\OpenApi;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -74,7 +75,7 @@ class ExchangeController extends Controller
             $entities = array_filter(explode(',', (string) $request->query('entities', '')));
             $bundle = $this->exchange->export($entities, $this->filters($request), $request->boolean('ids'));
             $format = $this->exchange->format((string) $request->query('format', 'json'));
-        } catch (\InvalidArgumentException|\Carbon\Exceptions\InvalidFormatException $e) {
+        } catch (\InvalidArgumentException|InvalidFormatException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
@@ -96,7 +97,7 @@ class ExchangeController extends Controller
         $offset = max(0, (int) $request->query('offset', 0));
         try {
             $page = $this->exchange->page($key, $this->filters($request), $limit, $offset, $request->boolean('ids'));
-        } catch (\Carbon\Exceptions\InvalidFormatException $e) {
+        } catch (InvalidFormatException $e) {
             return response()->json(['message' => 'updated_since: ожидалась дата ISO 8601'], 422);
         }
         $next = $offset + count($page['data']) < $page['total'] ? $offset + count($page['data']) : null;
@@ -195,7 +196,8 @@ class ExchangeController extends Controller
             'country' => $request->query('country'),
             'bank' => array_filter(explode(',', (string) $request->query('bank', ''))) ?: null,
             'current' => $request->boolean('current'),
-            'updated_since' => $request->query('updated_since') ?: null,
+            // «+» часового пояса без URL-кодирования приходит пробелом
+            'updated_since' => $request->query('updated_since') ? str_replace(' ', '+', (string) $request->query('updated_since')) : null,
         ];
     }
 }
