@@ -45,7 +45,7 @@ app/
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
 ├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
-├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат; A38 только таблицы своей базы, explain() ошибок SQL
+├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат; A38 только таблицы своей базы, explain() ошибок SQL; A41 пересоздание остатков прошлой попытки
 ├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
 ├─ Services/Currency/ CurrencyRates (scoped: sync, backfill, ensureFresh → defer, board, available, статус в кеше), RateProvider,
 │                    Providers/{Nbrk (KZ), Cbu (UZ), Cbr (RU)}Provider   A40 официальные курсы центробанков
