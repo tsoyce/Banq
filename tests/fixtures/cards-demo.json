@@ -1,0 +1,44 @@
+{
+  "_about": "A31 · Демо-пакет для тестов и локального просмотра раздела «Карты». Условия вымышленные — НЕ заливать на боевой сайт.",
+  "banks": [
+    {
+      "country": "KZ", "code": "BCC", "name": "Банк ЦентрКредит", "short_name": "BCC", "brand_color": "#00A0E3",
+      "cards": [
+        {"slug": "demo-bcc-cashback", "name": "Кэшбэк Демо", "kind": "debit", "networks": ["VISA:gold", "MASTERCARD:gold"], "segment": "mass", "format": "both",
+         "currencies": ["KZT", "USD", "EUR"], "issue_fee": 0, "annual_fee": 0, "cashback_max": 10, "cashback_base": 1, "cashback_note": "до 10% в трёх категориях на выбор",
+         "balance_rate": 6, "free_cash_limit": 300000, "cash_fee": "в банкоматах банка бесплатно, в других — 1%", "online_opening": true, "delivery": true,
+         "features": ["contactless", "apple_pay", "google_pay", "multicurrency", "cashback_categories"], "color": "#00A0E3", "color_2": "#0B3D91"},
+        {"slug": "demo-bcc-credit", "name": "Рассрочка Демо", "kind": "credit", "networks": ["VISA:platinum"], "segment": "mass", "format": "physical",
+         "issue_fee": 0, "annual_fee": 12000, "fee_note": "бесплатно при тратах от 150 000 ₸ в месяц", "cashback_max": 3, "credit_limit_max": 3000000, "grace_days": 60,
+         "credit_rate": 28, "credit_rate_effective": 32.4, "min_payment": 5, "online_opening": true,
+         "features": ["contactless", "apple_pay", "installments"], "color": "#1F2937", "color_2": "#00A0E3"}
+      ],
+      "service_packages": [
+        {"slug": "demo-bcc-premium", "name": "Премиум Демо", "segment": "premium", "monthly_fee": 9900, "fee_note": "бесплатно при остатке от 10 млн ₸",
+         "perks": ["Премиальная карта Visa Infinite", "Бизнес-залы без ограничений", "Страхование путешествий", "Персональный менеджер"], "cards": ["demo-bcc-infinite"]}
+      ]
+    },
+    {
+      "country": "KZ", "code": "FFIN", "name": "Freedom Bank", "short_name": "Freedom", "brand_color": "#2FB34A",
+      "cards": [
+        {"slug": "demo-ffin-travel", "name": "Travel Демо", "kind": "debit", "networks": ["Mastercard World Elite", "UnionPay Platinum"], "segment": "premium", "format": "both",
+         "currencies": ["KZT", "USD", "CNY"], "issue_fee": 0, "monthly_fee": 2990, "cashback_max": 7, "cashback_base": 1.5, "balance_rate": 8,
+         "cash_fee": "бесплатно до лимита", "free_cash_limit": 500000, "online_opening": true, "delivery": true,
+         "features": ["contactless", "apple_pay", "google_pay", "multicurrency", "lounge", "travel_insurance"], "color": "#2FB34A", "color_2": "#0F172A"},
+        {"slug": "demo-ffin-virtual", "name": "Виртуальная Демо", "kind": "prepaid", "networks": ["VISA:classic"], "format": "virtual",
+         "issue_fee": 0, "annual_fee": 0, "cashback_max": 1, "online_opening": true, "features": ["apple_pay", "google_pay"], "color": "#8B5CF6", "color_2": "#22D3EE"}
+      ]
+    },
+    {
+      "country": "KZ", "code": "HSBK", "name": "Halyk Bank", "short_name": "Halyk", "brand_color": "#00805F",
+      "cards": [
+        {"slug": "demo-bcc-infinite", "bank": "BCC", "name": "Infinite Демо", "kind": "debit", "networks": ["VISA:infinite"], "segment": "elite", "format": "physical",
+         "currencies": ["KZT", "USD", "EUR"], "issue_fee": 0, "annual_fee": 120000, "cashback_max": 5, "balance_rate": 9, "online_opening": false,
+         "features": ["contactless", "apple_pay", "lounge", "concierge", "travel_insurance", "metal"], "color": "#111827", "color_2": "#6B7280"},
+        {"slug": "demo-halyk-bonus", "name": "Бонус Демо", "kind": "credit", "networks": ["VISA:gold", "MASTERCARD:standard"], "segment": "mass",
+         "issue_fee": 0, "annual_fee": 0, "cashback_max": 4, "credit_limit_max": 5000000, "grace_days": 55, "credit_rate": 24.9, "credit_rate_effective": 28.1, "min_payment": 3,
+         "online_opening": true, "features": ["contactless", "google_pay", "installments"], "color": "#00805F", "color_2": "#C7A100"}
+      ]
+    }
+  ]
+}

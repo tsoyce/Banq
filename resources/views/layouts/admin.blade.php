@@ -11,6 +11,8 @@
     $sections = [
         '' => [['admin.dashboard', [], 'Обзор', 'home', request()->routeIs('admin.dashboard')]],
         'Данные' => collect(['countries', 'banks', 'deposits', 'rates'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
+        // A32 · раздел «Карты»
+        'Карты' => collect(['cards', 'packages', 'payment-systems', 'card-tiers'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
             ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
             ['admin.exchange.tokens', [], 'Токены API', 'key', request()->routeIs('admin.exchange.tokens')],

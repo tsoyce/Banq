@@ -35,7 +35,9 @@ class BankEntity extends Entity
 
     public function nested(): array
     {
-        return ['deposit_products' => ['deposit_products', 'products', 'deposits', 'вклады']];
+        return ['deposit_products' => ['deposit_products', 'products', 'deposits', 'вклады'],
+            // A31 · карты и пакеты услуг внутри банка
+            'cards' => ['cards', 'карты'], 'service_packages' => ['service_packages', 'packages', 'пакеты']];
     }
 
     public function childContext(array $row): array

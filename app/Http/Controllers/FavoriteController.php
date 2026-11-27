@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bank;
+use App\Models\Card;
 use App\Models\DepositProduct;
 use App\Models\Favorite;
 use Illuminate\Http\JsonResponse;
@@ -19,9 +20,11 @@ class FavoriteController extends Controller
             'id' => ['required', 'integer'],
         ]);
 
-        $model = $data['type'] === 'bank'
-            ? Bank::query()->active()->findOrFail($data['id'])
-            : DepositProduct::query()->active()->findOrFail($data['id']);
+        $model = match ($data['type']) {
+            'bank' => Bank::query()->active()->findOrFail($data['id']),
+            'card' => Card::query()->active()->findOrFail($data['id']), // A30
+            default => DepositProduct::query()->active()->findOrFail($data['id']),
+        };
 
         $user = $request->user();
         $attrs = ['favoritable_type' => $data['type'], 'favoritable_id' => $model->getKey()];

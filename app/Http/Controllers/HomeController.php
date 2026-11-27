@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\RatingKind;
 use App\Models\Bank;
+use App\Models\PaymentSystem;
 use App\Models\Review;
+use App\Models\ServicePackage;
+use App\Services\Cards\CardCatalog;
 use App\Services\Ratings\RatingBoard;
 use App\Support\Market;
 use Illuminate\View\View;
@@ -12,7 +15,7 @@ use Illuminate\View\View;
 /** A10/A13/A18 · Главная-дашборд. Данные — App\Support\Market. */
 class HomeController extends Controller
 {
-    public function __invoke(Market $market, RatingBoard $board): View
+    public function __invoke(Market $market, RatingBoard $board, CardCatalog $cards): View
     {
         $rates = $market->rates();
 
@@ -27,6 +30,11 @@ class HomeController extends Controller
             'ratingKind' => $kind = $board->top(RatingKind::People, 1)->isNotEmpty() ? RatingKind::People : RatingKind::Objective,
             'ratingTop' => $board->top($kind, 3),
             'reviewsCount' => Review::query()->approved()->whereHas('bank', fn ($b) => $b->inCountry())->count(),
+            // A33 · плитки раздела «Карты»
+            'cardsCount' => $cards->all()->count(),
+            'topCashback' => $cards->all()->max(fn ($c) => (float) $c->cashback_max) ?: null,
+            'systemsCount' => PaymentSystem::query()->active()->count(),
+            'packagesCount' => ServicePackage::query()->active()->inCountry()->count(),
         ]);
     }
 }

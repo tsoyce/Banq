@@ -53,6 +53,18 @@ class Bank extends Model
         return $this->hasManyThrough(DepositRate::class, DepositProduct::class);
     }
 
+    /** A30 · Банковские карты. */
+    public function cards(): HasMany
+    {
+        return $this->hasMany(Card::class);
+    }
+
+    /** A30 · Пакеты услуг. */
+    public function servicePackages(): HasMany
+    {
+        return $this->hasMany(ServicePackage::class);
+    }
+
     /** A18 · История оценок (авторская, снимки объективной и народной). */
     public function ratings(): HasMany
     {
@@ -94,6 +106,12 @@ class Bank extends Model
             static::normalize(...),
             array_filter([$b->code, $b->short_name, $b->name, ...($b->aliases ?? [])])
         ), true));
+    }
+
+    /** A31 · Нормализация для сопоставления без пунктуации вообще: «Visa Gold» → «visagold», «world_elite» → «worldelite». */
+    public static function normalizeKey(string $v): string
+    {
+        return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower(trim($v)));
     }
 
     public static function normalize(string $v): string

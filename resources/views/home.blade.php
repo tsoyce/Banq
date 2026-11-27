@@ -126,12 +126,18 @@
                     @endif
                 </div>
             </a>
+            {{-- A33 · Карты, платёжные системы и пакеты — живые плитки; кредиты — скоро --}}
             <div id="soon" class="grid grid-cols-2 gap-5 scroll-mt-32">
-                @foreach ([['card', 'Карты', 'Кешбэк и лимиты'], ['loan', 'Кредиты', 'Ставки и переплата'], ['globe', 'Платёжные системы', 'Visa, Mastercard, UnionPay'], ['news', 'Новости', 'Рынок и решения '.(country()?->centralBankName() ?? 'регулятора')]] as $i => [$icon, $name, $text])
-                    <article class="card lift p-5 flex flex-col justify-between gap-6 {{ $i === 0 ? 'card-soft' : '' }}" data-reveal style="--d: {{ 0.04 * $i }}s">
+                @foreach ([
+                    ['card', 'Карты', $cardsCount ? $cardsCount.' '.plural($cardsCount, 'карта', 'карты', 'карт').($topCashback ? ' · кэшбэк до '.rate_format($topCashback) : '') : 'Кэшбэк и лимиты', route('cards.index')],
+                    ['globe', 'Платёжные системы', $systemsCount.' '.plural($systemsCount, 'система', 'системы', 'систем').' и их уровни', route('payment-systems.index')],
+                    ['gift', 'Пакеты услуг', $packagesCount ? $packagesCount.' '.plural($packagesCount, 'пакет', 'пакета', 'пакетов') : 'Тарифы обслуживания', route('packages.index')],
+                    ['loan', 'Кредиты', 'Скоро · ставки и переплата', null],
+                ] as $i => [$icon, $name, $text, $href])
+                    <a @if ($href) href="{{ $href }}" @endif class="card lift p-5 flex flex-col justify-between gap-6 {{ $i === 0 ? 'card-soft' : '' }} {{ $href ? '' : 'opacity-70' }}" data-reveal style="--d: {{ 0.04 * $i }}s">
                         <span class="icon-tile {{ $i === 0 ? '!bg-white/60' : '' }}">@include('partials.icon', ['i' => $icon])</span>
                         <div><h4 class="font-semibold">{{ $name }}</h4><p class="text-sm muted mt-0.5">{{ $text }}</p></div>
-                    </article>
+                    </a>
                 @endforeach
             </div>
         </section>

@@ -384,6 +384,98 @@ body {
     .table td.is-sorted { font-weight: 800; }
 }
 
+/* ---------- A33 · Карты: пластик, марки платёжных систем, строки каталога ---------- */
+@layer components {
+    /* Пластиковая карта: градиент --face, блик за курсором (x-tilt → --mx/--my, --rx/--ry) */
+    .plastic {
+        --rx: 0deg; --ry: 0deg; --mx: 30%; --my: 20%;
+        position: relative; isolation: isolate; overflow: hidden; aspect-ratio: 1.586 / 1; width: 100%;
+        border-radius: 4.6% / 7.3%; container-type: inline-size; color: #fff;
+        background: var(--face, linear-gradient(135deg, #8b5cf6, #0f172a));
+        box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 30px 60px -28px rgb(15 23 42 / 0.55), 0 10px 20px -12px rgb(15 23 42 / 0.35);
+        transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)); transform-style: preserve-3d;
+        transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+    }
+    .plastic::before { /* узор: тонкие волны поверх градиента */
+        content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0.22; mix-blend-mode: overlay;
+        background: radial-gradient(120% 90% at 110% 120%, rgb(255 255 255 / 0.9), transparent 55%),
+                    repeating-radial-gradient(circle at 0% 100%, transparent 0 14px, rgb(255 255 255 / 0.35) 14px 15px);
+    }
+    .plastic::after { /* блик */
+        content: ''; position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(60% 70% at var(--mx) var(--my), rgb(255 255 255 / 0.38), transparent 60%);
+        mix-blend-mode: soft-light; transition: background 0.2s;
+    }
+    .plastic:hover { box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 40px 70px -26px rgb(15 23 42 / 0.6), 0 14px 26px -14px rgb(15 23 42 / 0.4); }
+    .plastic-in { position: absolute; inset: 0; padding: 7.5cqi 8cqi; display: flex; flex-direction: column; justify-content: space-between; }
+    .plastic-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4cqi; }
+    .plastic-bank { font-weight: 800; letter-spacing: -0.02em; font-size: 6.4cqi; line-height: 1.05; text-shadow: 0 1px 2px rgb(0 0 0 / 0.2); }
+    .plastic-kind { font-family: var(--font-mono); font-size: 3.6cqi; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; margin-top: 1.4cqi; }
+    .plastic-chip {
+        width: 13cqi; aspect-ratio: 1.3 / 1; border-radius: 2.2cqi;
+        background: linear-gradient(135deg, #f8e7a1, #c9a24a 45%, #f3d98b 60%, #a9822f);
+        box-shadow: inset 0 0 0 0.4cqi rgb(0 0 0 / 0.18);
+        background-image: linear-gradient(90deg, transparent 32%, rgb(0 0 0 / 0.18) 33% 35%, transparent 36% 64%, rgb(0 0 0 / 0.18) 65% 67%, transparent 68%),
+                          linear-gradient(0deg, transparent 46%, rgb(0 0 0 / 0.18) 47% 53%, transparent 54%),
+                          linear-gradient(135deg, #f8e7a1, #c9a24a 45%, #f3d98b 60%, #a9822f);
+    }
+    .plastic-mid { display: flex; align-items: center; gap: 4cqi; }
+    .plastic-nfc { width: 7cqi; height: 7cqi; opacity: 0.85; transform: rotate(90deg); }
+    .plastic-num { font-family: var(--font-mono); font-size: 5.2cqi; letter-spacing: 0.12em; opacity: 0.92; text-shadow: 0 1px 2px rgb(0 0 0 / 0.25); }
+    .plastic-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 3cqi; }
+    .plastic-name { font-size: 4.2cqi; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60cqi; }
+    .plastic-tier { font-size: 3.4cqi; font-weight: 600; opacity: 0.7; letter-spacing: 0.06em; }
+    .plastic.is-virtual { background: var(--face); outline: 0.5cqi dashed rgb(255 255 255 / 0.35); outline-offset: -3cqi; }
+    .plastic-stack { position: relative; }
+    .plastic-stack > .plastic + .plastic { position: absolute; inset: 0; transform: translate(9%, -9%) rotate(6deg) scale(0.94); z-index: -1; filter: saturate(0.8) brightness(0.9); }
+
+    .mini-card { display: inline-block; flex: none; width: 36px; height: 23px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15), 0 4px 10px -4px rgb(0 0 0 / 0.4); }
+
+    /* Марки платёжных систем — стилизованные, без чужих логотипов-картинок */
+    .ps-mark { display: inline-flex; align-items: center; justify-content: center; flex: none; font-weight: 900; line-height: 1; white-space: nowrap; }
+    .ps-visa { font-style: italic; letter-spacing: -0.04em; font-size: 1.05em; }
+    .ps-mc { gap: 0; } .ps-mc i { width: 1.15em; height: 1.15em; border-radius: 50%; display: block; }
+    .ps-mc i:first-child { background: #eb001b; } .ps-mc i:last-child { background: #f79e1b; margin-left: -0.45em; mix-blend-mode: hard-light; opacity: 0.95; }
+    .ps-up { gap: 1px; } .ps-up i { width: 0.5em; height: 1.1em; transform: skewX(-12deg); border-radius: 2px; display: block; }
+    .ps-up i:nth-child(1) { background: #e21836; } .ps-up i:nth-child(2) { background: #00447c; } .ps-up i:nth-child(3) { background: #007b84; }
+    .ps-text { font-size: 0.62em; letter-spacing: 0.04em; padding: 0.3em 0.45em; border-radius: 0.35em; background: rgb(255 255 255 / 0.16); }
+    .ps-tile { display: inline-grid; place-items: center; width: 44px; height: 30px; border-radius: 8px; background: #121216; color: #fff; font-size: 15px; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12); }
+    .ps-tile.is-lg { width: 84px; height: 56px; border-radius: 14px; font-size: 26px; }
+
+    /* Ступени уровня карты */
+    .level-dots { display: inline-flex; gap: 3px; } .level-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+    .level-dots i.on { background: var(--grad); }
+
+    /* Строка каталога карт: пластик · описание · ключевые цифры · действия */
+    .card-offer { display: grid; gap: 1rem 1.25rem; align-items: center; grid-template-columns: 104px minmax(0, 1fr); padding: 1.1rem 1.2rem; }
+    @media (min-width: 900px) { .card-offer { grid-template-columns: 172px minmax(0, 1fr) auto; padding: 1.2rem 1.4rem; gap: 1rem 1.5rem; } }
+    .card-offer.is-first { box-shadow: 0 0 0 2px var(--brand-1), var(--shadow); }
+    .card-offer .plastic { --rx: 0deg; }
+    .card-offer:hover .plastic { transform: perspective(900px) rotateY(-14deg) rotateX(6deg) translateY(-2px); }
+    .key-nums { display: flex; flex-wrap: wrap; gap: 0.5rem 1.75rem; }
+    .key-nums b { display: block; font-family: var(--font-display); font-weight: 750; font-size: 1.3rem; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .key-nums span { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+
+    /* Привилегии */
+    .perk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.92rem; }
+    .perk > svg { flex: none; margin-top: 2px; color: var(--ok); }
+
+    /* Разбивка оценки */
+    .score-bar { height: 8px; border-radius: 999px; background: var(--card-2); overflow: hidden; }
+    .score-bar > i { display: block; height: 100%; width: calc(var(--v) * 100%); border-radius: inherit; background: var(--grad); transform-origin: left; animation: grow 1.1s var(--ease-out) both; }
+
+    /* Карточка платёжной системы */
+    .ps-card { position: relative; overflow: hidden; color: #fff; background: var(--ps-grad); border-color: transparent; }
+    .ps-card::after { content: ''; position: absolute; right: -30%; top: -40%; width: 80%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / 0.22), transparent 65%); pointer-events: none; transition: transform 0.6s var(--ease-out); }
+    .ps-card:hover::after { transform: translate(-10%, 10%) scale(1.15); }
+
+    /* Ступенчатая лестница уровней */
+    .tier-step { position: relative; padding-left: 1.25rem; }
+    .tier-step::before { content: ''; position: absolute; left: 0; top: 0.2rem; bottom: 0.2rem; width: 4px; border-radius: 4px; background: linear-gradient(180deg, var(--brand-1), var(--brand-2)); opacity: calc(0.25 + var(--lvl, 1) * 0.12); }
+}
+
+@keyframes grow { from { transform: scaleX(0); } }
+
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
 /* Появление блоков: [data-reveal] получает .is-in */

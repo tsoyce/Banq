@@ -139,22 +139,41 @@ abstract class Entity
             return ['skipped', [], 'нет в базе (режим «только обновить»)'];
         }
 
+        // A31 · связи многие-ко-многим (сети карты, карты пакета) — отдельно от атрибутов модели
+        $relations = array_intersect_key($row, array_flip($this->relations()));
+        $row = array_diff_key($row, $relations);
+
         $attrs = $this->attributes($row, $ctx, $existing);
         if (! $existing) {
             $model = $this->newModel()->fill($attrs);
             $model->save();
+            if ($relations) {
+                $this->syncRelations($model, $relations, $ctx);
+            }
 
             return ['created', [], null];
         }
 
         $existing->fill($attrs);
         $changes = self::diff($existing);
-        if (! $changes) {
-            return ['unchanged', [], null];
+        if ($changes) {
+            $existing->save();
         }
-        $existing->save();
+        $changes += $relations ? $this->syncRelations($existing, $relations, $ctx) : [];
 
-        return ['updated', $changes, null];
+        return $changes ? ['updated', $changes, null] : ['unchanged', [], null];
+    }
+
+    /** A31 · Поля строки, которые пишутся не в модель, а в связи (см. syncRelations). */
+    public function relations(): array
+    {
+        return [];
+    }
+
+    /** A31 · Записать связи; вернуть изменения field => [было, стало]. Бросает RowError. */
+    protected function syncRelations(Model $model, array $relations, ImportContext $ctx): array
+    {
+        return [];
     }
 
     /** Описание для схемы (GET /api/v1/schema, banq:schema, админка). */

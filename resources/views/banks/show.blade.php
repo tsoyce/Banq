@@ -108,6 +108,27 @@
         @endforelse
     </section>
 
+    {{-- A33 · Карты и пакеты услуг банка --}}
+    @if ($cardOffers->isNotEmpty() || $packages->isNotEmpty())
+        <section id="cards" class="space-y-3 scroll-mt-32">
+            <div class="flex items-end justify-between gap-3 px-1">
+                <div>
+                    <p class="kicker">Карты и пакеты</p>
+                    <h2 class="font-display font-bold text-[22px] sm:text-2xl mt-1">Карты {{ $bank->displayName() }}</h2>
+                </div>
+                @if ($cardOffers->isNotEmpty())<a href="{{ route('cards.index', ['bank' => [$bank->slug]]) }}" class="text-sm font-semibold muted hover:text-[var(--text)] whitespace-nowrap">в каталоге →</a>@endif
+            </div>
+            @foreach ($cardOffers->take(6) as $i => $o)
+                @include('cards._offer', ['o' => $o, 'first' => $i === 0 && $cardOffers->count() > 1, 'i' => $i])
+            @endforeach
+            @if ($packages->isNotEmpty())
+                <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 pt-2">
+                    @foreach ($packages as $i => $p)@include('packages._card', ['p' => $p, 'i' => $i])@endforeach
+                </div>
+            @endif
+        </section>
+    @endif
+
     <div class="grid xl:grid-cols-[minmax(0,1fr)_360px] gap-4 lg:gap-6 items-start">
         <div class="space-y-4 lg:space-y-6 min-w-0">
             {{-- Разбор объективного рейтинга --}}

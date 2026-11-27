@@ -6,7 +6,7 @@
     $id = 'f-'.str_replace('.', '-', $dot);
     $val = old($dot, $value);
     $required = in_array('required', $f['rules'] ?? [], true);
-    $span = ($f['span'] ?? 1) === 2 || in_array($type, ['textarea', 'json'], true) ? 'sm:col-span-2' : '';
+    $span = ($f['span'] ?? 1) === 2 || in_array($type, ['textarea', 'json', 'checks'], true) ? 'sm:col-span-2' : '';
 @endphp
 @if ($type === 'bool')
     <label class="switch {{ $span }} self-end py-2" for="{{ $id }}">
@@ -26,6 +26,23 @@
                 @break
             @case('list')
                 <textarea id="{{ $id }}" name="{{ $name }}" rows="3" class="input {{ $f['class'] ?? '' }}" placeholder="{{ $f['placeholder'] ?? '' }}">{{ $val }}</textarea>
+                @break
+            @case('checks')
+                {{-- A32 · набор флажков: name[]; опции с «группа|подпись» группируются --}}
+                @php($groups = collect($resource->options($f['options']))->groupBy(fn ($l) => str_contains($l, '|') ? \Illuminate\Support\Str::before($l, '|') : '', true))
+                <div class="grid gap-3">
+                    @foreach ($groups as $g => $opts)
+                        <div class="flex flex-wrap gap-2 items-center">
+                            @if ($g !== '')<span class="text-xs font-semibold faint w-full sm:w-28 shrink-0">{{ $g }}</span>@endif
+                            @foreach ($opts as $v => $l)
+                                <label class="check-pill">
+                                    <input type="checkbox" name="{{ $name }}[]" value="{{ $v }}" class="sr-only" @checked(in_array((string) $v, array_map('strval', (array) $val), true))>
+                                    {{ \Illuminate\Support\Str::after($l, '|') }}
+                                </label>
+                            @endforeach
+                        </div>
+                    @endforeach
+                </div>
                 @break
             @case('select')
                 <select id="{{ $id }}" name="{{ $name }}" class="input">
