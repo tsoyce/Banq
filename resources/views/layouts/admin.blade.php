@@ -28,6 +28,8 @@
         ]),
         'Сайт' => array_filter([
             ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
+            ['admin.ticker.edit', [], 'Бегущая строка', 'news', request()->routeIs('admin.ticker.*')], // A40
+            ['admin.currency.index', [], 'Курсы валют', 'coins', request()->routeIs('admin.currency.*')], // A40
             $role === 'admin' ? ['admin.database.index', [], 'База данных', 'layers', request()->routeIs('admin.database.*')] : null, // A34
         ]),
     ];
