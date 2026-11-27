@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Favorite;
 use App\Services\Ratings\ObjectiveRating;
 use App\Services\Ratings\PeopleRating;
 use App\Services\Ratings\RatingBoard;
 use App\Support\CurrentCountry;
 use App\Support\Market;
 use App\Support\Settings;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // A20 · Индексы по varchar(191) влезают в лимит ключа даже на старых MySQL/MyISAM (191 × 4 байта utf8mb4 < 767/1000)
         Schema::defaultStringLength(191);
+
+        // A28 · Короткие имена типов в favorites (deposit, bank) — не зависят от имён классов
+        Relation::morphMap(Favorite::TYPES);
 
         // A13 · Бегущая строка ставок в шапке витрины
         View::composer('layouts.app', fn ($view) => $view->with('ticker', app(Market::class)->top(14)));

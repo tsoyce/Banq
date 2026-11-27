@@ -207,6 +207,6 @@ class BankRatingTest extends TestCase
         $this->post('/login', ['email' => $user->email, 'password' => 'secret123'])->assertRedirect(url('/banks/kaspi#review-form'));
         auth()->logout();
         $this->get('/login?to=//evil.example');
-        $this->post('/login', ['email' => $user->email, 'password' => 'secret123'])->assertRedirect(route('ratings'));
+        $this->post('/login', ['email' => $user->email, 'password' => 'secret123'])->assertRedirect(route('account.index'));
     }
 }

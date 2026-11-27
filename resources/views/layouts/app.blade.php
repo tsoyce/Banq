@@ -7,6 +7,13 @@
 </head>
 <body x-data="{ nav: false }">
 
+{{-- A28 · Сообщение после действия (сохранено, добавлено в избранное…) --}}
+@if (session('status'))
+    <div class="toast" role="status" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3200)" x-transition.opacity.duration.300ms>
+        @include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4']) {{ session('status') }}
+    </div>
+@endif
+
 {{-- Лента: статус + бегущая строка ставок --}}
 <div class="topline text-[13px]">
     <div class="mx-auto max-w-[1440px] px-4 lg:px-6 h-11 flex items-center gap-4">
@@ -44,13 +51,31 @@
             <button class="btn btn-ghost !p-2.5" aria-label="Поиск">@include('partials.icon', ['i' => 'search', 'c' => 'w-[18px] h-[18px]'])</button>
             @include('partials.theme-toggle')
             @auth
-                @if (auth()->user()->isStaff())
-                    <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">Админка</a>
-                @else
-                    {{-- A18 · посетитель: имя и выход --}}
-                    <span class="hidden sm:flex items-center gap-2 text-sm font-semibold"><span class="avatar !w-9 !h-9 !bg-[var(--card)]">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span><span class="max-w-[10rem] truncate">{{ auth()->user()->name }}</span></span>
-                    <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-ghost !p-2.5" aria-label="Выйти" title="Выйти">@include('partials.icon', ['i' => 'logout', 'c' => 'w-[18px] h-[18px]'])</button></form>
+                @php($me = auth()->user())
+                @if ($me->isStaff())
+                    <a href="{{ route('admin.dashboard') }}" class="btn btn-primary hidden sm:inline-flex">Админка</a>
                 @endif
+                {{-- A28 · меню пользователя: кабинет, профиль, избранное, настройки, выход --}}
+                <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
+                    <button type="button" class="flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-[var(--card)] transition text-sm font-semibold" @click="open = !open" :aria-expanded="open" aria-haspopup="menu">
+                        @include('partials.avatar', ['u' => $me, 'c' => '!w-9 !h-9 text-sm'])
+                        <span class="hidden sm:block max-w-[9rem] truncate">{{ $me->name }}</span>
+                        @include('partials.icon', ['i' => 'down', 'c' => 'w-4 h-4 muted hidden sm:block'])
+                    </button>
+                    <div class="pop" x-show="open" x-cloak x-transition.origin.top.right role="menu">
+                        <div class="px-3 pt-2 pb-3 border-b border-[var(--line)] mb-1">
+                            <p class="font-semibold truncate">{{ $me->name }}</p>
+                            <p class="text-xs muted truncate">{{ $me->email }}</p>
+                        </div>
+                        <a href="{{ route('account.index') }}" role="menuitem">@include('partials.icon', ['i' => 'grid', 'c' => 'w-[18px] h-[18px] muted']) Личный кабинет</a>
+                        @if ($me->username)<a href="{{ route('profile.show', $me->username) }}" role="menuitem">@include('partials.icon', ['i' => 'user', 'c' => 'w-[18px] h-[18px] muted']) Мой профиль</a>@endif
+                        <a href="{{ route('account.reviews') }}" role="menuitem">@include('partials.icon', ['i' => 'pen', 'c' => 'w-[18px] h-[18px] muted']) Мои отзывы</a>
+                        <a href="{{ route('account.favorites') }}" role="menuitem">@include('partials.icon', ['i' => 'heart', 'c' => 'w-[18px] h-[18px] muted']) Избранное</a>
+                        <a href="{{ route('account.settings') }}" role="menuitem">@include('partials.icon', ['i' => 'settings', 'c' => 'w-[18px] h-[18px] muted']) Настройки</a>
+                        @if ($me->isStaff())<a href="{{ route('admin.dashboard') }}" role="menuitem" class="sm:!hidden">@include('partials.icon', ['i' => 'shield', 'c' => 'w-[18px] h-[18px] muted']) Админка</a>@endif
+                        <form method="POST" action="{{ route('logout') }}" class="border-t border-[var(--line)] mt-1 pt-1">@csrf<button role="menuitem">@include('partials.icon', ['i' => 'logout', 'c' => 'w-[18px] h-[18px] muted']) Выйти</button></form>
+                    </div>
+                </div>
             @else
                 <a href="{{ route('login', ['to' => request()->getRequestUri()]) }}" class="btn btn-ghost">Войти</a>
             @endauth

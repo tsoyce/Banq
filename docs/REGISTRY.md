@@ -24,7 +24,12 @@ app/
 │     ├─ BankController.php ......... A18 каталог банков /banks, страница банка
 │     ├─ RatingController.php ....... A18 страница рейтингов /ratings
 │     ├─ ReviewController.php ....... A18 отзыв (создать/править), «полезно»
-│     ├─ Auth/RegisterController .... A18 регистрация посетителей (роль user)
+│     ├─ Auth/RegisterController .... A18 регистрация посетителей (роль user) → A28 в кабинет
+│     ├─ Account/AccountController .. A28 кабинет: обзор, мои отзывы, избранное, сравнения, настройки
+│     ├─ Account/SettingsController . A28 профиль+аватар, почта, пароль, уведомления, удаление аккаунта
+│     ├─ ProfileController .......... A28 публичная карточка автора /u/{username}
+│     ├─ FavoriteController ......... A28 избранное (вклад/банк), JSON или редирект
+│     ├─ ComparisonController ....... A28 сохранённые сравнения: сохранить, переименовать, удалить
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
 │     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports
@@ -34,6 +39,8 @@ app/
 │        Admin/SearchController ..... A24 поиск ⌘K (JSON)
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
+├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
+├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
 │  ├─ Import/ DepositSheetParser (чтение), DepositImporter (запись)   A08 — старая «матрица Excel», A21 учитывает страну
@@ -48,6 +55,9 @@ app/
 ├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка, A21 — по стране)  A03 A05 A13
 │          CurrentCountry (текущая страна, scoped)  A21
 └─ helpers.php ...................... settings(), project_years(), rate_format(), plural(), country(), currency_symbol() (A21)
+├─ Support/ Installation (признак установки), Settings (настройки+кеш), Market (срез рынка)  A03 A05 A13
+│          Username (генерация/правила адреса профиля), Countries (страны для анкеты, ISO-2)  A28
+└─ helpers.php ...................... settings(), project_years(), rate_format(), plural()
 config/banq.php ..................... версия, путь lock-файла, валюты, сроки
 database/migrations/2026_11_26_* .... settings+role, banks, deposit_*, imports, ratings+reviews+review_votes+поля banks (A18)
 database/migrations/2026_11_27_* .... countries + banks.country_id/deposit_insured (A21), api_tokens (A23), поля imports (A22)
@@ -63,6 +73,8 @@ resources/
    ├─ home.blade.php, auth/login, auth/register (A18)
    ├─ banks/ index, show · ratings/ index · reviews/ _item, _form   A18
    ├─ partials/ gauge, stars, delta   A18
+   ├─ account/ _shell (шапка+вкладки), index, reviews, _review-row, favorites, comparisons, settings  A28
+   ├─ profile/ show (публичный профиль)  A28 · partials/ avatar, fav (кнопка-сердце)  A28
    ├─ deposits/ index (каталог), _results (список, отдаётся и по fetch), _offer (строка), show (карточка), compare  A14
    ├─ install/ welcome, database, site
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
@@ -72,6 +84,8 @@ public/build/ ....................... собранный фронтенд (ко�
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
                                        обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
+public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
+tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
 deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить)
 docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры), API.md (A23)
@@ -101,6 +115,11 @@ HTTP запрос
               │     └─ DepositCatalog::search(banks:[slug]) → deposits._offer
               ├─ RatingController ──► RatingBoard, BankDirectory, reviews
               ├─ ReviewController (auth) ──► reviews, review_votes
+              ├─ Account\AccountController (auth) ──► users, reviews, favorites → DepositCatalog::bestRate, RatingBoard, BankDirectory; saved_comparisons
+              ├─ Account\SettingsController ──► users, public/uploads/avatars
+              ├─ ProfileController ──► users(is_public), reviews(approved)
+              ├─ FavoriteController / ComparisonController (auth) ──► favorites / saved_comparisons
+              ├─ Admin\ReviewController ──► ReviewModerated (если user->wants(...)) ──► mail (MAIL_*)
               ├─ HomeController ──► RatingBoard::top() (блок рейтинга)
               ├─ layouts.app (View composer в AppServiceProvider) ──► Market::top() → бегущая строка
               ├─ LoginController ──► users
@@ -146,6 +165,9 @@ HTTP запрос
 | `banks` (+A21) | **country_id** (FK, restrict), unique(country_id, code), `is_kdif_member` → **deposit_insured** | админка, обмен | всё, что выше, — по стране |
 | `api_tokens` (A23) | name, token_hash sha256 (unique), prefix, abilities json [read, write], last_used_at, last_ip, expires_at, user_id | админка, banq:token | AuthenticateApiToken |
 | `imports` (+A22) | api_token_id, format (json/csv/xlsx/matrix/form), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
+| `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
+| `favorites` | user_id, favoritable_type (`deposit`\|`bank`), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
+| `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
 
 ## 4. Переменные окружения (.env)
 
@@ -189,6 +211,11 @@ HTTP запрос
 | POST | `/banks/{slug}/reviews` | reviews.store | вошедшие; throttle 6/мин (A18) |
 | POST | `/reviews/{review}/vote` | reviews.vote | вошедшие; throttle 30/мин (A18) |
 | GET/POST | `/register` | register | гости; throttle 5/мин (A18) |
+| GET | `/account`, `/account/{reviews,favorites,comparisons,settings}` | account.* | вошедшие (A28); `reviews?status=` |
+| PUT | `/account/settings/{profile,email,password,notifications}`, DELETE `/account/settings/avatar`, DELETE `/account` | account.settings.*, account.destroy | вошедшие; почта/пароль — throttle 6/мин, удаление — 3/мин, админа удалить нельзя (A28) |
+| GET | `/u/{username}` | profile.show | все, если профиль открыт; владелец и сотрудники — всегда (A28) |
+| POST | `/favorites` (type, id) | favorites.toggle | вошедшие; JSON при Accept: application/json (A28) |
+| POST, PUT, DELETE | `/comparisons`, `/comparisons/{comparison}` | comparisons.* | вошедшие, только свои (A28) |
 | GET/POST | `/install`, `/install/database`, `/install/database/test`, `/install/site` | install.* | только до установки |
 | GET/POST | `/login`, POST `/logout` | login, logout | гости / вошедшие |
 | GET | `/admin` | admin.dashboard | admin, editor |
@@ -212,6 +239,7 @@ HTTP запрос
 - JS (Alpine): `$store.theme`, директива `x-count`, компонент `calc(rate)`; reveal через IntersectionObserver.
 - A14: `$store.compare` (до 4 вкладов, localStorage `banq.compare`, панель `.compare-bar` в layouts.app), `depositFilters` (fetch списка без перезагрузки + replaceState), `depositCalc({amount, months, rate, effective})`, функция `depositIncome()`. Классы: `.check-pill .seg .switch .offer .feat .cmp-btn .compare-bar .rate-grid .cmp-table .spark-line .is-loading`. Иконки: check x plus minus filter clock trend down wallet refill withdraw phone lock back. Всё уважает `prefers-reduced-motion`.
 - A18: токены `--s-author --s-objective --s-people`; классы `.kicker .num-hero .num-card .cells(.cols-2|.cols-3, .cell-label) .delta(-up|-down|-flat) .gauge .stars .star-pick .dist-row .bank-card .avatar`, `.seg > a(.is-active)` (сегмент-ссылки), `.table .is-sorted`. Partials: `gauge` ($score, $color, $size, $sub), `stars` ($score, $starSize), `delta` ($d, $unit). Иконки: pen users thumb quote award info user.
+- A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.
 - Раскладка витрины: тёмная лента-тикер → шапка с пилюлями → левое меню 230px → контент; на главной правая колонка 340px.
@@ -228,6 +256,8 @@ HTTP запрос
 | `plural($n, 'вклад', 'вклада', 'вкладов')` | русское склонение по числу (A14) |
 | `score_format($v, $decimals = 1)` | оценка 0–5: 4.62 → «4,6» (A18) |
 | `money_format($v, $sign = '₸')` | «1 180 394 ₸» с неразрывными пробелами (A18) |
+| `User::hasFavorite($model)`, `User::wants($key)`, `User::level($reviews, $helpful)`, `User::profileUrl()`, `avatarUrl()`, `location()` | избранное (один запрос на страницу), уведомления с умолчаниями `User::NOTIFY`, ступень автора `User::LEVELS` (A28) |
+| `Username::generate($name)` | латиница из имени, уникально, без служебных слов (A28) |
 | `Income::calc($amount, $months, $rate, $effective)` | доход: по ГЭСВ, иначе номинал с ежемесячной капитализацией (A14) |
 | `country()` | текущая страна витрины или null (A21) |
 | `currency_symbol($code = null)` | знак валюты: основная валюта страны → её знак (₸, сум), иначе $ € ₽ ¥ или код (A21) |

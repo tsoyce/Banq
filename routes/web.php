@@ -3,13 +3,17 @@
 // A02 · Карта маршрутов. Полный список — docs/REGISTRY.md §Маршруты.
 
 use App\Admin\ResourceRegistry;
+use App\Http\Controllers\Account;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Middleware\EnsureAdmin;
@@ -42,6 +46,28 @@ Route::get('/ratings', RatingController::class)->name('ratings');
 Route::middleware('auth')->group(function () {
     Route::post('/banks/{bank:slug}/reviews', [ReviewController::class, 'store'])->middleware('throttle:6,1')->name('reviews.store');
     Route::post('/reviews/{review}/vote', [ReviewController::class, 'vote'])->middleware('throttle:30,1')->name('reviews.vote');
+});
+
+// A28 · Личный кабинет, избранное, сохранённые сравнения, публичный профиль автора
+Route::get('/u/{username}', [ProfileController::class, 'show'])->where('username', '[A-Za-z0-9-]{3,40}')->name('profile.show');
+Route::middleware('auth')->group(function () {
+    Route::prefix('account')->name('account.')->group(function () {
+        Route::get('/', [Account\AccountController::class, 'index'])->name('index');
+        Route::get('/reviews', [Account\AccountController::class, 'reviews'])->name('reviews');
+        Route::get('/favorites', [Account\AccountController::class, 'favorites'])->name('favorites');
+        Route::get('/comparisons', [Account\AccountController::class, 'comparisons'])->name('comparisons');
+        Route::get('/settings', [Account\AccountController::class, 'settings'])->name('settings');
+        Route::put('/settings/profile', [Account\SettingsController::class, 'profile'])->middleware('throttle:20,1')->name('settings.profile');
+        Route::delete('/settings/avatar', [Account\SettingsController::class, 'destroyAvatar'])->name('settings.avatar.destroy');
+        Route::put('/settings/email', [Account\SettingsController::class, 'email'])->middleware('throttle:6,1')->name('settings.email');
+        Route::put('/settings/password', [Account\SettingsController::class, 'password'])->middleware('throttle:6,1')->name('settings.password');
+        Route::put('/settings/notifications', [Account\SettingsController::class, 'notifications'])->name('settings.notifications');
+        Route::delete('/', [Account\SettingsController::class, 'destroy'])->middleware('throttle:3,1')->name('destroy');
+    });
+    Route::post('/favorites', [FavoriteController::class, 'toggle'])->middleware('throttle:60,1')->name('favorites.toggle');
+    Route::post('/comparisons', [ComparisonController::class, 'store'])->middleware('throttle:20,1')->name('comparisons.store');
+    Route::put('/comparisons/{comparison}', [ComparisonController::class, 'update'])->name('comparisons.update');
+    Route::delete('/comparisons/{comparison}', [ComparisonController::class, 'destroy'])->name('comparisons.destroy');
 });
 
 // Вход и регистрация (A18)
