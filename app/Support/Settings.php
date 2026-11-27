@@ -33,6 +33,13 @@ class Settings
             'site.social' => [],
             'site.counters' => null,
             'theme.default' => 'light',
+            // A40 · Бегущая строка и курсы валют
+            'ticker.enabled' => true,
+            'ticker.sources' => ['currency', 'deposit_rates'],
+            'ticker.text' => null,
+            'ticker.speed' => 5,
+            'fx.currencies' => [],       // {"KZ": ["USD","EUR","RUB","CNY"]} — пусто: config('banq.fx.defaults')
+            'fx.home_card' => true,
         ];
     }
 

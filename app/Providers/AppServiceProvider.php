@@ -7,7 +7,6 @@ use App\Services\Ratings\ObjectiveRating;
 use App\Services\Ratings\PeopleRating;
 use App\Services\Ratings\RatingBoard;
 use App\Support\CurrentCountry;
-use App\Support\Market;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Schema;
@@ -29,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(PeopleRating::class);
         $this->app->scoped(RatingBoard::class);
         $this->app->scoped(\App\Services\Cards\CardCatalog::class); // A33 · одна выборка карт на запрос
+        $this->app->scoped(\App\Services\Currency\CurrencyRates::class); // A40
+        $this->app->scoped(\App\Services\Ticker\Ticker::class);
     }
 
     /**
@@ -47,7 +48,11 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\RateLimiter::for('blog-comments', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(6)->by('comment:'.($r->user()?->id ?: $r->ip())));
         \Illuminate\Support\Facades\RateLimiter::for('blog-reactions', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('react:'.($r->user()?->id ?: $r->ip())));
 
-        // A13 · Бегущая строка ставок в шапке витрины
-        View::composer('layouts.app', fn ($view) => $view->with('ticker', app(Market::class)->top(14)));
+        // A13 · Бегущая строка в шапке витрины. A40: типы контента и порядок — из админки (App\Services\Ticker\Ticker)
+        View::composer('layouts.app', function ($view) {
+            $ticker = app(\App\Services\Ticker\Ticker::class);
+            $groups = $ticker->groups();
+            $view->with(['ticker' => $groups, 'tickerDuration' => $ticker->duration($groups)]);
+        });
     }
 }

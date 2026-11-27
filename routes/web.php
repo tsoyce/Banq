@@ -139,6 +139,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::delete('/tokens/{token}', 'revokeToken')->name('tokens.destroy');
     });
 
+    // A40 · Бегущая строка и официальные курсы валют
+    Route::get('/ticker', [Admin\TickerController::class, 'edit'])->name('ticker.edit');
+    Route::put('/ticker', [Admin\TickerController::class, 'update'])->name('ticker.update');
+    Route::get('/currency', [Admin\CurrencyController::class, 'index'])->name('currency.index');
+    Route::put('/currency', [Admin\CurrencyController::class, 'update'])->name('currency.update');
+    Route::post('/currency/{country}/sync', [Admin\CurrencyController::class, 'sync'])->middleware('throttle:10,1')->name('currency.sync');
+
     // A34 · База данных: переключение SQLite ⇄ MySQL с переносом данных (только admin)
     Route::get('/database', [Admin\DatabaseController::class, 'index'])->name('database.index');
     Route::post('/database/test', [Admin\DatabaseController::class, 'test'])->middleware('throttle:20,1')->name('database.test');

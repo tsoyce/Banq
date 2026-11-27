@@ -52,4 +52,26 @@ return [
             'credit' => ['grace' => 0.35, 'rate' => 0.25, 'fee' => 0.25, 'cashback' => 0.15],
         ],
     ],
+    // A40 · Официальные курсы валют: источник — центробанк страны (код страны → класс RateProvider)
+    'fx' => [
+        'providers' => [
+            'KZ' => App\Services\Currency\Providers\NbrkProvider::class,
+            'UZ' => App\Services\Currency\Providers\CbuProvider::class,
+            'RU' => App\Services\Currency\Providers\CbrProvider::class,
+        ],
+        // валюты в карточке и ленте, пока в админке не выбраны свои
+        'defaults' => ['KZ' => ['USD', 'EUR', 'RUB', 'CNY'], 'UZ' => ['USD', 'EUR', 'RUB', 'KZT'], 'RU' => ['USD', 'EUR', 'CNY', 'KZT']],
+        // обновлять при заходе посетителя, если курса на сегодня нет (после ответа, без cron)
+        'auto_refresh' => env('BANQ_FX_AUTO_REFRESH', true),
+        'retry_minutes' => 30,   // не чаще раза в N минут на страну
+        'trend_days' => 30,      // глубина спарклайна
+    ],
+    // A40 · Типы контента бегущей строки (ключ → App\Services\Ticker\TickerSource). Порядок и выбор — в админке.
+    'ticker' => [
+        'sources' => [
+            'currency' => App\Services\Ticker\Sources\CurrencySource::class,
+            'deposit_rates' => App\Services\Ticker\Sources\DepositRatesSource::class,
+            'text' => App\Services\Ticker\Sources\TextSource::class,
+        ],
+    ],
 ];
