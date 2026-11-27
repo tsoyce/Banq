@@ -3,9 +3,13 @@
 namespace App\Services\Exchange;
 
 use App\Services\Exchange\Entities\BankEntity;
+use App\Services\Exchange\Entities\CardEntity;
+use App\Services\Exchange\Entities\CardTierEntity;
 use App\Services\Exchange\Entities\CountryEntity;
 use App\Services\Exchange\Entities\DepositProductEntity;
 use App\Services\Exchange\Entities\DepositRateEntity;
+use App\Services\Exchange\Entities\PaymentSystemEntity;
+use App\Services\Exchange\Entities\ServicePackageEntity;
 
 /**
  * A22 · Реестр сущностей обмена данными. Порядок = порядок импорта (родители раньше детей).
@@ -19,7 +23,9 @@ class EntityRegistry
 
     public function __construct()
     {
-        foreach ([new CountryEntity, new BankEntity, new DepositProductEntity, new DepositRateEntity] as $e) {
+        // A31 · карты: платёжные системы → уровни → карты (ссылаются на системы) → пакеты (ссылаются на карты)
+        foreach ([new CountryEntity, new BankEntity, new DepositProductEntity, new DepositRateEntity,
+            new PaymentSystemEntity, new CardTierEntity, new CardEntity, new ServicePackageEntity] as $e) {
             $this->entities[$e->key()] = $e;
         }
     }
@@ -60,8 +66,8 @@ class EntityRegistry
     {
         return [
             'version' => 1,
-            'about' => 'TSOY.IN Banq — формат обмена данными. Пакет JSON: {"countries": [...], "banks": [...], "deposit_products": [...], "deposit_rates": [...]}; '
-                .'строки ищутся по естественным ключам, повторная заливка не плодит дубли. Банк можно вложить в страну (banks), вклад — в банк (deposit_products), ставки — во вклад (rates). '
+            'about' => 'TSOY.IN Banq — формат обмена данными. Пакет JSON: {"countries": [...], "banks": [...], "deposit_products": [...], "deposit_rates": [...], "payment_systems": [...], "card_tiers": [...], "cards": [...], "service_packages": [...]}; '
+                .'строки ищутся по естественным ключам, повторная заливка не плодит дубли. Банк можно вложить в страну (banks), вклад — в банк (deposit_products), ставки — во вклад (rates), карты и пакеты — в банк (cards, service_packages), уровни — в платёжную систему (tiers). '
                 .'CSV/XLSX: заголовки = имена полей, вложенный JSON — через точку (deposit_guarantee.limits.term), списки — через «|». В XLSX лист = сущность.',
             'order' => $this->keys(),
             'entities' => array_map(fn (Entity $e) => $e->schema(), $this->entities),

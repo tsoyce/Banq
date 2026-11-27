@@ -27,6 +27,17 @@
         <p class="text-xs muted px-1">Ставки — лучшие действующие в тенге, по данным банков. Обновляются при каждом импорте.</p>
     </section>
 
+    {{-- A33 · Избранные карты --}}
+    @if ($cards->isNotEmpty())
+        <section class="space-y-3">
+            <div class="flex flex-wrap items-end justify-between gap-3 px-1">
+                <div><p class="kicker">Карты</p><h2 class="font-display font-bold text-xl mt-1">Избранные карты <span class="muted tabular">{{ $cards->count() }}</span></h2></div>
+                @if ($cards->count() > 1)<a href="{{ route('cards.compare', ['ids' => $cards->take(4)->map(fn ($o) => $o->card->id)->join(',')]) }}" class="btn btn-ghost">@include('partials.icon', ['i' => 'scale', 'c' => 'w-4 h-4']) Сравнить разом</a>@endif
+            </div>
+            @foreach ($cards as $i => $o)@include('cards._offer', ['o' => $o, 'i' => $i])@endforeach
+        </section>
+    @endif
+
     <section class="space-y-3">
         <div class="px-1"><p class="kicker">03 / Банки</p><h2 class="font-display font-bold text-xl mt-1">Избранные банки <span class="muted tabular">{{ $banks->count() }}</span></h2></div>
         @if ($banks->isEmpty())

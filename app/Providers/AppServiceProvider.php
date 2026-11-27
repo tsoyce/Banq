@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(ObjectiveRating::class);
         $this->app->scoped(PeopleRating::class);
         $this->app->scoped(RatingBoard::class);
+        $this->app->scoped(\App\Services\Cards\CardCatalog::class); // A33 · одна выборка карт на запрос
     }
 
     /**

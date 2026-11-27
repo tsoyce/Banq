@@ -73,6 +73,7 @@ class ResourceController extends Controller
         $r->fill($model, $data);
         $r->saving($model, $data, $request);
         $model->save();
+        $r->saved($model, $data, $request); // A32
 
         return $this->afterSave($request, $r, $model, 'создан');
     }
@@ -96,6 +97,7 @@ class ResourceController extends Controller
         $r->fill($model, $data);
         $r->saving($model, $data, $request);
         $model->save();
+        $r->saved($model, $data, $request); // A32
 
         return $this->afterSave($request, $r, $model, 'сохранён');
     }

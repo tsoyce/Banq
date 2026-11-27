@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
+use App\Models\Card;
 use App\Models\DepositProduct;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\Banks\BankDirectory;
+use App\Services\Cards\CardCatalog;
 use App\Services\Deposits\DepositCatalog;
 use App\Services\Deposits\DepositFilters;
 use App\Services\Deposits\DepositOffer;
@@ -51,7 +53,7 @@ class AccountController extends Controller
         ]);
     }
 
-    public function favorites(Request $request, RatingBoard $board, BankDirectory $directory): View
+    public function favorites(Request $request, RatingBoard $board, BankDirectory $directory, CardCatalog $cards): View
     {
         $user = $request->user();
         $banks = Bank::query()->active()
@@ -61,6 +63,9 @@ class AccountController extends Controller
             'deposits' => $this->favoriteDeposits($user),
             'banks' => $banks->map(fn (Bank $b) => ['bank' => $b, 'score' => $board->for($b), 'stats' => $directory->for($b)]),
             'filters' => new DepositFilters,
+            // A33 · избранные карты (строками каталога с оценкой Banq)
+            'cards' => Card::query()->active()->whereIn('id', $user->favorites()->where('favoritable_type', 'card')->select('favoritable_id'))
+                ->with(['bank.country', 'paymentSystems', 'tiers'])->get()->map(fn (Card $c) => $cards->offer($c))->sortByDesc('score')->values(),
         ]);
     }
 

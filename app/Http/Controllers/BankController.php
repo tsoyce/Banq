@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RatingKind;
 use App\Models\Bank;
 use App\Services\Banks\BankDirectory;
+use App\Services\Cards\CardCatalog;
 use App\Services\Deposits\DepositCatalog;
 use App\Services\Deposits\DepositFilters;
 use App\Services\Ratings\BankScore;
@@ -54,7 +55,7 @@ class BankController extends Controller
         ]);
     }
 
-    public function show(Request $request, Bank $bank, DepositCatalog $catalog): View
+    public function show(Request $request, Bank $bank, DepositCatalog $catalog, CardCatalog $cards): View
     {
         abort_unless($bank->status === 'active', 404);
         app(CurrentCountry::class)->set($bank->country); // A21 · страница живёт в стране банка
@@ -78,6 +79,9 @@ class BankController extends Controller
             'criteria' => ObjectiveRating::CRITERIA,
             'weights' => config('banq.ratings.objective_weights'),
             'totalRanked' => collect(RatingKind::cases())->mapWithKeys(fn ($k) => [$k->value => $this->board->top($k)->count()]),
+            // A33 · карты и пакеты банка
+            'cardOffers' => $cards->sort($cards->all()->where('bank_id', $bank->id)->map(fn ($c) => $cards->offer($c)), 'score')->values(),
+            'packages' => $bank->servicePackages()->where('is_active', true)->with(['bank.country', 'cards'])->orderBy('sort')->orderBy('monthly_fee')->get(),
         ]);
     }
 }
