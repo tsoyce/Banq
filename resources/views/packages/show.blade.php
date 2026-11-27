@@ -62,6 +62,8 @@
         </section>
     </div>
 
+    @include('blog._about', ['about' => $package, 'title' => 'О пакете в журнале', 'limit' => 3]) {{-- A37 --}}
+
     @if ($others->isNotEmpty())
         <section class="space-y-3" data-reveal>
             <h2 class="font-display font-bold text-2xl px-1">Другие пакеты</h2>

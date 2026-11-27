@@ -70,6 +70,8 @@
         @endforelse
     </section>
 
+    @include('blog._about', ['about' => $system, 'title' => $system->displayName().' в журнале', 'limit' => 3]) {{-- A37 --}}
+
     @if ($others->isNotEmpty())
         <section class="flex flex-wrap gap-2 px-1" data-reveal>
             <span class="label w-full mb-1">Другие системы</span>

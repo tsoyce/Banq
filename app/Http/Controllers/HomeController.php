@@ -35,6 +35,8 @@ class HomeController extends Controller
             'topCashback' => $cards->all()->max(fn ($c) => (float) $c->cashback_max) ?: null,
             'systemsCount' => PaymentSystem::query()->active()->count(),
             'packagesCount' => ServicePackage::query()->active()->inCountry()->count(),
+            // A37 · свежие публикации журнала
+            'news' => \App\Models\Post::query()->feed()->limit(4)->get(),
         ]);
     }
 }
