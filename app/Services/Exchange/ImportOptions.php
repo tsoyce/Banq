@@ -7,7 +7,8 @@ namespace App\Services\Exchange;
  *  - mode: upsert (создать и обновить), create (только новые), update (только существующие);
  *  - dryRun: всё считается в транзакции и откатывается — честный предпросмотр с диффом;
  *  - country: страна по умолчанию для строк без поля country (код ISO, например KZ);
- *  - source: откуда пришло — admin | cli | api.
+ *  - source: откуда пришло — admin | cli | api | grid;
+ *  - allowDelete: A39 — разрешены ли строки с _delete (табличный редактор, API с правом delete, CLI --allow-delete).
  */
 final class ImportOptions
 {
@@ -22,6 +23,7 @@ final class ImportOptions
         public readonly ?int $tokenId = null,
         public readonly ?string $filename = null,
         public readonly ?string $format = null,
+        public readonly bool $allowDelete = false,
     ) {}
 
     public static function fromArray(array $a): self
@@ -37,6 +39,7 @@ final class ImportOptions
             tokenId: $a['token_id'] ?? null,
             filename: $a['filename'] ?? null,
             format: $a['format'] ?? null,
+            allowDelete: filter_var($a['allow_delete'] ?? false, FILTER_VALIDATE_BOOL),
         );
     }
 }

@@ -13,6 +13,9 @@ final class ImportContext
 
     public ?int $importId = null;
 
+    /** A39 · id записи из служебного поля _id текущей строки (табличный редактор, API): поиск по id вместо естественного ключа — так можно переименовать код/slug. */
+    public ?int $rowId = null;
+
     public function __construct(public readonly ImportOptions $options, public readonly ImportReport $report = new ImportReport) {}
 
     /** Страна для строки: поле country → --country → настройка country.default → первая страна. */

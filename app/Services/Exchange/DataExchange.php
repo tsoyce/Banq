@@ -6,13 +6,21 @@ use App\Models\Import;
 use App\Services\Exchange\Formats\CsvFormat;
 use App\Services\Exchange\Formats\Format;
 use App\Services\Exchange\Formats\JsonFormat;
+use App\Services\Exchange\Formats\NdjsonFormat;
 use App\Services\Exchange\Formats\XlsxFormat;
+use App\Services\Exchange\Formats\XmlFormat;
+use App\Services\Exchange\Formats\YamlFormat;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Throwable;
 
 /**
  * A22 · Универсальный обмен данными: один движок для админки, CLI и API.
+ *
+ * A39 · Строки могут нести служебные _id (поиск по id) и _delete (удаление, если разрешено); форматы + XML, YAML, NDJSON, TSV.
  *
  *   parse(content, format?, entity?)  → пакет ['banks' => [...], ...] (вложенные списки раскрыты)
  *   import(bundle, ImportOptions)      → ImportReport (+ запись в imports, если не dry-run)
@@ -28,15 +36,20 @@ class DataExchange
     /** @return array<string, Format> */
     public function formats(): array
     {
-        return ['json' => new JsonFormat, 'csv' => new CsvFormat, 'xlsx' => new XlsxFormat];
+        // A39 · + XML, YAML, NDJSON (по объекту на строку), TSV (как копирует Excel)
+        return ['json' => new JsonFormat, 'ndjson' => new NdjsonFormat, 'xml' => new XmlFormat, 'yaml' => new YamlFormat,
+            'csv' => new CsvFormat, 'tsv' => new CsvFormat("\t"), 'xlsx' => new XlsxFormat];
     }
+
+    /** A39 · Подписи форматов для админки. */
+    public const FORMAT_LABELS = ['json' => 'JSON', 'xml' => 'XML', 'yaml' => 'YAML', 'ndjson' => 'NDJSON', 'csv' => 'CSV', 'tsv' => 'TSV', 'xlsx' => 'XLSX'];
 
     public function format(string $key): Format
     {
         $key = strtolower($key);
-        $key = ['jsonl' => 'json', 'ndjson' => 'json', 'xls' => 'xlsx', 'ods' => 'xlsx', 'tsv' => 'csv', 'txt' => 'csv'][$key] ?? $key;
+        $key = ['jsonl' => 'ndjson', 'yml' => 'yaml', 'xls' => 'xlsx', 'ods' => 'xlsx', 'tab' => 'tsv', 'txt' => 'csv'][$key] ?? $key;
 
-        return $this->formats()[$key] ?? throw new InvalidArgumentException("Формат «{$key}» не поддерживается. Есть: json, csv, xlsx");
+        return $this->formats()[$key] ?? throw new InvalidArgumentException("Формат «{$key}» не поддерживается. Есть: ".implode(', ', array_keys($this->formats())));
     }
 
     /** Формат по расширению имени файла или по содержимому. */
@@ -50,8 +63,16 @@ class DataExchange
             return 'xlsx';
         }
         $t = ltrim(preg_replace('/^\xEF\xBB\xBF/', '', $content));
+        $first = strtok($t, "\n") ?: '';
 
-        return str_starts_with($t, '{') || str_starts_with($t, '[') ? 'json' : 'csv';
+        return match (true) {
+            str_starts_with($t, '<') => 'xml',
+            str_starts_with($t, '{') && ! json_validate($t) && json_validate(trim($first)) => 'ndjson',
+            str_starts_with($t, '{') || str_starts_with($t, '[') => 'json',
+            str_starts_with($t, '---') || (bool) preg_match('/^[a-z_]+:\s*$/m', $first) => 'yaml',
+            substr_count($first, "\t") > 0 && substr_count($first, "\t") >= substr_count($first, ',') && substr_count($first, "\t") >= substr_count($first, ';') => 'tsv',
+            default => 'csv',
+        };
     }
 
     /** Разбор файла в пакет: ключи сущностей приводятся к каноническим, вложенные списки раскрываются. */
@@ -113,24 +134,22 @@ class DataExchange
                 $ctx->importId = $import->id;
             }
 
+            // A39 · сначала создание/обновление (родители раньше детей), потом удаление (дети раньше родителей)
+            $deletes = [];
             foreach ($this->registry->all() as $key => $entity) {
                 foreach ($bundle[$key] ?? [] as $i => $raw) {
-                    $n = $i + 1;
-                    try {
-                        $row = $entity->normalize((array) $raw);
-                        $label = $entity->rowLabel($row);
-                        // ошибка одной строки не валит весь импорт
-                        DB::transaction(function () use ($entity, $row, $ctx, $key, $n, $label) {
-                            [$action, $changes, $message] = $entity->persist($row, $ctx) + [null, [], null];
-                            $ctx->report->add($key, $n, $action, $label, $changes, $message);
-                        });
-                    } catch (RowError $e) {
-                        $ctx->report->add($key, $n, 'error', $label ?? $entity->rowLabel((array) $raw), [], $e->getMessage());
-                    } catch (Throwable $e) {
-                        report($e);
-                        $ctx->report->add($key, $n, 'error', $entity->rowLabel((array) $raw), [], 'ошибка записи: '.$e->getMessage());
+                    [$raw, $id, $delete] = self::meta((array) $raw);
+                    if ($delete) {
+                        $deletes[$key][$i] = [$raw, $id];
+
+                        continue;
                     }
-                    unset($label);
+                    $this->runRow($entity, $key, $i + 1, $raw, $id, $ctx, false);
+                }
+            }
+            foreach (array_reverse($this->registry->all()) as $key => $entity) {
+                foreach ($deletes[$key] ?? [] as $i => [$raw, $id]) {
+                    $this->runRow($entity, $key, $i + 1, $raw, $id, $ctx, true);
                 }
             }
 
@@ -144,7 +163,7 @@ class DataExchange
             } else {
                 $r = $ctx->report;
                 $import->update([
-                    'rows_total' => $r->total(), 'rows_created' => $r->total('created'), 'rows_updated' => $r->total('updated'),
+                    'rows_total' => $r->total(), 'rows_created' => $r->total('created'), 'rows_updated' => $r->total('updated') + $r->total('deleted'),
                     'rows_skipped' => $r->total('unchanged') + $r->total('skipped'), 'rows_failed' => $r->total('error'),
                     'stats' => $r->stats, 'log' => array_slice(array_map(fn ($row) => self::logLine($row), array_filter($r->rows, fn ($x) => $x['action'] !== 'unchanged')), 0, 500),
                     'status' => $r->total('error') ? 'partial' : 'done',
@@ -160,6 +179,47 @@ class DataExchange
         return $ctx->report;
     }
 
+    /** A39 · Одна строка импорта: нормализация → запись/удаление в своей точке сохранения; ошибка строки не валит весь импорт. */
+    private function runRow(Entity $entity, string $key, int $n, array $raw, ?int $id, ImportContext $ctx, bool $delete): void
+    {
+        $label = null;
+        try {
+            if ($delete && ! $ctx->options->allowDelete) {
+                throw new RowError('удаление не разрешено: в админке — табличный редактор, в API — токен с правом delete и allow_delete=1, в консоли — --allow-delete');
+            }
+            $row = $entity->normalize($raw, $delete);
+            $label = ($id ? "#{$id} " : '').$entity->rowLabel($row);
+            $ctx->rowId = $id;
+            DB::transaction(function () use ($entity, $row, $ctx, $key, $n, $label, $delete) {
+                [$action, $changes, $message] = ($delete ? $entity->remove($row, $ctx) : $entity->persist($row, $ctx)) + [null, [], null];
+                $ctx->report->add($key, $n, $action, $label, $changes, $message);
+            });
+        } catch (RowError $e) {
+            $ctx->report->add($key, $n, 'error', $label ?? $entity->rowLabel($raw), [], $e->getMessage());
+        } catch (Throwable $e) {
+            report($e);
+            $ctx->report->add($key, $n, 'error', $label ?? $entity->rowLabel($raw), [], 'ошибка записи: '.$e->getMessage());
+        } finally {
+            $ctx->rowId = null;
+        }
+    }
+
+    /**
+     * A39 · Служебные поля строки: _id (id записи — поиск по нему, можно сменить ключ) и _delete
+     * (да/1/true или _action: delete — удалить). Возвращает [строка без них, id, удалить?].
+     */
+    public static function meta(array $raw): array
+    {
+        $id = $raw['_id'] ?? null;
+        $delete = $raw['_delete'] ?? null;
+        $action = strtolower((string) ($raw['_action'] ?? ''));
+        unset($raw['_id'], $raw['_delete'], $raw['_action']);
+        $id = is_numeric($id) && (int) $id > 0 ? (int) $id : null;
+        $delete = $action === 'delete' || in_array(mb_strtolower(trim((string) (is_bool($delete) ? (int) $delete : $delete))), ['1', 'true', 'yes', 'да', 'delete', 'x', '✓'], true);
+
+        return [$raw, $id, $delete];
+    }
+
     private static function logLine(array $r): string
     {
         $changes = collect($r['changes'] ?? [])->map(fn ($c, $f) => "{$f}: ".json_encode($c[0], JSON_UNESCAPED_UNICODE).' → '.json_encode($c[1], JSON_UNESCAPED_UNICODE))->implode('; ');
@@ -169,19 +229,50 @@ class DataExchange
 
     /**
      * @param  list<string>  $entities  пусто — все
-     * @param  array{country?: ?string, bank?: string|list<string>|null, current?: bool}  $filters
+     * @param  array{country?: ?string, bank?: string|list<string>|null, current?: bool, updated_since?: ?string}  $filters
+     * @param  bool  $withIds  A39 · первой колонкой _id — для табличного редактора и синхронизации агентов
      */
-    public function export(array $entities = [], array $filters = []): array
+    public function export(array $entities = [], array $filters = [], bool $withIds = false): array
     {
         $keys = $entities ? array_map(fn ($e) => $this->registry->get($e)->key(), $entities) : $this->registry->keys();
         $bundle = [];
         foreach ($this->registry->all() as $key => $entity) {
             if (in_array($key, $keys, true)) {
-                $bundle[$key] = $entity->exportQuery($filters)->get()->map(fn ($m) => $entity->toRow($m))->all();
+                $bundle[$key] = $this->query($entity, $filters)->get()->map(fn ($m) => $this->row($entity, $m, $withIds))->all();
             }
         }
 
         return $bundle;
+    }
+
+    /**
+     * A39 · Страница строк одной сущности (API): ['data', 'total', 'limit', 'offset'].
+     */
+    public function page(string $entity, array $filters, int $limit, int $offset, bool $withIds = false): array
+    {
+        $e = $this->registry->get($entity);
+        $q = $this->query($e, $filters);
+        $total = (clone $q)->toBase()->getCountForPagination();
+        $rows = $q->skip($offset)->take($limit)->get()->map(fn ($m) => $this->row($e, $m, $withIds))->all();
+
+        return ['data' => $rows, 'total' => $total, 'limit' => $limit, 'offset' => $offset];
+    }
+
+    /** A39 · Запрос экспорта + общий фильтр updated_since (дата/время ISO 8601) — для инкрементальной выгрузки. */
+    private function query(Entity $entity, array $filters): Builder
+    {
+        $q = $entity->exportQuery($filters);
+        if (! empty($filters['updated_since'])) {
+            $since = Carbon::parse($filters['updated_since']);
+            $q->where($q->getModel()->qualifyColumn('updated_at'), '>=', $since);
+        }
+
+        return $q;
+    }
+
+    private function row(Entity $entity, Model $m, bool $withIds): array
+    {
+        return $withIds ? ['_id' => $m->getKey()] + $entity->toRow($m) : $entity->toRow($m);
     }
 
     public function render(array $bundle, string $format): string

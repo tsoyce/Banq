@@ -8,7 +8,8 @@ namespace App\Services\Exchange;
  */
 final class ImportReport
 {
-    public const ACTIONS = ['created', 'updated', 'unchanged', 'skipped', 'error'];
+    // A39 · deleted — строки с _delete (удалено / ставка закрыта)
+    public const ACTIONS = ['created', 'updated', 'deleted', 'unchanged', 'skipped', 'error'];
 
     /** Сколько строк журнала хранить (счётчики — всегда полные). */
     public const MAX_ROWS = 2000;
@@ -57,7 +58,7 @@ final class ImportReport
 
     public function hasChanges(): bool
     {
-        return $this->total('created') + $this->total('updated') > 0;
+        return $this->total('created') + $this->total('updated') + $this->total('deleted') > 0;
     }
 
     public function toArray(): array

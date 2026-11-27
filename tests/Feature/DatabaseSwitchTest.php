@@ -134,7 +134,7 @@ class DatabaseSwitchTest extends TestCase
         $this->assertStringContainsString('логин, пароль', app(DatabaseSwitcher::class)->explain(new QueryException('banq_target', 'x', [], $denied)));
     }
 
-    /** A39 · Остатки прошлой попытки: пустая users без записи в migrations → раньше «1050 Table 'users' already exists». */
+    /** A41 · Остатки прошлой попытки: пустая users без записи в migrations → раньше «1050 Table 'users' already exists». */
     public function test_switch_recreates_leftover_empty_tables_and_keeps_foreign_ones(): void
     {
         $target = $this->dir.'/new.sqlite';

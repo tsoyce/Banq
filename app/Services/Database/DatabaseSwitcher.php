@@ -109,12 +109,12 @@ class DatabaseSwitcher
 
             // проверка до миграций: миграции сами заливают справочники (платёжные системы)
             $step = 'проверка новой базы';
-            $busy = array_filter(array_intersect($this->tables($target), $tables), fn ($t) => $target->table($t)->exists()); // A39: только наши таблицы
+            $busy = array_filter(array_intersect($this->tables($target), $tables), fn ($t) => $target->table($t)->exists()); // A41: только наши таблицы
             if ($copy && $busy && ! $overwrite) {
                 throw new RuntimeException('В новой базе уже есть данные ('.implode(', ', array_slice(array_values($busy), 0, 5)).'). Отметь «Перезаписать данные в новой базе» или выбери пустую базу.');
             }
 
-            // A39 · остатки прошлой неудачной попытки (пустые таблицы без записи в migrations) мешали
+            // A41 · остатки прошлой неудачной попытки (пустые таблицы без записи в migrations) мешали
             // миграциям: «1050 Table 'users' already exists». Наши таблицы в новой базе удаляем и создаём
             // заново, если данные всё равно переносятся (пусто или «перезаписать»), либо если они пустые.
             $step = 'очистка новой базы';
@@ -209,7 +209,7 @@ class DatabaseSwitcher
         }
     }
 
-    /** A39 · Удалить таблицы новой базы (только перечисленные — чужие таблицы в той же базе не трогаем). */
+    /** A41 · Удалить таблицы новой базы (только перечисленные — чужие таблицы в той же базе не трогаем). */
     private function drop(Connection $c, array $tables): void
     {
         $this->foreignKeys($c, false);

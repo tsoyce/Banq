@@ -70,7 +70,7 @@ class CardCatalogTest extends TestCase
 
         // экспорт → импорт = без изменений
         $ex = app(DataExchange::class);
-        foreach (['json', 'csv', 'xlsx'] as $format) {
+        foreach (array_keys($ex->formats()) as $format) { // A39 · все форматы
             $file = $ex->render($ex->export(['payment_systems', 'card_tiers', 'cards', 'service_packages']), $format);
             $back = $ex->import($ex->parse($file, $format), ImportOptions::fromArray([]))->toArray();
             $this->assertSame(0, $back['totals']['created'] + $back['totals']['updated'] + $back['totals']['error'], $format.': '.json_encode(array_filter($back['rows'], fn ($x) => $x['action'] !== 'unchanged'), JSON_UNESCAPED_UNICODE));

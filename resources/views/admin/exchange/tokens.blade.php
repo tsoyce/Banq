@@ -26,7 +26,7 @@
             @forelse ($tokens as $t)
                 <tr>
                     <td><p class="font-semibold">{{ $t->name }}</p><p class="faint text-xs mono">{{ $t->prefix }}… · {{ $t->user?->name }}</p></td>
-                    <td>@foreach ($t->abilities as $a)<span class="chip mr-1">{{ $a === 'write' ? 'запись' : 'чтение' }}</span>@endforeach</td>
+                    <td>@foreach ($t->abilities as $a)<span class="chip mr-1">{{ ['write' => 'запись', 'delete' => 'удаление'][$a] ?? 'чтение' }}</span>@endforeach</td>
                     <td class="text-sm muted">{{ $t->last_used_at?->diffForHumans() ?? 'не использовался' }}@if ($t->last_ip)<span class="faint block text-xs">{{ $t->last_ip }}</span>@endif</td>
                     <td class="text-sm {{ $t->expires_at?->isPast() ? 'text-[var(--bad)]' : 'muted' }}">{{ $t->expires_at?->format('d.m.Y') ?? 'бессрочно' }}</td>
                     <td class="text-right">@if (auth()->user()->role === 'admin')

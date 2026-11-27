@@ -12,10 +12,11 @@ class ImportDataCommand extends Command
     protected $signature = 'banq:import
         {file : путь к файлу или «-» для stdin}
         {--entity= : какие это данные, если файл плоский (banks, deposit_rates…)}
-        {--format= : json | csv | xlsx (по умолчанию — по расширению/содержимому)}
+        {--format= : json | ndjson | xml | yaml | csv | tsv | xlsx (по умолчанию — по расширению/содержимому)}
         {--mode=upsert : upsert | create | update}
         {--country= : страна по умолчанию для строк без country (код ISO)}
         {--dry-run : только проверить и показать, что изменится}
+        {--allow-delete : A39 — выполнять строки с _delete}
         {--json : вывести отчёт JSON}';
 
     protected $description = 'Импорт данных в любом формате обмена (схема — banq:schema)';
@@ -35,7 +36,7 @@ class ImportDataCommand extends Command
             $bundle = $exchange->parse($content, $format, $this->option('entity') ?: null, $file);
             $report = $exchange->import($bundle, new ImportOptions(
                 mode: (string) $this->option('mode'), dryRun: (bool) $this->option('dry-run'), country: $this->option('country') ?: null,
-                source: 'cli', filename: basename($file), format: $format,
+                source: 'cli', filename: basename($file), format: $format, allowDelete: (bool) $this->option('allow-delete'),
             ));
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
@@ -49,10 +50,10 @@ class ImportDataCommand extends Command
             return $report->total('error') ? self::FAILURE : self::SUCCESS;
         }
 
-        $this->table(['Сущность', 'новых', 'обновлено', 'без изменений', 'пропущено', 'ошибок'],
-            collect($report->stats)->map(fn ($s, $e) => [$e, $s['created'], $s['updated'], $s['unchanged'], $s['skipped'], $s['error']])->values()->all());
+        $this->table(['Сущность', 'новых', 'обновлено', 'удалено', 'без изменений', 'пропущено', 'ошибок'],
+            collect($report->stats)->map(fn ($s, $e) => [$e, $s['created'], $s['updated'], $s['deleted'], $s['unchanged'], $s['skipped'], $s['error']])->values()->all());
         foreach ($report->rows as $r) {
-            if (in_array($r['action'], ['error', 'updated', 'skipped'], true)) {
+            if (in_array($r['action'], ['error', 'updated', 'deleted', 'skipped'], true)) {
                 $this->line(sprintf('  %-8s %s #%d %s%s', $r['action'], $r['entity'], $r['row'], $r['key'], isset($r['message']) ? ' — '.$r['message'] : ''));
             }
         }
