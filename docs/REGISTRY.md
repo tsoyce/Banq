@@ -97,7 +97,9 @@ tests/ .............................. Unit: парсер Excel · Feature: ус�
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28), карты (A33: CardCatalogTest; fixtures/cards-demo.json — вымышленные условия)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
-deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot
+deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot; A35: DEPLOY_SKIP_PULL
+deploy/banq-deploy .................. A35 принудительная команда ключа выкладки (копия в /usr/local/sbin): бэкап базы, deploy.sh от tsoy, проверка, откат
+.github/workflows/deploy.yml ........ A35 автодеплой после зелёных Tests на main (секреты DEPLOY_HOST, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; docs/DEPLOY.md)
 docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры), API.md (A23)
 ```
 
@@ -203,7 +205,7 @@ HTTP запрос
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
 | `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
-| `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19) |
+| `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
 

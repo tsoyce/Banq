@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# A35 · Автодеплой Banq: принудительная команда (command=) ключа выкладки в authorized_keys root.
+# GitHub Actions после зелёных тестов main вызывает: ssh root@сервер "deploy <sha>".
+#
+# Ставится КОПИЕЙ: install -o root -g root -m 0755 deploy/banq-deploy /usr/local/sbin/banq-deploy
+# Не ссылаться на файл в папке сайта: её может менять tsoy, а скрипт работает от root.
+#
+# Что делает: блокировка (одна выкладка за раз) → копия базы и .env → git merge --ff-only <sha>
+# и deploy.sh от имени tsoy → проверка сайта curl. Ошибка на любом шаге → откат кода к прежнему
+# коммиту, восстановление базы из копии, повторная проверка. Итог — код выхода и журнал.
+#
+# Команды: "deploy <sha>" — выложить коммит из origin/main; "status" — текущий коммит и хвост журнала.
+set -euo pipefail
+
+APP_DIR="${BANQ_APP_DIR:-/home/tsoy/sites/banqofbank}"
+APP_USER="${BANQ_APP_USER:-tsoy}"
+APP_HOME="$(getent passwd "$APP_USER" | cut -d: -f6)"
+BACKUP_ROOT="${BANQ_BACKUP_DIR:-/var/backups/banq}"
+BACKUP_KEEP="${BANQ_BACKUP_KEEP:-15}"
+SITE_URL="${BANQ_SITE_URL:-https://bank.tsoy.in}"
+LOG_FILE="${BANQ_DEPLOY_LOG:-/var/log/banq-deploy.log}"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+say() { printf '%s %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG_FILE" >&2; }
+die() { say "✗ $*"; exit 1; }
+
+# Команды в папке сайта — от владельца файлов (git под root ругается на чужого владельца
+# и оставляет .git/index root-а).
+as_app() { runuser -u "$APP_USER" -- env HOME="$APP_HOME" PATH="$PATH" bash -c "cd '$APP_DIR' && $1"; }
+
+cmd="${SSH_ORIGINAL_COMMAND:-${*:-}}"
+case "$cmd" in
+    status)
+        as_app 'git log -1 --format="%H %cd %s" --date=iso'
+        tail -n 30 "$LOG_FILE" 2>/dev/null || true
+        exit 0 ;;
+    deploy\ *) SHA="${cmd#deploy }" ;;
+    *) echo "разрешено только: deploy <sha> | status" >&2; exit 2 ;;
+esac
+[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || die "ожидается полный sha коммита, получено: $SHA"
+
+exec 9>/run/banq-deploy.lock
+flock -w 900 9 || die "другая выкладка не закончилась за 15 минут"
+
+# PHP — как в deploy.sh (A19): в BrainyCP его может не быть в PATH.
+PHP_BIN="${PHP_BIN:-}"
+if [ -z "$PHP_BIN" ]; then
+    for p in php /usr/bin/php83/bin/php /usr/bin/php84/bin/php /opt/php83/bin/php; do
+        if command -v "$p" >/dev/null 2>&1; then PHP_BIN="$(command -v "$p")"; break; fi
+    done
+fi
+[ -n "$PHP_BIN" ] || die "не найден PHP"
+export PHP_BIN
+
+env_get() { grep -E "^$1=" "$APP_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2- | sed -E 's/^["'"'"'](.*)["'"'"']$/\1/'; }
+
+# Путь к SQLite из консоли (A29): в .env он записан так, как его видит сайт в chroot.
+sqlite_path() {
+    local db dir
+    db="$(env_get DB_DATABASE)"
+    [ -n "$db" ] || db="database/database.sqlite"
+    [ "${db#/}" = "$db" ] && db="$APP_DIR/$db"
+    if [ ! -f "$db" ]; then
+        dir="$APP_DIR"
+        while [ "$dir" != "/" ]; do
+            dir="$(dirname "$dir")"
+            if [ -f "$dir$db" ]; then db="$dir$db"; break; fi
+        done
+    fi
+    [ -f "$db" ] && echo "$db"
+}
+
+mysql_defaults() {
+    local f; f="$(mktemp)"; chmod 600 "$f"
+    {
+        echo "[client]"
+        echo "host=$(env_get DB_HOST)"
+        echo "port=$(env_get DB_PORT)"
+        echo "user=$(env_get DB_USERNAME)"
+        printf 'password="%s"\n' "$(env_get DB_PASSWORD | sed 's/["\\]/\\&/g')"
+    } > "$f"
+    echo "$f"
+}
+
+DB_KIND=""; DB_FILE=""; DB_BACKUP=""
+backup_db() {
+    BACKUP_DIR="$BACKUP_ROOT/$(date '+%Y%m%d-%H%M%S')-${SHA:0:7}"
+    mkdir -p "$BACKUP_DIR"; chmod 700 "$BACKUP_ROOT" "$BACKUP_DIR"
+    [ -f "$APP_DIR/.env" ] && cp -p "$APP_DIR/.env" "$BACKUP_DIR/env"
+    [ -f "$APP_DIR/storage/app/installed.json" ] || { say "сайт ещё не установлен — базу не копирую"; return 0; }
+    case "$(env_get DB_CONNECTION)" in
+        sqlite)
+            DB_KIND=sqlite
+            DB_FILE="$(sqlite_path)" || die "не найден файл SQLite из .env"
+            DB_BACKUP="$BACKUP_DIR/database.sqlite"
+            if command -v sqlite3 >/dev/null 2>&1; then
+                sqlite3 "$DB_FILE" ".backup '$DB_BACKUP'"
+            else
+                cp -p "$DB_FILE" "$DB_BACKUP"
+                for x in -wal -shm; do [ -f "$DB_FILE$x" ] && cp -p "$DB_FILE$x" "$DB_BACKUP$x"; done
+            fi ;;
+        mysql|mariadb)
+            DB_KIND=mysql
+            command -v mysqldump >/dev/null 2>&1 || die "нет mysqldump — без копии базы не выкладываю"
+            local d; d="$(mysql_defaults)"
+            DB_BACKUP="$BACKUP_DIR/database.sql.gz"
+            mysqldump --defaults-extra-file="$d" --single-transaction --routines --no-tablespaces \
+                "$(env_get DB_DATABASE)" | gzip > "$DB_BACKUP" || { rm -f "$d"; die "mysqldump не удался"; }
+            rm -f "$d" ;;
+        *) die "неизвестный DB_CONNECTION: $(env_get DB_CONNECTION)" ;;
+    esac
+    say "копия базы: $DB_BACKUP ($(du -h "$DB_BACKUP" | cut -f1))"
+    # Старые копии: оставляем последние BACKUP_KEEP.
+    ls -1dt "$BACKUP_ROOT"/*/ 2>/dev/null | tail -n +"$((BACKUP_KEEP + 1))" | xargs -r rm -rf
+}
+
+restore_db() {
+    [ -n "$DB_BACKUP" ] || return 0
+    case "$DB_KIND" in
+        sqlite)
+            local owner; owner="$(stat -c '%U:%G' "$DB_FILE")"
+            rm -f "$DB_FILE-wal" "$DB_FILE-shm"
+            cp "$DB_BACKUP" "$DB_FILE"
+            for x in -wal -shm; do [ -f "$DB_BACKUP$x" ] && cp "$DB_BACKUP$x" "$DB_FILE$x"; done
+            chown "$owner" "$DB_FILE"* ;;
+        mysql)
+            local d db; d="$(mysql_defaults)"; db="$(env_get DB_DATABASE)"
+            # Таблицы, созданные новыми миграциями, дамп не удалит — сносим всё и заливаем копию.
+            { echo "SET FOREIGN_KEY_CHECKS=0;"
+              mysql --defaults-extra-file="$d" -N -e "SHOW TABLES" "$db" | sed 's/.*/DROP TABLE IF EXISTS `&`;/'
+              gunzip -c "$DB_BACKUP"
+              echo "SET FOREIGN_KEY_CHECKS=1;"; } | mysql --defaults-extra-file="$d" "$db"
+            rm -f "$d" ;;
+    esac
+    say "база восстановлена из $DB_BACKUP"
+}
+
+check_site() {
+    local code i
+    for i in 1 2 3; do
+        code="$(curl -sS -o /dev/null -I -w '%{http_code}' --max-time 20 "$SITE_URL/" || echo 000)"
+        if [[ "$code" =~ ^[23] ]]; then say "сайт отвечает: HTTP $code"; return 0; fi
+        sleep 3
+    done
+    say "сайт не отвечает как надо: HTTP $code"; return 1
+}
+
+PREV="$(as_app 'git rev-parse HEAD')"
+say "→ выкладка ${SHA:0:7} (сейчас ${PREV:0:7})"
+as_app 'git fetch -q origin main' || die "git fetch не удался"
+as_app "git merge-base --is-ancestor $SHA origin/main" || die "коммит ${SHA:0:7} не входит в origin/main"
+if as_app "git merge-base --is-ancestor $SHA HEAD" && [ "$SHA" != "$PREV" ]; then
+    say "уже выложен более новый коммит ${PREV:0:7} — пропускаю"; exit 0
+fi
+
+backup_db
+
+rollback() {
+    say "↺ откат к ${PREV:0:7}"
+    as_app "git reset -q --keep $PREV" || say "git reset --keep не удался — проверь папку руками"
+    as_app "\"$PHP_BIN\" \"\$(command -v composer || echo /usr/local/bin/composer)\" install --no-dev --optimize-autoloader --no-interaction -q" || say "composer install при откате не удался"
+    restore_db
+    as_app "\"$PHP_BIN\" artisan optimize:clear" >/dev/null || true
+    check_site && die "выкладка ${SHA:0:7} не удалась, откатились на ${PREV:0:7}, сайт работает" \
+               || die "выкладка ${SHA:0:7} не удалась и после отката сайт не отвечает — нужен человек"
+}
+
+if ! as_app "git merge -q --ff-only $SHA"; then
+    die "git merge --ff-only не прошёл (локальные правки на сервере?) — ничего не менял"
+fi
+if ! as_app "DEPLOY_SKIP_PULL=1 PHP_BIN='$PHP_BIN' bash deploy.sh" 2>&1 | tee -a "$LOG_FILE"; then
+    say "deploy.sh завершился с ошибкой"; rollback
+fi
+check_site || rollback
+say "✓ выложен ${SHA:0:7}"

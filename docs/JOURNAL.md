@@ -101,3 +101,8 @@
 
 - **A34 — Админка → База данных** (`/admin/database`, только роль admin). Что подключено сейчас: драйвер, версия, файл или сервер, таблицы и строки. Форма новой базы (MySQL/MariaDB или файл SQLite) с кнопкой «Проверить подключение». Переключение (`App\Services\Database\DatabaseSwitcher`): проверка → миграции на новой базе (сидеры внутри миграций пишут туда же) → перенос всех таблиц кусками по 500 строк с отключёнными внешними ключами и сверкой числа строк (кеш и очереди не переносятся; в MySQL выравнивается AUTO_INCREMENT) → копия `.env` в `storage/app/env-backups/env-*` → запись `DB_*`, сброс кеша конфига. Если новая база не пустая — отказ, пока не отмечено «Перезаписать». Прежняя база не меняется; «Вернуть» восстанавливает `DB_*` из любой копии (ключи, которых в копии не было, комментируются — `EnvWriter::forget`). Сессии переносятся вместе с данными, вход не слетает. Проверено на MariaDB 10.11 туда и обратно. Тесты: `tests/Feature/DatabaseSwitchTest.php`.
 
+## 2026-11-27 · Автодеплой из GitHub Actions
+
+Запрос: после push в main и зелёных тестов выкладывать на боевой самому, с копией базы и откатом.
+
+- **A35 — Автодеплой.** `.github/workflows/deploy.yml`: по `workflow_run` зелёных «Tests» на push в `main` (и вручную) — SSH ключом выкладки с командой `deploy <sha>`, затем `curl -I` сайта. На сервере ключ в `authorized_keys` root с `command="/usr/local/sbin/banq-deploy",restrict` — копия `deploy/banq-deploy`: `flock`, копия базы (SQLite/MySQL) и `.env` в `/var/backups/banq` (последние 15), от имени `tsoy` `git merge --ff-only <sha>` + `DEPLOY_SKIP_PULL=1 bash deploy.sh`, проверка сайта; ошибка → `git reset --keep` на прежний коммит, composer, база из копии. `deploy.sh` понимает `DEPLOY_SKIP_PULL=1`. Устройство и секреты — `docs/DEPLOY.md`.

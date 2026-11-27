@@ -9,4 +9,4 @@
 5. Ставки не перезаписываются: новая ставка закрывает старую (`valid_to`).
 6. После правок фронтенда — `npm run build` и коммит `public/build` (на сервере нет Node).
 7. Тесты: `php artisan test`. Импорт Excel проверяется на `tests/fixtures/deposits-matrix.xlsx`.
-8. Боевой сервер: BrainyCP, `/home/tsoy/sites/banqofbank`, деплой — `bash deploy.sh` на сервере.
+8. Боевой сервер: BrainyCP, `/home/tsoy/sites/banqofbank`. Деплой — автоматически после слияния в `main` и зелёных тестов (A35, `docs/DEPLOY.md`); руками — `bash deploy.sh` на сервере.
