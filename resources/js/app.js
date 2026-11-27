@@ -35,6 +35,38 @@ Alpine.directive('count', (el, { expression }) => {
     }, { threshold: 0.4 }).observe(el);
 });
 
+// A36 · Горизонтальная лента (чипы сортировки, вкладки): без системного скроллбара,
+// затухание по краю, где есть что листать, стрелки на устройствах с мышью. Разметка — partials/hscroll.
+Alpine.data('hscroll', () => ({
+    start: false,
+    end: false,
+    init() {
+        const t = this.$refs.track;
+        this.update();
+        new ResizeObserver(() => this.update()).observe(t);
+        // активный чип — в видимую область
+        const active = t.querySelector('.is-active');
+        if (active && t.scrollWidth > t.clientWidth) t.scrollLeft = active.offsetLeft - t.clientWidth / 2 + active.offsetWidth / 2;
+        // колесо мыши листает ленту по горизонтали
+        t.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || t.scrollWidth <= t.clientWidth) return;
+            const max = t.scrollWidth - t.clientWidth;
+            if ((e.deltaY < 0 && t.scrollLeft <= 0) || (e.deltaY > 0 && t.scrollLeft >= max)) return;
+            e.preventDefault();
+            t.scrollLeft += e.deltaY;
+        }, { passive: false });
+    },
+    update() {
+        const t = this.$refs.track;
+        this.start = t.scrollLeft > 2;
+        this.end = t.scrollLeft + t.clientWidth < t.scrollWidth - 2;
+    },
+    by(dir) {
+        const t = this.$refs.track;
+        t.scrollBy({ left: dir * t.clientWidth * 0.7, behavior: reduced ? 'auto' : 'smooth' });
+    },
+}));
+
 // Калькулятор дохода по вкладу (простой/капитализация ежемесячно)
 Alpine.data('calc', (rate = 16) => ({
     amount: 1_000_000,

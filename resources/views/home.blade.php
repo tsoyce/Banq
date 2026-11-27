@@ -55,7 +55,7 @@
                         <p class="opacity-60">@if ($leader){{ $leader->product->type->label() }} · ГЭСВ&nbsp;{{ rate_format($leader->effective_rate) }}@else в&nbsp;админке → Обмен данными @endif</p>
                     </div>
                     @if ($leader)
-                        @php($perYear = 1_000_000 * (float) ($leader->effective_rate ?? $leader->rate) / 100)
+                        @php $perYear = 1_000_000 * (float) ($leader->effective_rate ?? $leader->rate) / 100; @endphp
                         <a href="{{ route('deposits.show', $leader->product) }}" class="ink-plate flex items-center justify-between gap-3 group">
                             <span><span class="opacity-60 block text-xs">С&nbsp;{{ money_format(1_000_000) }} за&nbsp;год</span><b class="tabular text-base">+{{ money_format($perYear) }}</b></span>
                             @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition'])
