@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** A29 · Пропускает HTML-ответы витрины и админки через App\Support\Typograph (неразрывные пробелы). */
+/** A36 · Пропускает HTML-ответы витрины и админки через App\Support\Typograph (неразрывные пробелы). */
 class Typography
 {
     public function handle(Request $request, Closure $next): Response

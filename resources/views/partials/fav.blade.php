@@ -1,4 +1,4 @@
-{{-- A28 · Кнопка «в избранное». $type — deposit|bank, $id, $on — уже в избранном, $wide — показать подпись (широкая кнопка). A29: было $label — имя протекало из родительских @foreach и включало подпись где не надо.
+{{-- A28 · Кнопка «в избранное». $type — deposit|bank, $id, $on — уже в избранном, $wide — показать подпись (широкая кнопка). A36: было $label — имя протекало из родительских @foreach и включало подпись где не надо.
      С JS — fetch без перезагрузки (Alpine favorite в resources/js/app.js), без JS — обычная форма. Гостя ведёт на вход. --}}
 @auth
     <form method="POST" action="{{ route('favorites.toggle') }}" x-data="favorite({{ ($on ?? false) ? 'true' : 'false' }})" @submit.prevent="toggle($el)" class="contents">

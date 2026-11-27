@@ -15,8 +15,8 @@
             ['Когда бесплатно', $card->fee_note],
         ],
         'Кэшбэк и остаток' => [
-            ['Кэшбэк до', $card->cashback_max !== null ? rate_format($card->cashback_max) : null],
-            ['Кэшбэк на всё', $card->cashback_base !== null ? rate_format($card->cashback_base) : null],
+            ['Кэшбэк до', $card->cashback_max !== null ? percent_format($card->cashback_max) : null],
+            ['Кэшбэк на всё', $card->cashback_base !== null ? percent_format($card->cashback_base) : null],
             ['Категории', $card->cashback_note],
             ['Процент на остаток', $card->balance_rate !== null ? rate_format($card->balance_rate).' годовых' : null],
         ],
@@ -25,7 +25,7 @@
             ['Льготный период', $card->grace_days ? $card->grace_days.' '.plural($card->grace_days, 'день', 'дня', 'дней') : null],
             ['Ставка', $card->credit_rate !== null ? 'от '.rate_format($card->credit_rate).' годовых' : null],
             ['ГЭСВ', $card->credit_rate_effective !== null ? 'от '.rate_format($card->credit_rate_effective) : null],
-            ['Минимальный платёж', $card->min_payment !== null ? rate_format($card->min_payment).' долга' : null],
+            ['Минимальный платёж', $card->min_payment !== null ? percent_format($card->min_payment).' долга' : null],
         ],
         'Снятие и переводы' => [
             ['Снятие наличных', $card->cash_fee],

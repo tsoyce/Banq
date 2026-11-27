@@ -5,7 +5,7 @@
 <div x-data="depositFilters" class="space-y-5">
 
     {{-- Шапка раздела: бенто с крупными цифрами --}}
-    <section class="grid grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:gap-5">{{-- A29: на телефоне две цифровые карточки — в ряд --}}
+    <section class="grid grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:gap-5">{{-- A36: на телефоне две цифровые карточки — в ряд --}}
         <div class="card p-7 flex flex-col justify-between gap-6 col-span-2 md:col-span-1" data-reveal>
             <nav class="text-sm muted flex items-center gap-2"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><span>Вклады</span></nav>
             <div>
@@ -79,7 +79,7 @@
 
                 <fieldset>
                     <legend class="label mb-2.5">Срок, мес.</legend>
-                    {{-- A29 · пять вариантов в одну строку: «24 мес» больше не уезжает на вторую --}}
+                    {{-- A36 · пять вариантов в одну строку: «24 мес» больше не уезжает на вторую --}}
                     <div class="seg">
                         <label><input type="radio" name="term" value="" class="sr-only" @checked(! $filters->term) data-default>Все</label>
                         @foreach ([3, 6, 12, 24] as $m)

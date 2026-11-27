@@ -15,7 +15,7 @@
 
         {{-- Бенто: герой + лучшая ставка --}}
         <section id="deposits" class="grid md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-5 scroll-mt-32">
-            {{-- A29 · Герой: заголовок и форма масштабируются от ширины карточки (container queries), а не экрана --}}
+            {{-- A36 · Герой: заголовок и форма масштабируются от ширины карточки (container queries), а не экрана --}}
             <div class="card hero-card p-7 md:p-9 flex flex-col justify-between gap-9 @container" data-reveal>
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="chip"><span class="dot"></span>{{ $updatedAt ? 'обновлено '.\Illuminate\Support\Carbon::parse($updatedAt)->translatedFormat('j F') : 'скоро первые данные' }}</span>
@@ -24,7 +24,7 @@
                 <h1 class="hero-title font-display font-bold">
                     Все вклады {{ country()?->genitive() }}.<br><span class="muted">Одна таблица&nbsp;— <span class="text-grad whitespace-nowrap">лучшая ставка.</span></span>
                 </h1>
-                {{-- A14 · Быстрый подбор → каталог вкладов. A29: сегменты «Вклад / Срок» + кнопка; на узкой карточке кнопка уходит на всю ширину --}}
+                {{-- A14 · Быстрый подбор → каталог вкладов. A36: сегменты «Вклад / Срок» + кнопка; на узкой карточке кнопка уходит на всю ширину --}}
                 <form action="{{ route('deposits.index') }}" method="get" class="qs-bar">
                     <label class="qs-field">
                         <span class="qs-label">Вклад</span>
@@ -45,7 +45,7 @@
                     <span class="text-sm font-semibold opacity-70">Лучшая ставка<br>сегодня</span>
                     @if ($leader)<span class="bank-mark" style="--c: {{ $leader->product->bank->brand_color ?? 'var(--brand-1)' }}">{{ $mark($leader->product->bank) }}</span>@endif
                 </div>
-                {{-- A29 · две цифры после запятой (16,35 не округляется до 16,4); кегль — от ширины карточки --}}
+                {{-- A36 · две цифры после запятой (16,35 не округляется до 16,4); кегль — от ширины карточки --}}
                 <p class="hero-rate font-display font-semibold tabular leading-none whitespace-nowrap">
                     @if ($leader)<span x-data x-count="{{ number_format((float) $leader->rate, 2, '.', '') }}">{{ number_format((float) $leader->rate, 2, ',', '') }}</span><span class="text-[0.4em] align-top opacity-60">%</span>@else—@endif
                 </p>
@@ -145,7 +145,7 @@
             {{-- A33 · Карты, платёжные системы и пакеты — живые плитки; кредиты — скоро --}}
             <div id="soon" class="grid grid-cols-2 gap-5 scroll-mt-32">
                 @foreach ([
-                    ['card', 'Карты', $cardsCount ? $cardsCount.' '.plural($cardsCount, 'карта', 'карты', 'карт').($topCashback ? ' · кэшбэк до '.rate_format($topCashback) : '') : 'Кэшбэк и лимиты', route('cards.index')],
+                    ['card', 'Карты', $cardsCount ? $cardsCount.' '.plural($cardsCount, 'карта', 'карты', 'карт').($topCashback ? ' · кэшбэк до '.percent_format($topCashback) : '') : 'Кэшбэк и лимиты', route('cards.index')],
                     ['globe', 'Платёжные системы', $systemsCount.' '.plural($systemsCount, 'система', 'системы', 'систем').' и их уровни', route('payment-systems.index')],
                     ['gift', 'Пакеты услуг', $packagesCount ? $packagesCount.' '.plural($packagesCount, 'пакет', 'пакета', 'пакетов') : 'Тарифы обслуживания', route('packages.index')],
                     ['loan', 'Кредиты', 'Скоро · ставки и переплата', null],

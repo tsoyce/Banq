@@ -5,7 +5,7 @@
     $cmp = ['id' => $p->id, 'code' => \Illuminate\Support\Str::limit($bank->code, 4, ''), 'color' => $bank->brand_color ?? '#8b5cf6', 'name' => $bank->displayName()];
 @endphp
 <article class="card lift offer {{ ($first ?? false) ? 'is-first' : '' }}" @if (($i ?? 0) < 6) data-reveal style="--d: {{ 0.03 * ($i ?? 0) }}s" @endif>
-    {{-- A29 · Раскладка по областям (head / rate / feats / actions), см. .offer в app.css: узко — 3 строки, широко — одна --}}
+    {{-- A36 · Раскладка по областям (head / rate / feats / actions), см. .offer в app.css: узко — 3 строки, широко — одна --}}
     {{-- Банк и вклад --}}
     <a href="{{ route('deposits.show', $p) }}" class="offer-head flex items-center gap-4 min-w-0 group">
         <span class="bank-mark !w-12 !h-12 !text-[0.7rem]" style="--c: {{ $bank->brand_color ?? 'var(--brand-1)' }}">{{ $cmp['code'] }}</span>

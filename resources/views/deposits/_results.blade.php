@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<div class="offers grid gap-3">{{-- A29: контейнер — раскладка карточки зависит от ширины колонки --}}
+<div class="offers grid gap-3">{{-- A36: контейнер — раскладка карточки зависит от ширины колонки --}}
     @forelse ($offers as $i => $o)
         @include('deposits._offer', ['o' => $o, 'first' => $i === 0 && $filters->sort !== 'bank'])
     @empty

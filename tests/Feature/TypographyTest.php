@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** A29 · Middleware типографики включается настройкой banq.typograph и не ломает view-ответ. */
+/** A36 · Middleware типографики включается настройкой banq.typograph и не ломает view-ответ. */
 class TypographyTest extends TestCase
 {
     use RefreshDatabase;

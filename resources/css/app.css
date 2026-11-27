@@ -221,7 +221,7 @@ body {
     .switch:has(input:focus-visible) > i { outline: 2px solid var(--brand-1); outline-offset: 2px; }
 
     /* Карточка предложения в каталоге */
-    /* A29 · раскладка от ширины списка (.offers — контейнер), а не экрана: в колонке рядом с фильтрами было тесно */
+    /* A36 · раскладка от ширины списка (.offers — контейнер), а не экрана: в колонке рядом с фильтрами было тесно */
     .offers { container-type: inline-size; }
     .offer {
         display: grid; gap: 1rem 1.5rem; align-items: center; padding: 1.25rem 1.35rem;
@@ -399,7 +399,7 @@ body {
     .table td.is-sorted { font-weight: 800; }
 }
 
-/* ---------- A29 · Полировка: типографика, герой главной, сегментная форма ---------- */
+/* ---------- A36 · Полировка: типографика, герой главной, сегментная форма ---------- */
 /* Заголовки переносятся сбалансированно (без «вдовы» в последней строке), абзацы — без висячего короткого слова */
 h1, h2, h3, h4, .font-display { text-wrap: balance; }
 p, li, dd, figcaption, blockquote { text-wrap: pretty; }

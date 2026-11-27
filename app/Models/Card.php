@@ -131,7 +131,7 @@ class Card extends Model
                 ['обслуживание', $this->feeLabel(), $this->yearlyFee() === 0.0],
             ],
             default => [
-                ['кэшбэк до', $pct($this->cashback_max), (float) $this->cashback_max > 0],
+                ['кэшбэк до', $this->cashback_max === null ? '—' : percent_format($this->cashback_max), (float) $this->cashback_max > 0],
                 ['обслуживание', $this->feeLabel(), $this->yearlyFee() === 0.0],
                 $this->balance_rate !== null ? ['на остаток', $pct($this->balance_rate), false] : ['формат', mb_strtolower(self::FORMATS[$this->format] ?? '—'), false],
             ],

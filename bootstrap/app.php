@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(EnsureInstalled::class);
         $middleware->redirectGuestsTo('/login');
         // A21 · Текущая страна витрины (после расшифровки cookie)
-        $middleware->web(append: [ResolveCountry::class, Typography::class]); // A29 · неразрывные пробелы в HTML
+        $middleware->web(append: [ResolveCountry::class, Typography::class]); // A36 · неразрывные пробелы в HTML
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

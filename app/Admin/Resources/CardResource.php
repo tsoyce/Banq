@@ -86,7 +86,7 @@ class CardResource extends Resource
             ['key' => 'kind', 'label' => 'Вид', 'sort' => 'kind', 'render' => fn (Card $c) => $c->kind?->label()],
             ['key' => 'networks', 'label' => 'Системы', 'render' => fn (Card $c) => self::html($c->networks()->map(fn ($n) => '<span class="chip !py-0.5">'.e($n['tier']?->name ?? $n['system']->displayName()).'</span>')->implode(' ') ?: '<span class="text-[var(--warn)] text-sm">не указаны</span>')],
             ['key' => 'annual_fee', 'label' => 'В год', 'sort' => 'annual_fee', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->yearlyFee() === null ? '<span class="faint">—</span>' : ($c->yearlyFee() == 0 ? 'бесплатно' : e(money_format($c->yearlyFee(), currency_symbol($c->bank?->country?->currency))))).'</span>')],
-            ['key' => 'cashback_max', 'label' => 'Кэшбэк', 'sort' => 'cashback_max', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->cashback_max !== null ? 'до '.rate_format($c->cashback_max) : '<span class="faint">—</span>').'</span>')],
+            ['key' => 'cashback_max', 'label' => 'Кэшбэк', 'sort' => 'cashback_max', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->cashback_max !== null ? 'до '.percent_format($c->cashback_max) : '<span class="faint">—</span>').'</span>')],
             ['key' => 'is_active', 'label' => 'На сайте', 'sort' => 'is_active', 'render' => fn (Card $c) => self::yesNo($c->is_active)],
         ];
     }

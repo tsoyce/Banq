@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Support\Typograph;
 use PHPUnit\Framework\TestCase;
 
-/** A29 · Экранная типографика: неразрывные пробелы только в тексте, не в разметке и скриптах. */
+/** A36 · Экранная типографика: неразрывные пробелы только в тексте, не в разметке и скриптах. */
 class TypographTest extends TestCase
 {
     private const NB = "\u{00A0}";

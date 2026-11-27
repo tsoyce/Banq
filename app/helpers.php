@@ -25,8 +25,16 @@ if (! function_exists('project_years')) {
 if (! function_exists('rate_format')) {
     function rate_format(float|string|null $rate): string
     {
-        // A29 · всегда две цифры после запятой (DESIGN §3.3): «18,00%» рядом с «18,04%» — столбцы ровные
+        // A36 · всегда две цифры после запятой (DESIGN §3.3): «18,00%» рядом с «18,04%» — столбцы ровные
         return $rate === null ? '—' : number_format((float) $rate, 2, ',', ' ').'%';
+    }
+}
+
+if (! function_exists('percent_format')) {
+    /** A36 · Процент без лишних нулей — для кэшбэка, долей, мин. платежа: 10 → «10%», 1.5 → «1,5%». Ставки — rate_format(). */
+    function percent_format(float|string|null $v): string
+    {
+        return $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2, ',', ' '), '0'), ',').'%';
     }
 }
 
