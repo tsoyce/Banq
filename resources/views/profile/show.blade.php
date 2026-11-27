@@ -50,7 +50,13 @@
                 @include('partials.icon', ['i' => 'star', 'c' => 'w-5 h-5 opacity-60'])
             </div>
             <div>
-                <p class="num-hero tabular leading-none">{{ $stats['avg'] !== null ? score_format($stats['avg']) : '—' }}<span class="text-[0.35em] opacity-60 ml-1">/ 5</span></p>
+                @if ($stats['avg'] !== null)
+                    <p class="num-hero tabular leading-none">{{ score_format($stats['avg']) }}<span class="text-[0.35em] opacity-60 ml-1">/ 5</span></p>
+                @else
+                    {{-- A36 · без оценок — фраза вместо «—/5» --}}
+                    <p class="font-display font-bold text-3xl leading-tight">Оценок пока нет</p>
+                    <p class="text-sm opacity-60 mt-1">Распределение появится после первого отзыва.</p>
+                @endif
                 <div class="space-y-1.5 mt-5">
                     @for ($s = 5; $s >= 1; $s--)
                         <div class="dist-row"><span class="opacity-70">{{ $s }}</span><span class="meter !bg-current/15"><i style="width: {{ round(($dist[$s] ?? 0) / $max * 100) }}%"></i></span><span class="text-right opacity-70">{{ $dist[$s] ?? 0 }}</span></div>

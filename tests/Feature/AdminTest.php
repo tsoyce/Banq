@@ -76,6 +76,6 @@ class AdminTest extends TestCase
         $this->assertSame($count + 1, DepositRate::count());
         $this->assertSame('16.350', DepositRate::current()->whereHas('product', fn ($q) => $q->where('bank_id', $ffin->id)->where('type', 'demand'))->sole()->rate);
 
-        $this->get('/')->assertSee('16,7%'); // лучшая номинальная ставка (BCC, срочный) — на главной
+        $this->get('/')->assertSee('16,70%'); // лучшая номинальная ставка (BCC, срочный) — на главной
     }
 }

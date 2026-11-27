@@ -5,25 +5,25 @@
 <div x-data="depositFilters" class="space-y-5">
 
     {{-- Шапка раздела: бенто с крупными цифрами --}}
-    <section class="grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-5">
-        <div class="card p-7 flex flex-col justify-between gap-6" data-reveal>
+    <section class="grid grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:gap-5">{{-- A36: на телефоне две цифровые карточки — в ряд --}}
+        <div class="card p-7 flex flex-col justify-between gap-6 col-span-2 md:col-span-1" data-reveal>
             <nav class="text-sm muted flex items-center gap-2"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><span>Вклады</span></nav>
             <div>
                 <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Вклады <span class="text-grad">банков {{ country()?->genitive() }}</span></h1>
-                <p class="muted mt-3 max-w-xl">Действующие ставки и ГЭСВ по всем типам вкладов. Отметьте до {{ \App\Http\Controllers\DepositController::COMPARE_LIMIT }} вкладов — и сравните их рядом.</p>
+                <p class="muted mt-3 max-w-xl">Действующие ставки и ГЭСВ по всем типам вкладов. Отметьте до&nbsp;{{ \App\Http\Controllers\DepositController::COMPARE_LIMIT }} вкладов&nbsp;— и&nbsp;сравните их рядом.</p>
             </div>
         </div>
-        <div class="card card-ink p-7 flex flex-col justify-between gap-4" data-reveal style="--d:.05s">
+        <div class="card card-ink p-5 sm:p-7 flex flex-col justify-between gap-4 min-w-0 @container" data-reveal style="--d:.05s">
             <span class="text-sm font-semibold opacity-70">Лучшая ставка</span>
             @php $top = $offers->sortByDesc(fn ($o) => (float) $o->rate->rate)->first(); @endphp
-            <p class="font-display font-semibold tabular leading-none text-6xl">
+            <p class="font-display font-semibold tabular leading-none text-[clamp(2.4rem,24cqi,3.75rem)] whitespace-nowrap">
                 @if ($top)<span x-data x-count="{{ number_format((float) $top->rate->rate, 2, '.', '') }}">{{ number_format((float) $top->rate->rate, 2, ',', '') }}</span><span class="text-[0.45em] align-top opacity-60">%</span>@else—@endif
             </p>
             <p class="text-sm opacity-60 truncate">{{ $top ? $top->bank()->displayName().' · '.mb_strtolower($top->product->type->label()) : 'нет данных' }}</p>
         </div>
-        <div class="card card-soft p-7 flex flex-col justify-between gap-4" data-reveal style="--d:.1s">
+        <div class="card card-soft p-5 sm:p-7 flex flex-col justify-between gap-4 min-w-0" data-reveal style="--d:.1s">
             <span class="text-sm font-semibold muted">В каталоге</span>
-            <p class="font-display font-semibold tabular leading-none text-6xl"><span x-data x-count="{{ $typeCounts ? array_sum($typeCounts) : 0 }}">{{ array_sum($typeCounts) }}</span></p>
+            <p class="font-display font-semibold tabular leading-none text-[2.6rem] sm:text-6xl"><span x-data x-count="{{ $typeCounts ? array_sum($typeCounts) : 0 }}">{{ array_sum($typeCounts) }}</span></p>
             <p class="text-sm muted">{{ plural(array_sum($typeCounts), 'вклад', 'вклада', 'вкладов') }} · {{ $banks->count() }} {{ plural($banks->count(), 'банк', 'банка', 'банков') }}</p>
         </div>
     </section>
@@ -78,11 +78,12 @@
                 </fieldset>
 
                 <fieldset>
-                    <legend class="label mb-2.5">Срок</legend>
-                    <div class="seg flex-wrap">
-                        <label><input type="radio" name="term" value="" class="sr-only" @checked(! $filters->term) data-default>Любой</label>
+                    <legend class="label mb-2.5">Срок, мес.</legend>
+                    {{-- A36 · пять вариантов в одну строку: «24 мес» больше не уезжает на вторую --}}
+                    <div class="seg">
+                        <label><input type="radio" name="term" value="" class="sr-only" @checked(! $filters->term) data-default>Все</label>
                         @foreach ([3, 6, 12, 24] as $m)
-                            <label><input type="radio" name="term" value="{{ $m }}" class="sr-only" @checked($filters->term === $m)>{{ $m }} мес</label>
+                            <label class="tabular"><input type="radio" name="term" value="{{ $m }}" class="sr-only" @checked($filters->term === $m)>{{ $m }}</label>
                         @endforeach
                     </div>
                 </fieldset>

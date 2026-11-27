@@ -15,8 +15,8 @@
         ['Платёжные системы', fn ($o) => $o->card->networks()->map(fn ($n) => $n['tier']?->name ?? $n['system']->name)->implode(', ') ?: '—', fn ($o) => $o->card->topLevel() ?: null, 'max'],
         ['Обслуживание в год', fn ($o) => $o->card->yearlyFee() === null ? '—' : ($o->card->yearlyFee() == 0 ? 'бесплатно' : money_format($o->card->yearlyFee(), $sign($o->card))), fn ($o) => $o->card->yearlyFee(), 'min'],
         ['Выпуск', fn ($o) => $o->card->issue_fee === null ? '—' : ((float) $o->card->issue_fee == 0 ? 'бесплатно' : money_format((float) $o->card->issue_fee, $sign($o->card))), fn ($o) => $o->card->issue_fee === null ? null : (float) $o->card->issue_fee, 'min'],
-        ['Кэшбэк до', fn ($o) => rate_format($o->card->cashback_max), fn ($o) => $o->card->cashback_max === null ? null : (float) $o->card->cashback_max, 'max'],
-        ['Кэшбэк на всё', fn ($o) => rate_format($o->card->cashback_base), fn ($o) => $o->card->cashback_base === null ? null : (float) $o->card->cashback_base, 'max'],
+        ['Кэшбэк до', fn ($o) => percent_format($o->card->cashback_max), fn ($o) => $o->card->cashback_max === null ? null : (float) $o->card->cashback_max, 'max'],
+        ['Кэшбэк на всё', fn ($o) => percent_format($o->card->cashback_base), fn ($o) => $o->card->cashback_base === null ? null : (float) $o->card->cashback_base, 'max'],
         ['Процент на остаток', fn ($o) => rate_format($o->card->balance_rate), fn ($o) => $o->card->balance_rate === null ? null : (float) $o->card->balance_rate, 'max'],
         $hasCredit ? ['Льготный период', fn ($o) => $o->card->grace_days ? $o->card->grace_days.' дн.' : '—', fn ($o) => $o->card->grace_days, 'max'] : null,
         $hasCredit ? ['Ставка', fn ($o) => $o->card->credit_rate === null ? '—' : 'от '.rate_format($o->card->credit_rate), fn ($o) => $o->card->credit_rate === null ? null : (float) $o->card->credit_rate, 'min'] : null,
@@ -48,9 +48,9 @@
             <a href="{{ route('cards.index') }}" class="btn btn-primary">В каталог карт</a>
         </section>
     @else
-        <section class="card p-3 sm:p-5 overflow-x-auto" data-reveal>
+        <section class="card p-3 sm:p-5 overflow-x-auto cmp-scroll" data-reveal x-data="{ s: false }" @scroll.passive="s = $el.scrollLeft > 4" :class="s && 'is-scrolled'">{{-- A36: тень у закреплённой колонки при прокрутке --}}
             <table class="table cmp-table tabular min-w-[680px]" style="table-layout: fixed">
-                <colgroup><col class="w-[190px]">@foreach ($offers as $o)<col>@endforeach @if ($offers->count() < $limit)<col class="w-[170px]">@endif</colgroup>
+                <colgroup><col class="w-[128px] sm:w-[190px]">@foreach ($offers as $o)<col>@endforeach @if ($offers->count() < $limit)<col class="w-[170px]">@endif</colgroup>
                 <thead>
                 <tr>
                     <th></th>

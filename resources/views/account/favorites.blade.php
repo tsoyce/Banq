@@ -5,7 +5,7 @@
 <div class="space-y-6">
     @include('account._shell', ['tab' => 'favorites'])
 
-    <section class="space-y-3">
+    <section class="offers space-y-3">{{-- A36 --}}
         <div class="flex items-end justify-between gap-3 px-1">
             <div><p class="kicker">02 / Вклады</p><h2 class="font-display font-bold text-xl mt-1">Избранные вклады <span class="muted tabular">{{ $deposits->count() }}</span></h2></div>
             @if ($deposits->count() > 1)

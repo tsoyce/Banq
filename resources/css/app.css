@@ -135,6 +135,8 @@ body {
     }
     .pill:hover { background: var(--card-2); }
     .pill.is-active { background: var(--ink); color: var(--ink-text); }
+    .card .pill:not(.is-active) { background: var(--card-2); box-shadow: none; } /* A36: на белой карточке пилюля не терялась */
+    .card .pill:not(.is-active):hover { background: color-mix(in oklab, var(--card-2) 80%, var(--text) 8%); }
 
     .chip {
         display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.7rem; border-radius: 999px;
@@ -158,6 +160,13 @@ body {
     .input::placeholder { color: var(--faint); }
     .input:focus { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in oklab, var(--text) 10%, transparent); }
     textarea.input { min-height: 110px; resize: vertical; }
+    /* A36 · поле файла: вместо системного «Choose File / No file chosen» — кнопка-пилюля в стиле портала */
+    input[type='file'] { font-size: 0.85rem; color: var(--muted); max-width: 100%; }
+    input[type='file']::file-selector-button {
+        margin-right: 0.75rem; padding: 0.5rem 0.95rem; border: 0; border-radius: 999px; cursor: pointer;
+        background: var(--card-2); color: var(--text); font: inherit; font-weight: 600; transition: background 0.2s;
+    }
+    input[type='file']::file-selector-button:hover { background: color-mix(in oklab, var(--card-2) 80%, var(--text) 8%); }
     .error { color: var(--bad); font-size: 0.82rem; }
 
     .range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 99px; background: var(--card-2); outline: none; }
@@ -221,8 +230,23 @@ body {
     .switch:has(input:focus-visible) > i { outline: 2px solid var(--brand-1); outline-offset: 2px; }
 
     /* Карточка предложения в каталоге */
-    .offer { display: grid; gap: 1rem 1.5rem; align-items: center; grid-template-columns: minmax(0, 1fr) auto; padding: 1.25rem 1.35rem; }
-    @media (min-width: 900px) { .offer { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto auto; padding: 1.35rem 1.6rem; } }
+    /* A36 · раскладка от ширины списка (.offers — контейнер), а не экрана: в колонке рядом с фильтрами было тесно */
+    .offers { container-type: inline-size; }
+    .offer {
+        display: grid; gap: 1rem 1.5rem; align-items: center; padding: 1.25rem 1.35rem;
+        grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'head rate' 'feats feats' 'actions actions';
+    }
+    .offer-head { grid-area: head; }
+    .offer-rate { grid-area: rate; }
+    .offer-feats { grid-area: feats; padding-top: 0.9rem; border-top: 1px solid var(--line); }
+    .offer-actions { grid-area: actions; display: flex; align-items: center; gap: 0.5rem; }
+    .offer-more { flex: 1; min-width: 0; }
+    @container (min-width: 820px) {
+        .offer { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto auto; grid-template-areas: 'head feats rate actions'; padding: 1.35rem 1.6rem; }
+        .offer-feats { padding-top: 0; border-top: 0; }
+        .offer-more { flex: none; width: 40px; height: 40px; padding: 0; }
+        .offer-more-label { display: none; }
+    }
     .offer .rate-big { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
     .offer.is-first { box-shadow: 0 0 0 2px var(--brand-1), var(--shadow); }
 
@@ -244,6 +268,12 @@ body {
     }
     .compare-bar .bank-mark { width: 30px; height: 30px; font-size: 0.5rem; box-shadow: 0 0 0 2px var(--ink); margin-left: -8px; }
     .compare-bar .bank-mark:first-child { margin-left: 0; }
+    /* A36 · на телефоне панель сравнения компактнее: короткий счётчик, крестик вместо «очистить» — кнопка «Сравнить» больше не уезжает за край */
+    @media (max-width: 639px) {
+        .compare-bar { gap: 0.5rem; padding-left: 0.6rem; }
+        .compare-bar .cb-long { display: none; }
+    }
+    @media (min-width: 640px) { .compare-bar .cb-short { display: none; } }
 
     /* Сетка ставок по срокам и суммам */
     .rate-grid td.is-best { background: color-mix(in oklab, var(--brand-1) 12%, transparent); font-weight: 800; }
@@ -252,6 +282,11 @@ body {
     /* Таблица сравнения: лучшая ячейка в строке */
     .cmp-table th[scope='row'] { font-size: 0.85rem; text-transform: none; letter-spacing: 0; color: var(--muted); font-weight: 500; white-space: nowrap; }
     .cmp-table td.win { position: relative; font-weight: 800; }
+    /* A36 · подписи строк закреплены при горизонтальной прокрутке сравнения (телефон) */
+    .cmp-table th[scope='row'], .cmp-table thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
+    .cmp-table th[scope='row']::after { content: ''; position: absolute; top: 0; right: -12px; bottom: 0; width: 12px; pointer-events: none; background: linear-gradient(90deg, color-mix(in oklab, var(--text) 6%, transparent), transparent); opacity: 0; transition: opacity 0.2s; }
+    .cmp-scroll.is-scrolled .cmp-table th[scope='row']::after { opacity: 1; }
+    @media (max-width: 639px) { .cmp-table th[scope='row'] { white-space: normal; font-size: 0.8rem; } }
     .cmp-table td.win > span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
     /* Загрузка результатов (fetch) */
@@ -281,6 +316,7 @@ body {
     .cells.cols-2 { --cols: 2; } .cells.cols-2 > *:nth-child(odd) { border-left: 0; } .cells.cols-2 > *:nth-child(n + 3) { border-top: 1px solid var(--line); }
     .cells.cols-3 > *:nth-child(3n + 1) { border-left: 0; } .cells.cols-3 > *:nth-child(n + 4) { border-top: 1px solid var(--line); }
     .cells .cell-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    @media (max-width: 639px) { .cells .cell-label { font-size: 9.5px; letter-spacing: 0.04em; overflow-wrap: anywhere; } } /* A36: «ОБСЛУЖИВАНИЕ» не обрезается в трёх колонках */
 
     /* Изменение оценки/ставки — всегда со знаком (DESIGN §2.3) */
     .delta { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; padding: 0.12rem 0.45rem; border-radius: 999px; }
@@ -384,6 +420,40 @@ body {
     .table td.is-sorted { font-weight: 800; }
 }
 
+/* ---------- A36 · Полировка: типографика, герой главной, сегментная форма ---------- */
+/* Заголовки переносятся сбалансированно (без «вдовы» в последней строке), абзацы — без висячего короткого слова */
+h1, h2, h3, h4, .font-display { text-wrap: balance; }
+p, li, dd, figcaption, blockquote { text-wrap: pretty; }
+
+@layer components {
+    /* Кегль героя и цифры — от ширины своей карточки (cqi), а не экрана: в узкой колонке не разваливается */
+    .hero-title { font-size: clamp(2rem, 10.5cqi, 3.4rem); line-height: 1.04; }
+    .hero-rate { font-size: clamp(4.25rem, 30cqi, 7rem); }
+    .ink-plate { padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: color-mix(in oklab, var(--ink-text) 9%, transparent); transition: background 0.2s; }
+    .ink-plate:hover { background: color-mix(in oklab, var(--ink-text) 14%, transparent); }
+
+    /* Сегментная форма: [Вклад ▾][Срок ▾][Подобрать]. Узко — два сегмента в ряд, кнопка во всю ширину */
+    .qs-bar { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 6px; border-radius: 20px; background: var(--card-2); }
+    .qs-field { position: relative; display: grid; align-content: center; min-width: 0; padding: 0.55rem 2.2rem 0.6rem 1rem; border-radius: 14px; background: var(--card); cursor: pointer; transition: box-shadow 0.2s; }
+    .qs-field:hover { box-shadow: 0 0 0 1px var(--line); }
+    .qs-field:focus-within { box-shadow: 0 0 0 2px var(--text); }
+    .qs-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .qs-field select { appearance: none; -webkit-appearance: none; background: transparent; border: 0; outline: none; padding: 0; margin-top: 1px; width: 100%; font-weight: 600; font-size: 0.98rem; color: var(--text); cursor: pointer; text-overflow: ellipsis; }
+    .qs-field select option { color: var(--text); background: var(--card); }
+    .qs-chevron { position: absolute; right: 0.85rem; top: 50%; width: 16px; height: 16px; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+    .qs-submit { grid-column: 1 / -1; min-height: 3rem; border-radius: 14px; }
+    /* Совсем узко (телефон): сегменты строками «ВКЛАД   с пополнением ▾» */
+    @container (max-width: 359px) {
+        .qs-field { grid-template-columns: 4.2rem minmax(0, 1fr); align-items: center; padding-block: 0.8rem; }
+        .qs-field select { margin-top: 0; }
+    }
+    @container (min-width: 360px) { .qs-bar { grid-template-columns: 1fr 1fr; } }
+    @container (min-width: 520px) {
+        .qs-bar { grid-template-columns: 1fr 1fr auto; }
+        .qs-submit { grid-column: auto; padding-inline: 1.5rem; }
+    }
+}
+
 /* ---------- A33 · Карты: пластик, марки платёжных систем, строки каталога ---------- */
 @layer components {
     /* Пластиковая карта: градиент --face, блик за курсором (x-tilt → --mx/--my, --rx/--ry) */
@@ -447,8 +517,8 @@ body {
     .level-dots i.on { background: var(--grad); }
 
     /* Строка каталога карт: пластик · описание · ключевые цифры · действия */
-    .card-offer { display: grid; gap: 1rem 1.25rem; align-items: center; grid-template-columns: 104px minmax(0, 1fr); padding: 1.1rem 1.2rem; }
-    @media (min-width: 900px) { .card-offer { grid-template-columns: 172px minmax(0, 1fr) auto; padding: 1.2rem 1.4rem; gap: 1rem 1.5rem; } }
+    .card-offer { display: grid; gap: 1rem 1.25rem; align-items: start; /* A36: на телефоне карта — у заголовка, а не в середине высоты */ grid-template-columns: 104px minmax(0, 1fr); padding: 1.1rem 1.2rem; }
+    @media (min-width: 900px) { .card-offer { align-items: center; grid-template-columns: 172px minmax(0, 1fr) auto; padding: 1.2rem 1.4rem; gap: 1rem 1.5rem; } }
     .card-offer.is-first { box-shadow: 0 0 0 2px var(--brand-1), var(--shadow); }
     .card-offer .plastic { --rx: 0deg; }
     .card-offer:hover .plastic { transform: perspective(900px) rotateY(-14deg) rotateX(6deg) translateY(-2px); }
@@ -475,6 +545,37 @@ body {
 }
 
 @keyframes grow { from { transform: scaleX(0); } }
+
+/* ---------- A36 · Горизонтальные ленты и скроллбары ---------- */
+/* Тонкий скроллбар в цвет линий там, где прокрутка нужна (таблицы, код) — вместо системного серого бруска */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--text) 18%, transparent) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--text) 18%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: color-mix(in oklab, var(--text) 30%, transparent); }
+
+@layer components {
+    .hscroll { position: relative; min-width: 0; max-width: 100%; }
+    .hscroll-track { display: flex; gap: 0.375rem; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-padding-inline: 2rem; padding: 2px; margin: -2px; }
+    .hscroll-track::-webkit-scrollbar { display: none; }
+    .hscroll-track > * { flex: none; }
+    .hscroll-end .hscroll-track > :first-child { margin-left: auto; } /* прижать вправо, не ломая прокрутку (в отличие от justify-content: flex-end) */
+    .hscroll[data-fade~='start'] .hscroll-track { mask-image: linear-gradient(90deg, transparent, #000 3rem); }
+    .hscroll[data-fade~='end'] .hscroll-track { mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent); }
+    .hscroll[data-fade='start end'] .hscroll-track { mask-image: linear-gradient(90deg, transparent, #000 3rem, #000 calc(100% - 3rem), transparent); }
+    .hscroll-btn {
+        position: absolute; top: 50%; translate: 0 -50%; z-index: 2; width: 30px; height: 30px; border-radius: 50%;
+        display: none; place-items: center; background: var(--card); color: var(--text);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); transition: transform 0.2s var(--ease-out);
+    }
+    .hscroll-btn:hover { transform: scale(1.08); }
+    .hscroll-btn.is-prev { left: 0; }
+    .hscroll-btn.is-next { right: 0; }
+    @media (hover: hover) and (pointer: fine) { .hscroll-btn { display: grid; } }
+    /* Сегменты (.seg) на узком экране листаются, но без полосы */
+    .seg { overflow-x: auto; scrollbar-width: none; }
+    .seg::-webkit-scrollbar { display: none; }
+}
 
 @keyframes draw { to { stroke-dashoffset: 0; } }
 

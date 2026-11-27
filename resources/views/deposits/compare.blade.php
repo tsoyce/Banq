@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $money = fn ($v) => number_format((float) $v, 0, ',', ' ').' '.currency_symbol($filters->currency);
+    $money = fn ($v) => money_format($v, currency_symbol($filters->currency)); // A36: неразрывно, «₸» не отрывается
     $ids = $columns->map(fn ($col) => $col['product']->id);
     $storeItems = $columns->map(fn ($col) => ['id' => $col['product']->id, 'code' => \Illuminate\Support\Str::limit($col['product']->bank->code, 4, ''), 'color' => $col['product']->bank->brand_color ?? '#8b5cf6', 'name' => $col['product']->bank->displayName()])->values();
 @endphp
@@ -18,12 +18,13 @@
         </div>
         @if ($columns->isNotEmpty())
             <div class="plate p-2 flex flex-wrap items-center gap-2 text-[15px]">
-                <span class="px-2 muted">Сумма</span>
-                <input type="text" inputmode="numeric" class="input !w-40 !py-2 !bg-[var(--card)] font-semibold tabular" :value="money(amount)" @input="setAmount($event)" aria-label="Сумма">
-                <span class="muted">на</span>
+                {{-- A36 · пары «подпись + поле» не разрываются при переносе --}}
+                <span class="inline-flex items-center gap-2"><span class="px-2 muted">Сумма</span>
+                <input type="text" inputmode="numeric" class="input !w-40 !py-2 !bg-[var(--card)] font-semibold tabular" :value="money(amount)" @input="setAmount($event)" aria-label="Сумма"></span>
+                <span class="inline-flex items-center gap-2"><span class="muted pl-2 sm:pl-0">на</span>
                 <select x-model.number="months" class="input !w-auto !py-2 !bg-[var(--card)] font-semibold" aria-label="Срок">
                     @foreach (config('banq.terms') as $m)<option value="{{ $m }}">{{ $m }} мес</option>@endforeach
-                </select>
+                </select></span>
                 {{-- A28 · Сохранить подборку в кабинет (с текущей суммой и сроком) --}}
                 @auth
                     <form method="POST" action="{{ route('comparisons.store') }}" class="contents">
@@ -51,9 +52,9 @@
             <a href="{{ route('deposits.index') }}" class="btn btn-primary">В каталог вкладов</a>
         </section>
     @else
-        <section class="card p-3 sm:p-5 overflow-x-auto" data-reveal>
+        <section class="card p-3 sm:p-5 overflow-x-auto cmp-scroll" data-reveal x-data="{ s: false }" @scroll.passive="s = $el.scrollLeft > 4" :class="s && 'is-scrolled'">{{-- A36: тень у закреплённой колонки при прокрутке --}}
             <table class="table cmp-table tabular min-w-[640px]">
-                <colgroup><col class="w-[180px]">@foreach ($columns as $col)<col>@endforeach @if ($columns->count() < $limit)<col class="w-[160px]">@endif</colgroup>
+                <colgroup><col class="w-[128px] sm:w-[180px]">@foreach ($columns as $col)<col>@endforeach @if ($columns->count() < $limit)<col class="w-[160px]">@endif</colgroup>
                 <thead>
                 <tr>
                     <th></th>

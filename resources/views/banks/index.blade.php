@@ -49,7 +49,7 @@
             <input type="search" name="q" value="{{ $q }}" placeholder="Halyk, Kaspi, BCC…" class="input !pl-11">
         </label>
         <input type="hidden" name="sort" value="{{ $sort }}">
-        <nav class="seg overflow-x-auto max-w-full" aria-label="Сортировка">
+        <nav class="seg max-w-full max-sm:grid max-sm:grid-cols-2" aria-label="Сортировка">{{-- A36: на телефоне 2×2 вместо обрезанной ленты --}}
             @foreach (\App\Http\Controllers\BankController::SORTS as $key => $label)
                 <a href="{{ route('banks.index', array_filter(['sort' => $key, 'q' => $q])) }}" class="{{ $sort === $key ? 'is-active' : 'muted' }}">{{ $label }}</a>
             @endforeach

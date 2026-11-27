@@ -32,7 +32,7 @@
             @foreach ($countries as $row)
                 @php($c = $row['country'])
                 <tr>
-                    <td><span class="text-lg mr-1.5">{{ $c->flag }}</span><b>{{ $c->name }}</b> @unless ($c->is_active)<span class="chip faint !py-0">скрыта</span>@endunless</td>
+                    <td class="whitespace-nowrap"><span class="text-lg mr-1.5 align-middle">{{ $c->flag }}</span><b>{{ $c->name }}</b> @unless ($c->is_active)<span class="chip faint !py-0">скрыта</span>@endunless</td>
                     <td class="mono text-sm">{{ $c->currency }}</td>
                     <td class="tabular"><a class="hover:underline" href="{{ route('admin.resource.index', ['banks', 'country' => $c->id]) }}">{{ $c->active_banks_count }}<span class="faint"> / {{ $c->banks_count }}</span></a></td>
                     <td class="tabular"><a class="hover:underline" href="{{ route('admin.resource.index', ['deposits', 'country' => $c->id]) }}">{{ $row['products'] }}</a></td>

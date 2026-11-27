@@ -39,7 +39,7 @@
             <div class="flex flex-wrap gap-2">
                 <a href="#deposits" class="btn btn-primary">Вклады банка @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
                 <a href="#review-form" class="btn btn-ghost">@include('partials.icon', ['i' => 'star', 'c' => 'w-4 h-4']) Оставить отзыв</a>
-                @include('partials.fav', ['type' => 'bank', 'id' => $bank->id, 'on' => auth()->user()?->hasFavorite($bank), 'label' => true]){{-- A28 --}}
+                @include('partials.fav', ['type' => 'bank', 'id' => $bank->id, 'on' => auth()->user()?->hasFavorite($bank), 'wide' => true]){{-- A28 --}}
                 @if ($bank->website)<a href="{{ $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline">Сайт банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>@endif
             </div>
         </div>
@@ -93,7 +93,7 @@
     </section>
 
     {{-- Вклады — на всю ширину: карточке предложения нужна широкая сетка --}}
-    <section id="deposits" class="space-y-3 scroll-mt-32">
+    <section id="deposits" class="offers space-y-3 scroll-mt-32">{{-- A36: .offers — контейнер для раскладки карточки вклада --}}
         <div class="flex items-end justify-between gap-3 px-1">
             <div>
                 <p class="kicker"><b>01</b> / Вклады</p>

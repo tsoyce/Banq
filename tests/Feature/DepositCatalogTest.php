@@ -83,7 +83,7 @@ class DepositCatalogTest extends TestCase
         $p->rates()->create(['currency' => 'KZT', 'rate' => 15.1, 'effective_rate' => 16.0, 'valid_from' => today()]);
 
         $res = $this->get('/deposits/'.$p->slug)->assertOk()
-            ->assertSee($p->name)->assertSee('15,1%')->assertSee('История ставки')->assertSee('Похожие вклады');
+            ->assertSee($p->name)->assertSee('15,10%')->assertSee('История ставки')->assertSee('Похожие вклады');
         $this->assertCount(2, $res->viewData('history'));
         $this->assertSame(15.1, $res->viewData('history')[1]['rate']);
         $this->assertTrue($res->viewData('similar')->every(fn ($o) => $o->product->type === $p->type && $o->product->bank_id !== $p->bank_id));

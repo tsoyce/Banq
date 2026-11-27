@@ -5,10 +5,11 @@
 @extends('layouts.app', ['title' => $kindTitle.' '.(country()?->genitive() ? 'банков '.country()->genitive() : ''), 'description' => 'Дебетовые и кредитные карты банков '.(country()?->genitive() ?? '').': кэшбэк, стоимость обслуживания, льготный период, платёжные системы и уровни карт, сравнение.'])
 
 @section('content')
+@php $catalogEmpty = $stats['count'] === 0 && ! $filters->activeCount(); @endphp {{-- A36 --}}
 <div x-data="cardFilters" class="space-y-5">
 
-    <section class="grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-5">
-        <div class="card p-7 flex flex-col justify-between gap-6 relative overflow-hidden" data-reveal>
+    <section class="grid grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:gap-5">{{-- A36: цифры на телефоне — в ряд --}}
+        <div class="card p-7 flex flex-col justify-between gap-6 relative overflow-hidden col-span-2 md:col-span-1" data-reveal>
             <nav class="text-sm muted flex items-center gap-2"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><span>Карты</span></nav>
             <div>
                 <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Карты <span class="text-grad">банков {{ country()?->genitive() }}</span></h1>
@@ -22,21 +23,33 @@
                 </div>
             </div>
         </div>
-        <div class="card card-ink p-7 flex flex-col justify-between gap-4" data-reveal style="--d:.05s">
-            <span class="text-sm font-semibold opacity-70">Кэшбэк до</span>
-            @php $cb = $stats['cashback']; @endphp
-            <p class="font-display font-semibold tabular leading-none text-6xl">
-                @if ($cb && $cb->cashback_max)<span x-data x-count="{{ rtrim(rtrim(number_format((float) $cb->cashback_max, 2, '.', ''), '0'), '.') }}">{{ rtrim(rtrim(number_format((float) $cb->cashback_max, 2, ',', ''), '0'), ',') }}</span><span class="text-[0.45em] align-top opacity-60">%</span>@else—@endif
-            </p>
-            <p class="text-sm opacity-60 truncate">{{ $cb && $cb->cashback_max ? $cb->bank->displayName().' · '.$cb->name : 'нет данных' }}</p>
-        </div>
-        <div class="card card-soft p-7 flex flex-col justify-between gap-4" data-reveal style="--d:.1s">
-            <span class="text-sm font-semibold muted">В каталоге</span>
-            <p class="font-display font-semibold tabular leading-none text-6xl"><span x-data x-count="{{ $stats['count'] }}">{{ $stats['count'] }}</span></p>
-            <p class="text-sm muted">{{ plural($stats['count'], 'карта', 'карты', 'карт') }} · {{ $stats['banks'] }} {{ plural($stats['banks'], 'банк', 'банка', 'банков') }}@if ($stats['free']) · {{ $stats['free'] }} бесплатно@endif</p>
-        </div>
+        @if ($catalogEmpty)
+            {{-- A36 · пустой каталог: вместо «Кэшбэк до —» и «0 карт · 0 банков» --}}
+            @include('partials.catalog-soon', [
+                'class' => 'col-span-2',
+                'title' => 'Карты банков скоро будут здесь',
+                'text' => 'Собираем дебетовые и кредитные карты: условия, тарифы и честную оценку по данным.',
+                'items' => [['star', 'Кэшбэк', 'по категориям и на всё'], ['wallet', 'Обслуживание', 'сколько стоит в год'], ['clock', 'Льготный период', 'и ставка по кредитке'], ['globe', 'Уровни карт', 'Gold, Platinum, Infinite']],
+                'links' => [['Платёжные системы', route('payment-systems.index'), 'globe'], ['Вклады', route('deposits.index'), 'piggy']],
+            ])
+        @else
+            <div class="card card-ink p-5 sm:p-7 flex flex-col justify-between gap-4 min-w-0" data-reveal style="--d:.05s">
+                <span class="text-sm font-semibold opacity-70">Кэшбэк до</span>
+                @php $cb = $stats['cashback']; @endphp
+                <p class="font-display font-semibold tabular leading-none text-[2.6rem] sm:text-6xl">
+                    @if ($cb && $cb->cashback_max)<span x-data x-count="{{ rtrim(rtrim(number_format((float) $cb->cashback_max, 2, '.', ''), '0'), '.') }}">{{ rtrim(rtrim(number_format((float) $cb->cashback_max, 2, ',', ''), '0'), ',') }}</span><span class="text-[0.45em] align-top opacity-60">%</span>@else—@endif
+                </p>
+                <p class="text-sm opacity-60 truncate">{{ $cb && $cb->cashback_max ? $cb->bank->displayName().' · '.$cb->name : 'нет данных' }}</p>
+            </div>
+            <div class="card card-soft p-5 sm:p-7 flex flex-col justify-between gap-4 min-w-0" data-reveal style="--d:.1s">
+                <span class="text-sm font-semibold muted">В каталоге</span>
+                <p class="font-display font-semibold tabular leading-none text-[2.6rem] sm:text-6xl"><span x-data x-count="{{ $stats['count'] }}">{{ $stats['count'] }}</span></p>
+                <p class="text-sm muted">{{ plural($stats['count'], 'карта', 'карты', 'карт') }} · {{ $stats['banks'] }} {{ plural($stats['banks'], 'банк', 'банка', 'банков') }}@if ($stats['free']) · {{ $stats['free'] }} бесплатно@endif</p>
+            </div>
+        @endif
     </section>
 
+    @unless ($catalogEmpty){{-- A36 · фильтры по пустому каталогу не показываем --}}
     <div class="grid lg:grid-cols-[290px_minmax(0,1fr)] gap-5 items-start">
         <aside class="lg:sticky lg:top-[88px]">
             <button type="button" class="btn btn-ghost w-full lg:!hidden mb-3" @click="open = !open">
@@ -47,7 +60,7 @@
                   @change="changed()" @input.debounce.450ms="$event.target.matches('[data-live]') && changed()" @submit.prevent="changed()">
                 <label class="relative block">
                     <span class="absolute left-3.5 top-1/2 -translate-y-1/2 faint">@include('partials.icon', ['i' => 'search', 'c' => 'w-4 h-4'])</span>
-                    <input type="search" name="q" value="{{ $filters->q }}" placeholder="Банк, карта или система" class="input !pl-10" data-live>
+                    <input type="search" name="q" value="{{ $filters->q }}" placeholder="Банк или карта" class="input !pl-10" data-live>
                 </label>
 
                 <fieldset>
@@ -143,5 +156,6 @@
             @include('cards._results')
         </div>
     </div>
+    @endunless
 </div>
 @endsection
