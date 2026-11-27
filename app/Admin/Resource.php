@@ -16,7 +16,8 @@ use Illuminate\Validation\Rule;
  * Контроллер — App\Http\Controllers\Admin\ResourceController, шаблоны — resources/views/admin/resource/*.
  * Новый раздел (карты, кредиты) = новый класс в App\Admin\Resources + строка в ResourceRegistry.
  *
- * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|list|json|password|email|url,
+ * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|list|json|password|email|url|checks (A32: набор флажков),
+ *              'virtual' => true (A32: не атрибут модели — значение 'value' => fn (Model), запись — в saved()),
  *              'rules' => [...], 'options' => [v => label] | Closure, 'help', 'span' => 2, 'group' => 'Основное', 'placeholder'].
  * Имя с точкой (regulator.short) пишется внутрь JSON-поля модели.
  * Колонка: ['key', 'label', 'sort' => 'db_column'|null, 'render' => fn (Model) => string|HtmlString, 'class'].
@@ -136,6 +137,9 @@ abstract class Resource
     /** Перед сохранением: можно поправить данные / модель. */
     public function saving(Model $m, array $data, Request $request): void {}
 
+    /** A32 · После сохранения (у модели уже есть id): связи многие-ко-многим из виртуальных полей. */
+    public function saved(Model $m, array $data, Request $request): void {}
+
     /** Сводка над списком: [подпись => число]. */
     public function summary(): array
     {
@@ -211,6 +215,10 @@ abstract class Resource
             if ($type === 'json') {
                 $r[] = 'json';
             }
+            if ($type === 'checks') { // A32
+                $r = ['nullable', 'array'];
+                $rules[$f['name'].'.*'] = [Rule::in(array_map('strval', array_keys($this->options($f['options']))))];
+            }
             $rules[$f['name']] = $r;
         }
 
@@ -220,6 +228,9 @@ abstract class Resource
     /** Значение поля для формы (с old()). */
     public function value(?Model $m, array $f, array $defaults = []): mixed
     {
+        if (($f['virtual'] ?? false) && $m) { // A32
+            return isset($f['value']) ? ($f['value'])($m) : null;
+        }
         $v = $m ? data_get($m, $f['name']) : ($defaults[$f['name']] ?? ($f['default'] ?? null));
         $v = $v instanceof \BackedEnum ? $v->value : $v;
         $v = $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : $v;
@@ -237,7 +248,10 @@ abstract class Resource
     {
         foreach ($this->fields($m) as $f) {
             $name = $f['name'];
-            if (! array_key_exists($name, $data) && ($f['type'] ?? '') !== 'bool' && ! str_contains($name, '.')) {
+            if ($f['virtual'] ?? false) {
+                continue; // A32 · пишется в saved()
+            }
+            if (! array_key_exists($name, $data) && ! in_array($f['type'] ?? '', ['bool', 'checks'], true) && ! str_contains($name, '.')) {
                 continue;
             }
             $v = data_get($data, $name);
@@ -245,6 +259,7 @@ abstract class Resource
                 'bool' => (bool) $v,
                 'list' => $v === null ? null : array_values(array_filter(array_map('trim', preg_split('/[\n,|]+/u', (string) $v)))),
                 'json' => $v === null || $v === '' ? null : json_decode($v, true),
+                'checks' => array_values(array_filter((array) $v, fn ($x) => $x !== null && $x !== '')) ?: null, // A32
                 'password' => $v,
                 default => $v === '' ? null : $v,
             };

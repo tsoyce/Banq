@@ -11,6 +11,8 @@
     $sections = [
         '' => [['admin.dashboard', [], 'Обзор', 'home', request()->routeIs('admin.dashboard')]],
         'Данные' => collect(['countries', 'banks', 'deposits', 'rates'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
+        // A32 · раздел «Карты»
+        'Карты' => collect(['cards', 'packages', 'payment-systems', 'card-tiers'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
             ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
             ['admin.exchange.tokens', [], 'Токены API', 'key', request()->routeIs('admin.exchange.tokens')],
@@ -21,7 +23,10 @@
             ['admin.reviews.index', [], 'Отзывы', 'quote', request()->routeIs('admin.reviews.*')],
             $role === 'admin' ? ['admin.resource.index', ['users'], 'Пользователи', 'users', request()->route('key') === 'users'] : null,
         ]),
-        'Сайт' => [['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')]],
+        'Сайт' => array_filter([
+            ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
+            $role === 'admin' ? ['admin.database.index', [], 'База данных', 'layers', request()->routeIs('admin.database.*')] : null, // A34
+        ]),
     ];
 @endphp
 <div class="min-h-dvh grid lg:grid-cols-[260px_1fr]">

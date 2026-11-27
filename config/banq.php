@@ -23,4 +23,33 @@ return [
         'people_prior_mean' => 3.5,
         'review_min_length' => 80,
     ],
+    // A30 · Карты: подписи особенностей (cards.features), кошельков (payment_systems.wallets)
+    'cards' => [
+        'features' => [
+            'contactless' => 'Бесконтактная оплата',
+            'apple_pay' => 'Apple Pay',
+            'google_pay' => 'Google Pay',
+            'samsung_pay' => 'Samsung Pay',
+            'multicurrency' => 'Мультивалютная',
+            'installments' => 'Рассрочка',
+            'cashback_categories' => 'Кэшбэк по категориям',
+            'lounge' => 'Бизнес-залы',
+            'travel_insurance' => 'Страхование путешествий',
+            'concierge' => 'Консьерж',
+            'metal' => 'Металлическая',
+            'custom_design' => 'Свой дизайн',
+            'free_transfers' => 'Бесплатные переводы',
+            'kids' => 'Для детей',
+        ],
+        'wallets' => [
+            'apple_pay' => 'Apple Pay', 'google_pay' => 'Google Pay', 'samsung_pay' => 'Samsung Pay', 'garmin_pay' => 'Garmin Pay',
+            'huawei_pay' => 'Huawei Pay', 'mir_pay' => 'Mir Pay',
+        ],
+        'compare_limit' => 4,
+        // A33 · «Оценка Banq» карты (App\Services\Cards\CardScore): 1 + 4 × Σ(вес × доля от лучшего на рынке)
+        'score' => [
+            'debit' => ['cashback' => 0.35, 'fee' => 0.30, 'balance' => 0.20, 'features' => 0.15],
+            'credit' => ['grace' => 0.35, 'rate' => 0.25, 'fee' => 0.25, 'cashback' => 0.15],
+        ],
+    ],
 ];

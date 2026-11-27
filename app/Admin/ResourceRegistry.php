@@ -3,9 +3,13 @@
 namespace App\Admin;
 
 use App\Admin\Resources\BankResource;
+use App\Admin\Resources\CardResource;
+use App\Admin\Resources\CardTierResource;
 use App\Admin\Resources\CountryResource;
 use App\Admin\Resources\DepositProductResource;
 use App\Admin\Resources\DepositRateResource;
+use App\Admin\Resources\PaymentSystemResource;
+use App\Admin\Resources\ServicePackageResource;
 use App\Admin\Resources\UserResource;
 
 /** A24 · Ресурсы админки по ключу URL. Порядок — порядок в меню. */
@@ -16,7 +20,9 @@ class ResourceRegistry
 
     public function __construct()
     {
-        foreach ([new CountryResource, new BankResource, new DepositProductResource, new DepositRateResource, new UserResource] as $r) {
+        // A32 · карты, пакеты, платёжные системы и уровни
+        foreach ([new CountryResource, new BankResource, new DepositProductResource, new DepositRateResource,
+            new CardResource, new ServicePackageResource, new PaymentSystemResource, new CardTierResource, new UserResource] as $r) {
             $this->resources[$r->key()] = $r;
         }
     }

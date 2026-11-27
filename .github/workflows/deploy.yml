@@ -1,0 +1,52 @@
+# A35 · Автодеплой: зелёные «Tests» на push в main → SSH на боевой → deploy/banq-deploy
+# (принудительная команда ключа: копия базы, deploy.sh от tsoy, проверка сайта, откат при ошибке).
+# Секреты: DEPLOY_HOST, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS (см. docs/DEPLOY.md).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://bank.tsoy.in
+    timeout-minutes: 20
+    steps:
+      - name: Ключ и known_hosts
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Выкладка
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o ServerAliveInterval=30 "root@$DEPLOY_HOST" "deploy $SHA"
+
+      - name: Сайт отвечает
+        run: |
+          code=$(curl -sS -o /dev/null -I -w '%{http_code}' --max-time 20 https://bank.tsoy.in/)
+          echo "HTTP $code"
+          [[ "$code" =~ ^[23] ]] || { echo "::error::bank.tsoy.in ответил HTTP $code"; exit 1; }

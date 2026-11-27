@@ -8,14 +8,17 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\CardController;
 use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PaymentSystemController;
 use App\Http\Controllers\Install\InstallController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ServicePackageController;
 use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +41,17 @@ Route::prefix('deposits')->name('deposits.')->controller(DepositController::clas
     Route::get('/compare', 'compare')->name('compare');
     Route::get('/{product:slug}', 'show')->name('show');
 });
+
+// A33 · Карты, платёжные системы, пакеты услуг (compare — до {card})
+Route::prefix('cards')->name('cards.')->controller(CardController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/compare', 'compare')->name('compare');
+    Route::get('/{card:slug}', 'show')->name('show');
+});
+Route::get('/payment-systems', [PaymentSystemController::class, 'index'])->name('payment-systems.index');
+Route::get('/payment-systems/{system:slug}', [PaymentSystemController::class, 'show'])->name('payment-systems.show');
+Route::get('/packages', [ServicePackageController::class, 'index'])->name('packages.index');
+Route::get('/packages/{package:slug}', [ServicePackageController::class, 'show'])->name('packages.show');
 
 // A18 · Банки, рейтинги, отзывы
 Route::get('/banks', [BankController::class, 'index'])->name('banks.index');
@@ -110,10 +124,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::delete('/tokens/{token}', 'revokeToken')->name('tokens.destroy');
     });
 
+    // A34 · База данных: переключение SQLite ⇄ MySQL с переносом данных (только admin)
+    Route::get('/database', [Admin\DatabaseController::class, 'index'])->name('database.index');
+    Route::post('/database/test', [Admin\DatabaseController::class, 'test'])->middleware('throttle:20,1')->name('database.test');
+    Route::post('/database/switch', [Admin\DatabaseController::class, 'switch'])->middleware('throttle:5,1')->name('database.switch');
+    Route::post('/database/restore', [Admin\DatabaseController::class, 'restore'])->middleware('throttle:5,1')->name('database.restore');
+
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');
 
-    // A24 · Универсальный CRUD: страны, банки, вклады, ставки, пользователи (App\Admin\ResourceRegistry)
+    // A24 · Универсальный CRUD: страны, банки, вклады, ставки, пользователи; A32 — карты, пакеты, платёжные системы, уровни (App\Admin\ResourceRegistry)
     Route::prefix('{key}')->name('resource.')->whereIn('key', app(ResourceRegistry::class)->keys())->controller(Admin\ResourceController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');

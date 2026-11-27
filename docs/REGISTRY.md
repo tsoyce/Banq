@@ -10,6 +10,7 @@
 app/
 ├─ Admin/ Resource (A24 описание ресурса: колонки, поля, фильтры, массовые действия), ResourceRegistry,
 │         Resources/{Country,Bank,DepositProduct,DepositRate,User}Resource   A24
+│         Resources/{Card,ServicePackage,PaymentSystem,CardTier}Resource   A32 (раздел меню «Карты»)
 ├─ Console/Commands/ banq:import, banq:export, banq:schema, banq:token   A22 A23
 ├─ Enums/DepositType.php ............ A07 типы вкладов КФГД + подписи из Excel
 ├─ Enums/RatingKind.php ............. A18 вид рейтинга: author / objective / people (подпись, иконка, цвет серии)
@@ -40,6 +41,12 @@ app/
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
+├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
+├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
+├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат
+├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
+├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
+├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
@@ -60,6 +67,7 @@ app/
 └─ helpers.php ...................... settings(), project_years(), rate_format(), plural()
 config/banq.php ..................... версия, путь lock-файла, валюты, сроки
 database/migrations/2026_11_26_* .... settings+role, banks, deposit_*, imports, ratings+reviews+review_votes+поля banks (A18)
+database/migrations/2026_11_27_003000_create_card_tables  A30 карты, пакеты, платёжные системы (+ PaymentSystemSeeder: 10 систем, 32 уровня)
 database/migrations/2026_11_27_* .... countries + banks.country_id/deposit_insured (A21), api_tokens (A23), поля imports (A22)
 lang/ru/validation.php .............. A22 русские сообщения валидации
 routes/api.php ...................... A23 /api/v1
@@ -77,17 +85,21 @@ resources/
    ├─ profile/ show (публичный профиль)  A28 · partials/ avatar, fav (кнопка-сердце)  A28
    ├─ deposits/ index (каталог), _results (список, отдаётся и по fetch), _offer (строка), show (карточка), compare  A14
    ├─ install/ welcome, database, site
+   ├─ cards/{index,_results,_offer,show,compare}, payment-systems/{index,show}, packages/{index,_card,show}  A33
+   ├─ partials/plastic (объёмная карта, x-tilt), partials/ps-mark (знак платёжной системы)  A33
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
    └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
-            resource/{index,form,field,aside-bank,aside-deposit} (A24), exchange/{index,report,_rows,show,tokens} (A22 A23)
+            resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23)
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
                                        обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
-tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28)
+tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28), карты (A33: CardCatalogTest; fixtures/cards-demo.json — вымышленные условия)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
-deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить)
+deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot; A35: DEPLOY_SKIP_PULL
+deploy/banq-deploy .................. A35 принудительная команда ключа выкладки (копия в /usr/local/sbin): бэкап базы, deploy.sh от tsoy, проверка, откат
+.github/workflows/deploy.yml ........ A35 автодеплой после зелёных Tests на main (секреты DEPLOY_HOST, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; docs/DEPLOY.md)
 docs/ .............................. PLAN, REGISTRY, JOURNAL, DESIGN (A17 дизайн-гайд), design/guide.html (A17 живые примеры), API.md (A23)
 ```
 
@@ -143,8 +155,15 @@ HTTP запрос
   /api/v1/import, /export ─────────┘        └─► EntityRegistry ──► Country/Bank/DepositProduct/DepositRate Entity
      (AuthenticateApiToken → api_tokens)          normalize → find (естественный ключ) → persist (дифф) ──► imports
   ResourceController::storeRate ──► DataExchange (новая ставка закрывает старую)
+  A31: … ──► PaymentSystem(tiers) → CardTier → Card(networks «СИСТЕМА:уровень») → ServicePackage(cards)
+       Entity::relations()/syncRelations() — связи многие-ко-многим, изменения попадают в дифф
 
-Админка (A24): /admin/{countries|banks|deposits|rates|users} ──► ResourceController ──► ResourceRegistry ──► Resource
+Карты (A33): /cards ──► CardController ──► CardCatalog ──► Card::active()->inCountry() + CardFilters + CardScore
+  /cards/{slug} ──► CardScore, RatingBoard (рейтинги банка), similar · /cards/compare ◄── $store.cardCompare
+  /payment-systems ──► PaymentSystem + tiers + cards страны · /packages ──► ServicePackage::inCountry()
+  banks/show, home, account/favorites ──► Card, ServicePackage
+
+Админка (A24, A32): /admin/{countries|banks|deposits|rates|users|cards|packages|payment-systems|card-tiers} ──► ResourceController ──► ResourceRegistry ──► Resource
 ```
 
 ## 3. Таблицы
@@ -166,7 +185,12 @@ HTTP запрос
 | `api_tokens` (A23) | name, token_hash sha256 (unique), prefix, abilities json [read, write], last_used_at, last_ip, expires_at, user_id | админка, banq:token | AuthenticateApiToken |
 | `imports` (+A22) | api_token_id, format (json/csv/xlsx/matrix/form), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
 | `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
-| `favorites` | user_id, favoritable_type (`deposit`\|`bank`), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
+| `favorites` | user_id, favoritable_type (`deposit`\|`bank`\|`card` A30), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
+| `payment_systems` (A30) | code (unique), slug, name, short_name, aliases json, scope international/regional/national, home_country, countries json, color, color_2, logo, website, founded_year, headquarters, wallets json, description, meta, is_active, sort | миграция (сидер), админка, обмен | /payment-systems, карты |
+| `card_tiers` (A30) | payment_system_id, code, slug (unique), name, level 1–6, segment, description, privileges json, meta; unique(payment_system_id, code) | сидер, админка, обмен | карточка карты, страница системы |
+| `cards` (A30) | bank_id, kind (CardKind), name, slug, segment, format, currencies, issue/annual/monthly fee, fee_note, cashback_max/base/note, balance_rate, credit_limit_max, grace_days, credit_rate(_effective), min_payment, cash_fee, free_cash_limit, transfer_fee, online_opening, delivery, validity_years, age_from, features json, color, color_2, image, description, conditions json, source_url, is_active, sort | админка, обмен | /cards, банк, главная, избранное |
+| `card_networks` (A30) | card_id, payment_system_id, card_tier_id nullable | CardEntity (networks), CardResource (флажки) | Card::networks() |
+| `service_packages` (A30) + `card_service_package` | bank_id, name, slug, segment, monthly/annual fee, fee_note, perks json, conditions, description, color, source_url, is_active, sort | админка, обмен | /packages, карточка карты, банк |
 | `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
 
 ## 4. Переменные окружения (.env)
@@ -177,11 +201,11 @@ HTTP запрос
 | `APP_NAME`, `APP_ENV=production`, `APP_DEBUG=false` | мастер установки (шаг 3) | из .env.example |
 | `APP_URL` | мастер установки (шаг 2) | http://localhost |
 | `APP_TIMEZONE` | вручную | Asia/Almaty |
-| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2) | sqlite |
+| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PREFIX` | мастер установки (шаг 2); A34: админка → База данных (копии прежнего .env — `storage/app/env-backups`) | sqlite |
 | `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` | .env.example | — до установки БД нет, поэтому file |
 | `DB_ENGINE` | вручную (необязательно) | InnoDB (A20: MyISAM на BrainyCP не вмещает ключи) |
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
-| `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19) |
+| `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
 
@@ -224,12 +248,16 @@ HTTP запрос
 | GET, POST, GET/PUT | `/admin/ratings`, `/admin/ratings/snapshot`, `/admin/ratings/{bank}/edit` | admin.ratings.* | admin, editor (A18) |
 | GET, PUT, DELETE | `/admin/reviews?status=`, `/admin/reviews/{review}` (action=approve\|reject\|reply) | admin.reviews.* | admin, editor (A18) |
 | любой | все публичные страницы `?country=kz` | — | A21: выбрать страну (запоминается в cookie `banq_country`) |
-| GET, GET, POST, POST, GET, PUT, DELETE | `/admin/{key}`, `/{key}/create`, `/{key}`, `/{key}/bulk`, `/{key}/{id}/edit`, `/{key}/{id}` — key: countries\|banks\|deposits\|rates\|users | admin.resource.* | admin, editor; users — только admin (A24). Список: `q`, фильтры ресурса, `sort`, `dir`, `per` |
+| GET, GET, POST, POST, GET, PUT, DELETE | `/admin/{key}`, `/{key}/create`, `/{key}`, `/{key}/bulk`, `/{key}/{id}/edit`, `/{key}/{id}` — key: countries\|banks\|deposits\|rates\|users\|cards\|packages\|payment-systems\|card-tiers (A32) | admin.resource.* | admin, editor; users — только admin (A24). Список: `q`, фильтры ресурса, `sort`, `dir`, `per` |
 | GET | `/admin/search?q=` | admin.search | JSON для ⌘K (A24) |
+| GET, POST, POST, POST | `/admin/database`, `/database/test`, `/database/switch`, `/database/restore` | admin.database.* | только admin (A34); switch/restore — throttle 5/мин, switch требует `confirm` |
 | GET, POST, POST, GET, GET, GET, GET | `/admin/exchange?tab=`, `/exchange/check`, `/exchange/apply`, `/exchange/export`, `/exchange/schema`, `/exchange/template/{entity}/{format}`, `/exchange/history/{import}` | admin.exchange.* | admin, editor (A22) |
 | GET, POST, DELETE | `/admin/exchange/tokens`, `/exchange/tokens/{token}` | admin.exchange.tokens* | выпуск/отзыв — только admin (A23) |
 | GET | `/api/v1/schema`, `/api/v1/export`, `/api/v1/imports`, `/api/v1/imports/{id}`, `/api/v1/{entity}` | api.* | токен с правом read (A23), throttle 120/мин |
 | POST | `/api/v1/import` | api.import | токен с правом write (A23) |
+| GET | `/cards?kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=`, `/cards/compare?ids=`, `/cards/{card:slug}` | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
+| GET | `/payment-systems`, `/payment-systems/{system:slug}` | payment-systems.* | все (A33) |
+| GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -240,6 +268,8 @@ HTTP запрос
 - A14: `$store.compare` (до 4 вкладов, localStorage `banq.compare`, панель `.compare-bar` в layouts.app), `depositFilters` (fetch списка без перезагрузки + replaceState), `depositCalc({amount, months, rate, effective})`, функция `depositIncome()`. Классы: `.check-pill .seg .switch .offer .feat .cmp-btn .compare-bar .rate-grid .cmp-table .spark-line .is-loading`. Иконки: check x plus minus filter clock trend down wallet refill withdraw phone lock back. Всё уважает `prefers-reduced-motion`.
 - A18: токены `--s-author --s-objective --s-people`; классы `.kicker .num-hero .num-card .cells(.cols-2|.cols-3, .cell-label) .delta(-up|-down|-flat) .gauge .stars .star-pick .dist-row .bank-card .avatar`, `.seg > a(.is-active)` (сегмент-ссылки), `.table .is-sorted`. Partials: `gauge` ($score, $color, $size, $sub), `stars` ($score, $starSize), `delta` ($d, $unit). Иконки: pen users thumb quote award info user.
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
+- A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
+- A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.
 - Раскладка витрины: тёмная лента-тикер → шапка с пилюлями → левое меню 230px → контент; на главной правая колонка 340px.
@@ -277,6 +307,9 @@ HTTP запрос
 | `ratings.objective_weights` | веса критериев объективного рейтинга: rates .40, reliability .30, range .15, terms .15 | ObjectiveRating, методика на /ratings (A18) |
 | `ratings.people_prior_weight`, `ratings.people_prior_mean` | байесовское среднее народного: 5 оценок по 3,5 | PeopleRating (A18) |
 | `ratings.review_min_length` | минимум символов в отзыве (80) | ReviewController, форма (A18) |
+| `cards.features`, `cards.wallets` | подписи возможностей карт и кошельков (A30) | фильтры, карточка, админка |
+| `cards.compare_limit` | до 4 карт в сравнении | $store.cardCompare (A33) |
+| `cards.score.debit`, `cards.score.credit` | веса «Оценки Banq» | CardScore (A33) |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
 
 ## 10. Как добавить новый раздел (карты, кредиты…) — A21–A24
@@ -285,3 +318,5 @@ HTTP запрос
 2. Сущность обмена `App\Services\Exchange\Entities\XxxEntity` + строка в `EntityRegistry` → сразу работает импорт/экспорт в админке, CLI и API, появляется в схеме.
 3. Ресурс админки `App\Admin\Resources\XxxResource` + строка в `ResourceRegistry` → список, фильтры, форма, массовые действия; пункт меню — в `layouts/admin`.
 4. Витрина: выборки через `Bank::inCountry()`, суммы — `currency_symbol()`, национальные названия — из `country()`.
+
+Пример раздела по этой схеме — «Карты» (A30–A33): `Card` + `CardEntity` + `CardResource` + `CardCatalog`. Международная сущность без страны — `PaymentSystem` (`home_country`, `countries`), карты страны выбираются через банк.

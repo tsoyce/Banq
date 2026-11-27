@@ -61,11 +61,11 @@ export function depositIncome(amount, months, rate, effective = null, cap = true
 const money = (v) => Math.round(v).toLocaleString('ru-RU') + ' ' + (document.documentElement.dataset.currency || '₸');
 const parseMoney = (s) => +(String(s).replace(/\D/g, '')) || 0;
 
-// A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц
-const COMPARE_KEY = 'banq.compare';
-Alpine.store('compare', {
+// A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц.
+// A33 · Фабрика: $store.compare — вклады, $store.cardCompare — карты (свой ключ и адрес сравнения).
+const compareStore = (key, path) => ({
     limit: 4,
-    items: (() => { try { return JSON.parse(localStorage.getItem(COMPARE_KEY)) || []; } catch { return []; } })(),
+    items: (() => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } })(),
     has(id) { return this.items.some((i) => i.id === id); },
     toggle(item) {
         if (this.has(item.id)) this.items = this.items.filter((i) => i.id !== item.id);
@@ -76,14 +76,32 @@ Alpine.store('compare', {
     remove(id) { this.items = this.items.filter((i) => i.id !== id); this.save(); },
     clear() { this.items = []; this.save(); },
     set(items) { this.items = items.slice(0, this.limit); this.save(); },
-    save() { try { localStorage.setItem(COMPARE_KEY, JSON.stringify(this.items)); } catch {} },
-    url() { return '/deposits/compare?ids=' + this.items.map((i) => i.id).join(','); },
+    save() { try { localStorage.setItem(key, JSON.stringify(this.items)); } catch {} },
+    url() { return path + '?ids=' + this.items.map((i) => i.id).join(','); },
     full: false,
+});
+Alpine.store('compare', compareStore('banq.compare', '/deposits/compare'));
+Alpine.store('cardCompare', compareStore('banq.cards.compare', '/cards/compare'));
+
+// A33 · x-tilt — объёмный наклон карты за курсором (+ блик через --mx/--my). Уважает reduced-motion и тач.
+Alpine.directive('tilt', (el) => {
+    if (reduced || !window.matchMedia('(hover: hover)').matches) return;
+    const max = parseFloat(el.dataset.tilt || '10');
+    el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        el.style.setProperty('--ry', `${(x - 0.5) * max}deg`);
+        el.style.setProperty('--rx', `${(0.5 - y) * max}deg`);
+        el.style.setProperty('--mx', `${x * 100}%`);
+        el.style.setProperty('--my', `${y * 100}%`);
+    });
+    el.addEventListener('pointerleave', () => ['--rx', '--ry', '--mx', '--my'].forEach((p) => el.style.removeProperty(p)));
 });
 
 // A14 · Фильтры каталога: любое изменение → fetch частичного HTML (X-Partial) → подмена списка + URL.
-// Без JS форма работает обычным GET-сабмитом.
-Alpine.data('depositFilters', () => ({
+// Без JS форма работает обычным GET-сабмитом. A33: общий для вкладов и карт — target (id списка) и skip (значения по умолчанию, их не пишем в URL).
+const catalogFilters = (target, skip = {}) => ({
     loading: false,
     open: false,
     timer: null,
@@ -97,7 +115,7 @@ Alpine.data('depositFilters', () => ({
         const params = new URLSearchParams();
         for (const [k, v] of new FormData(form)) {
             const val = k === 'amount' ? String(parseMoney(v) || '') : v;
-            if (val !== '' && !(k === 'currency' && val === 'KZT') && !(k === 'sort' && val === 'rate')) params.append(k, val);
+            if (val !== '' && skip[k] !== val) params.append(k, val);
         }
         const url = form.action + (params.toString() ? '?' + params : '');
         this.ctrl?.abort();
@@ -105,9 +123,9 @@ Alpine.data('depositFilters', () => ({
         this.loading = true;
         try {
             const res = await fetch(url, { headers: { 'X-Partial': 'results' }, signal: this.ctrl.signal });
-            document.getElementById('deposit-results').innerHTML = await res.text();
+            document.getElementById(target).innerHTML = await res.text();
             history.replaceState(null, '', url);
-            document.querySelectorAll('#deposit-results [data-reveal]').forEach((el) => el.classList.add('is-in'));
+            document.querySelectorAll(`#${target} [data-reveal]`).forEach((el) => el.classList.add('is-in'));
         } catch (e) {
             if (e.name !== 'AbortError') form.submit();
         } finally {
@@ -124,7 +142,9 @@ Alpine.data('depositFilters', () => ({
     },
     money,
     parseMoney,
-}));
+});
+Alpine.data('depositFilters', () => catalogFilters('deposit-results', { currency: 'KZT', sort: 'rate' }));
+Alpine.data('cardFilters', () => catalogFilters('card-results', { sort: 'score' })); // A33
 
 // A14 · Калькулятор на карточке вклада и в сравнении
 Alpine.data('depositCalc', (opts = {}) => ({

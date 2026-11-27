@@ -18,8 +18,11 @@ COMPOSER_BIN="${COMPOSER_BIN:-$PHP_BIN $(command -v composer || echo /usr/local/
 # Поэтому по умолчанию кеши только очищаются; ARTISAN_CACHE=1 — включить кеширование на сервере без chroot.
 ARTISAN_CACHE="${ARTISAN_CACHE:-0}"
 
-echo "→ git pull"
-git pull --ff-only
+# A35 · Автодеплой (deploy/banq-deploy) сам ставит проверенный CI коммит и просит не тянуть main дальше.
+if [ "${DEPLOY_SKIP_PULL:-0}" != "1" ]; then
+    echo "→ git pull"
+    git pull --ff-only
+fi
 
 echo "→ composer install"
 $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction
@@ -28,6 +31,19 @@ echo "→ права на запись"
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache public/uploads
 chmod -R ug+rwX storage bootstrap/cache public/uploads
 [ -f .env ] && chmod ug+rw .env
+
+# A29 · SQLite в chroot: в .env путь как его видит сайт (/sites/...), из консоли файл лежит глубже
+# (/home/tsoy/sites/...). Если файла по пути из .env нет — ищем его под родительскими папками проекта.
+if [ -z "${DB_DATABASE:-}" ] && [ -f .env ] && grep -q '^DB_CONNECTION=sqlite' .env; then
+    db="$(grep '^DB_DATABASE=' .env | head -1 | cut -d= -f2- | tr -d "\"' ")"
+    if [ -n "$db" ] && [ "${db#/}" != "$db" ] && [ ! -f "$db" ]; then
+        dir="$(pwd)"
+        while [ "$dir" != "/" ]; do
+            dir="$(dirname "$dir")"
+            if [ -f "$dir$db" ]; then export DB_DATABASE="$dir$db"; echo "→ SQLite (chroot): $DB_DATABASE"; break; fi
+        done
+    fi
+fi
 
 if [ -f storage/app/installed.json ]; then
     echo "→ миграции и кеши"

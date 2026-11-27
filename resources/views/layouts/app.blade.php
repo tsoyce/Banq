@@ -42,10 +42,13 @@
         @include('partials.logo')
         <nav class="hidden md:flex items-center gap-2 ml-2 lg:ml-24 min-w-0">
             <a href="{{ route('deposits.index') }}" class="pill {{ request()->routeIs('deposits.index', 'deposits.show') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'piggy', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.index', 'deposits.show') ? '' : 'text-[var(--brand-1)]')]) Вклады</a>
+            {{-- A33 · Карты --}}
+            <a href="{{ route('cards.index') }}" class="pill {{ request()->routeIs('cards.index', 'cards.show') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'card', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('cards.index', 'cards.show') ? '' : 'text-[var(--brand-2)]')]) Карты</a>
             {{-- A18 · Банки и рейтинги --}}
             <a href="{{ route('banks.index') }}" class="pill {{ request()->routeIs('banks.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'bank', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('banks.*') ? '' : 'text-[var(--brand-2)]')]) Банки</a>
             <a href="{{ route('ratings') }}" class="pill {{ request()->routeIs('ratings') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'star', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('ratings') ? '' : 'text-[var(--brand-3)]')]) Рейтинги</a>
-            <a href="{{ route('deposits.compare') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('deposits.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.compare.items.length" x-text="$store.compare.items.length" x-cloak></span></a>
+            @php($cmpStore = request()->routeIs('cards.*', 'payment-systems.*', 'packages.*') ? 'cardCompare' : 'compare') {{-- A33 · в разделе карт — сравнение карт --}}
+            <a href="{{ route($cmpStore === 'cardCompare' ? 'cards.compare' : 'deposits.compare') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('deposits.compare', 'cards.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare', 'cards.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.{{ $cmpStore }}.items.length" x-text="$store.{{ $cmpStore }}.items.length" x-cloak></span></a>
         </nav>
         <div class="ml-auto flex items-center gap-2">
             <button class="btn btn-ghost !p-2.5" aria-label="Поиск">@include('partials.icon', ['i' => 'search', 'c' => 'w-[18px] h-[18px]'])</button>
@@ -92,11 +95,12 @@
                     ['piggy', 'Вклады', route('deposits.index')],
                     ['bank', 'Банки', route('banks.index')],
                     ['star', 'Рейтинг банков', route('ratings')],
-                    ['scale', 'Сравнение', route('deposits.compare')],
+                    ['scale', 'Сравнение', route(($cmpStore ?? 'compare') === 'cardCompare' ? 'cards.compare' : 'deposits.compare')],
                     ['calc', 'Калькулятор', route('home').'#calc'],
-                    ['card', 'Карты', '#soon'],
+                    ['card', 'Карты', route('cards.index')],
+                    ['gift', 'Пакеты услуг', route('packages.index')],
+                    ['globe', 'Платёжные системы', route('payment-systems.index')],
                     ['loan', 'Кредиты', '#soon'],
-                    ['globe', 'Платёжные системы', '#soon'],
                     ['news', 'Новости', '#soon'],
                 ] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-[var(--card)] transition">
@@ -116,17 +120,17 @@
     </main>
 </div>
 
-{{-- A14 · Плавающая панель сравнения (данные — $store.compare в resources/js/app.js) --}}
-@unless (request()->routeIs('deposits.compare'))
-<div x-data x-show="$store.compare.items.length" x-cloak x-transition.opacity.duration.300ms class="compare-bar">
+{{-- A14 · Плавающая панель сравнения (данные — $store.compare в resources/js/app.js). A33: в разделе карт — $store.cardCompare --}}
+@unless (request()->routeIs('deposits.compare', 'cards.compare'))
+<div x-data x-show="$store.{{ $cmpStore }}.items.length" x-cloak x-transition.opacity.duration.300ms class="compare-bar">
     <div class="flex items-center">
-        <template x-for="i in $store.compare.items" :key="i.id">
+        <template x-for="i in $store.{{ $cmpStore }}.items" :key="i.id">
             <span class="bank-mark" :style="'--c:' + i.color" x-text="i.code" :title="i.name"></span>
         </template>
     </div>
-    <span class="text-sm font-semibold whitespace-nowrap" x-text="$store.compare.full ? 'Максимум ' + $store.compare.limit + ' вклада' : 'К сравнению: ' + $store.compare.items.length + ' из ' + $store.compare.limit"></span>
-    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.compare.clear()">очистить</button>
-    <a :href="$store.compare.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
+    <span class="text-sm font-semibold whitespace-nowrap" x-text="$store.{{ $cmpStore }}.full ? 'Максимум ' + $store.{{ $cmpStore }}.limit + ' {{ $cmpStore === 'cardCompare' ? 'карты' : 'вклада' }}' : 'К сравнению: ' + $store.{{ $cmpStore }}.items.length + ' из ' + $store.{{ $cmpStore }}.limit"></span>
+    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.{{ $cmpStore }}.clear()">очистить</button>
+    <a :href="$store.{{ $cmpStore }}.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
 </div>
 @endunless
 
