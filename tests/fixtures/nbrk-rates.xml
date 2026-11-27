@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A40 · Формат ленты НБРК (nationalbank.kz/rss/get_rates.cfm?fdate=27.11.2026), сокращено до 6 валют. Для тестов. -->
+<rates>
+<generator>Alternate RSS Builder</generator>
+<title>Official exchange rates of National Bank of Republic Kazakhstan</title>
+<link>www.nationalbank.kz</link>
+<description>Official exchange rates of National Bank of Republic Kazakhstan</description>
+<copyright>www.nationalbank.kz</copyright>
+<date>27.11.2026</date>
+<item><fullname>АВСТРАЛИЙСКИЙ ДОЛЛАР</fullname><title>AUD</title><description>304.17</description><quant>1</quant><index>UP</index><change>+2.94</change></item>
+<item><fullname>АРМЯНСКИЙ ДРАМ</fullname><title>AMD</title><description>12.83</description><quant>10</quant><index>UP</index><change>+0.04</change></item>
+<item><fullname>ДОЛЛАР США</fullname><title>USD</title><description>458.85</description><quant>1</quant><index>UP</index><change>+0.28</change></item>
+<item><fullname>ЕВРО</fullname><title>EUR</title><description>503.5</description><quant>1</quant><index>UP</index><change>+1.96</change></item>
+<item><fullname>ЕГИПЕТСКИЙ ФУНТ</fullname><title>EGP</title><description>8.38</description><quant>1</quant><index/><change>0.00</change></item>
+<item><fullname>РОССИЙСКИЙ РУБЛЬ</fullname><title>RUB</title><description>5.71</description><quant>1</quant><index>DOWN</index><change>-0.03</change></item>
+<item><fullname>ЮАНЬ ЖЭНЬМИНЬБИ</fullname><title>CNY</title><description>64.12</description><quant>1</quant><index>UP</index><change>+0.05</change></item>
+</rates>

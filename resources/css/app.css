@@ -196,6 +196,16 @@ body {
     .ticker { mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); overflow: hidden; }
     .ticker-track { display: flex; gap: 2rem; width: max-content; animation: marquee 50s linear infinite; }
     .ticker:hover .ticker-track { animation-play-state: paused; }
+    /* A40 · элементы ленты: подпись группы, значение, ▲▼ к прошлому дню */
+    .ticker-track { align-items: center; }
+    .ticker-item { display: inline-flex; align-items: baseline; gap: .45em; white-space: nowrap; }
+    a.ticker-item:hover b { text-decoration: underline; text-underline-offset: 3px; }
+    .ticker-tag { display: inline-flex; align-items: center; gap: .4em; white-space: nowrap; padding: .15em .6em; border-radius: 999px; background: rgb(255 255 255 / .08); color: rgb(255 255 255 / .7); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+    .ticker-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--grad); }
+    .ticker-delta { font-size: 11px; color: rgb(255 255 255 / .45); }
+    .ticker-delta.is-up { color: #4ade80; }
+    .ticker-delta.is-down { color: #f87171; }
+    @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } .ticker { overflow-x: auto; scrollbar-width: none; } }
 
     /* Мягкая «сфера» для бенто-карточки бренда */
     .orb-soft { position: absolute; width: 360px; height: 360px; border-radius: 50%; right: -90px; bottom: -150px; background: radial-gradient(circle at 30% 30%, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 60%); filter: blur(2px); }
@@ -591,4 +601,27 @@ p, li, dd, figcaption, blockquote { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     [data-reveal] { opacity: 1; transform: none; }
+}
+
+/* ---------- A40 · Карточка курсов валют ---------- */
+@layer components {
+    .fx-list { display: grid; }
+    .fx-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 64px auto; align-items: center; gap: .85rem; padding: .7rem 0; border-top: 1px solid var(--line); }
+    .fx-row:first-child { border-top: 0; padding-top: 0; }
+    .fx-flag { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); font-size: 20px; line-height: 1; font-weight: 700; }
+    .fx-spark { width: 64px; height: 24px; overflow: visible; }
+    .fx-spark polyline { fill: none; stroke: var(--faint); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
+        stroke-dasharray: 1; stroke-dashoffset: 1; animation: fx-draw 1.2s var(--ease-out) forwards; animation-delay: calc(var(--d, 0s) + .2s); }
+    .fx-spark.is-up polyline { stroke: var(--ok); }
+    .fx-spark.is-down polyline { stroke: var(--bad); }
+    .fx-delta { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .fx-delta.is-up { color: var(--ok); }
+    .fx-delta.is-down { color: var(--bad); }
+    .fx-select { position: relative; }
+    .fx-select select { appearance: none; background: var(--card); border-radius: 12px; padding: .55rem 1.6rem .55rem .75rem; font-weight: 600; font-size: .9rem; color: var(--text); cursor: pointer; }
+    .fx-select::after { content: ''; position: absolute; right: .65rem; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+    .is-flipped svg { transform: rotate(180deg); }
+    .skeleton { background: linear-gradient(90deg, var(--card-2), var(--line), var(--card-2)); background-size: 200% 100%; animation: flow 1.4s linear infinite; }
+    @keyframes fx-draw { to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) { .fx-spark polyline { animation: none; stroke-dashoffset: 0; } }
 }

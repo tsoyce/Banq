@@ -15,3 +15,32 @@ Artisan::command('banq:ratings-snapshot', function (RatingBoard $board) {
 })->purpose('Сохранить сегодняшний объективный и народный рейтинг банков');
 
 Schedule::command('banq:ratings-snapshot')->dailyAt('03:10');
+
+// A40 · Официальные курсы валют центробанков (НБРК для KZ). Без cron курс всё равно обновится при первом заходе за день.
+Artisan::command('banq:fx-sync {--country= : код страны (KZ); по умолчанию все активные с источником} {--days=0 : догрузить историю за N дней} {--date= : дата Y-m-d}', function (App\Services\Currency\CurrencyRates $fx) {
+    $countries = App\Models\Country::query()->active()->get()
+        ->filter(fn ($c) => $fx->provider($c) && (! $this->option('country') || $c->code === strtoupper($this->option('country'))));
+    if ($countries->isEmpty()) {
+        $this->warn('Нет стран с источником курсов');
+
+        return 1;
+    }
+    $code = 0;
+    foreach ($countries as $c) {
+        try {
+            if ((int) $this->option('days') > 0) {
+                $this->info($c->code.': загружено дат — '.$fx->backfill($c, (int) $this->option('days')));
+            } else {
+                $n = $fx->sync($c, $this->option('date') ? Illuminate\Support\Carbon::parse($this->option('date')) : null);
+                $this->info($c->code.': '.$n.' курсов на '.$fx->latestDate($c)?->toDateString().' ('.$fx->provider($c)->short().')');
+            }
+        } catch (Throwable $e) {
+            $this->error($c->code.': '.$e->getMessage());
+            $code = 1;
+        }
+    }
+
+    return $code;
+})->purpose('Загрузить официальные курсы валют центробанков');
+
+Schedule::command('banq:fx-sync')->hourlyAt(7)->withoutOverlapping();
