@@ -387,7 +387,7 @@
 .lb { position: fixed; inset: 0; z-index: 100; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; color: #fff; opacity: 0; transition: opacity 0.26s var(--ease-out); --fade: 1; }
 .lb[hidden] { display: none; }
 .lb.is-open { opacity: 1; }
-.lb-backdrop { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, rgb(22 20 34 / 0.97), rgb(6 6 10 / 0.99)); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); opacity: var(--fade); }
+.lb-backdrop { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, #18162a, #07070b); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); opacity: var(--fade); }
 .lb-top, .lb-bottom { position: relative; z-index: 2; }
 .lb-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: max(0.75rem, env(safe-area-inset-top)) 0.9rem 0.5rem; }
 .lb-count { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; color: rgb(255 255 255 / 0.7); font-variant-numeric: tabular-nums; padding-left: 0.3rem; }
