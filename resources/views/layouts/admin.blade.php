@@ -16,10 +16,10 @@
         // A37 · блог: публикации, рубрики, комментарии
         'Блог' => collect(['posts', 'post-categories', 'comments', 'pages'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
-            ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
+            ['admin.exchange.index', [], 'Экспорт / Импорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
             ['admin.exchange.grid.index', [], 'Таблица', 'grid', request()->routeIs('admin.exchange.grid', 'admin.exchange.grid.*')], // A39
             ['admin.exchange.tokens', [], 'Токены API', 'key', request()->routeIs('admin.exchange.tokens')],
-            ['admin.import.index', [], 'Матрица Excel', 'upload', request()->routeIs('admin.import.*')],
+            ['admin.import.index', [], 'Матрица ставок', 'upload', request()->routeIs('admin.import.*')],
         ],
         'Сообщество' => array_filter([
             ['admin.ratings.index', [], 'Рейтинги', 'star', request()->routeIs('admin.ratings.*')],
@@ -28,8 +28,10 @@
         ]),
         'Сайт' => array_filter([
             ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
+            ['admin.author.edit', [], 'Автор и соцсети', 'user', request()->routeIs('admin.author.*')], // A55
             ['admin.ticker.edit', [], 'Бегущая строка', 'news', request()->routeIs('admin.ticker.*')], // A40
             ['admin.currency.index', [], 'Курсы валют', 'coins', request()->routeIs('admin.currency.*')], // A40
+            ['admin.flags.index', [], 'Флаги', 'globe', request()->routeIs('admin.flags.*')], // A46
             ['admin.resource.index', ['redirects'], 'Редиректы', 'arrow', request()->route('key') === 'redirects'], // A42
             $role === 'admin' ? ['admin.wordpress.index', [], 'Перенос с WordPress', 'upload', request()->routeIs('admin.wordpress.*')] : null, // A43
             $role === 'admin' ? ['admin.database.index', [], 'База данных', 'layers', request()->routeIs('admin.database.*')] : null, // A34
@@ -78,6 +80,27 @@
         </div>
     </aside>
     <main class="p-4 lg:p-8 space-y-6 min-w-0">
+        {{-- A46 · Страна в плашке: сужает списки, таблицу и выгрузки; сотрудник видит только свои страны (App\Support\AdminScope) --}}
+        @php($scope = app(\App\Support\AdminScope::class))
+        @php($scopeCountries = $scope->countries())
+        @if ($scopeCountries->count() > 1 || $scope->isRestricted())
+            @php($scopeSel = $scope->selected())
+            <form method="POST" action="{{ route('admin.country') }}" class="admin-scope" aria-label="Страна в админке">
+                @csrf <input type="hidden" name="_back" value="{{ request()->fullUrl() }}">
+                <span class="label shrink-0 hidden sm:inline">Страна</span>
+                @if ($scopeCountries->count() > 1)
+                    <button name="country" value="" class="admin-scope-pill {{ $scopeSel ? '' : 'is-on' }}" @unless ($scopeSel) aria-current="true" @endunless>
+                        @include('partials.icon', ['i' => 'globe', 'c' => 'w-4 h-4']) {{ $scope->isRestricted() ? 'Все мои' : 'Все страны' }}
+                    </button>
+                @endif
+                @foreach ($scopeCountries as $sc)
+                    <button name="country" value="{{ $sc->id }}" class="admin-scope-pill {{ $scopeSel?->is($sc) ? 'is-on' : '' }}" @if ($scopeSel?->is($sc)) aria-current="true" @endif>
+                        {!! $sc->flagImg('h-4', true) !!} {{ $sc->name }}
+                    </button>
+                @endforeach
+                @if ($scope->isRestricted())<span class="faint text-xs ml-auto shrink-0">ваши страны</span>@endif
+            </form>
+        @endif
         @if (session('status'))
             <div class="card px-5 py-4 text-sm flex items-center gap-2" role="status" style="border-color: color-mix(in oklab, var(--ok) 40%, transparent)">@include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4 text-[var(--ok)]']) {{ session('status') }}</div>
         @endif

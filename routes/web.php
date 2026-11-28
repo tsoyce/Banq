@@ -6,6 +6,7 @@ use App\Admin\ResourceRegistry;
 use App\Http\Controllers\Account;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\BlogController;
@@ -105,6 +106,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comparisons/{comparison}', [ComparisonController::class, 'destroy'])->name('comparisons.destroy');
 });
 
+// A55 · Страница автора (основатель TSOY.IN): профиль, соцсети, публикации, поддержка; /donate — короткая ссылка на блок поддержки
+Route::get('/author', [AuthorController::class, 'show'])->name('author');
+Route::redirect('/donate', '/author#donate', 302)->name('donate');
+
 // Вход и регистрация (A18)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
@@ -159,6 +164,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/currency', [Admin\CurrencyController::class, 'update'])->name('currency.update');
     Route::post('/currency/{country}/sync', [Admin\CurrencyController::class, 'sync'])->middleware('throttle:10,1')->name('currency.sync');
 
+    // A55 · Автор, соцсети (счётчики подписчиков), поддержка проекта
+    Route::get('/author', [Admin\AuthorController::class, 'edit'])->name('author.edit');
+    Route::put('/author', [Admin\AuthorController::class, 'update'])->name('author.update');
+    Route::post('/author/refresh', [Admin\AuthorController::class, 'refresh'])->middleware('throttle:10,1')->name('author.refresh');
+
     // A34 · База данных: переключение SQLite ⇄ MySQL с переносом данных (только admin)
     Route::get('/database', [Admin\DatabaseController::class, 'index'])->name('database.index');
     Route::post('/database/test', [Admin\DatabaseController::class, 'test'])->middleware('throttle:20,1')->name('database.test');
@@ -178,6 +188,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::get('/report', 'report')->name('report');
         Route::post('/reset', 'reset')->name('reset');
     });
+
+    // A46 · Страна в плашке админки и библиотека флагов (свои флаги — загрузка/замена)
+    Route::post('/country', Admin\CountryScopeController::class)->name('country');
+    Route::get('/flags', [Admin\FlagController::class, 'index'])->name('flags.index');
+    Route::post('/flags', [Admin\FlagController::class, 'store'])->middleware('throttle:30,1')->name('flags.store');
+    Route::delete('/flags/{code}', [Admin\FlagController::class, 'destroy'])->where('code', '[a-z0-9-]+')->name('flags.destroy');
 
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');

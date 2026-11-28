@@ -41,16 +41,16 @@
                 <div class="flex items-center gap-2 flex-wrap mt-6">
                     @include('blog._category', ['post' => $post])
                     @if ($post->kind !== 'article' && mb_substr($post->kindLabel(), 0, 4) !== mb_substr($post->category?->name ?? '', 0, 4))<span class="chip !py-0.5 !text-[0.72rem]">{{ $post->kindLabel() }}</span>@endif
-                    @if ($post->country)<span class="chip !py-0.5 !text-[0.72rem]">{{ $post->country->flag }} {{ $post->country->name }}</span>@endif
+                    @if ($post->country)<span class="chip !py-0.5 !text-[0.72rem]">{!! $post->country->flagImg() !!} {{ $post->country->name }}</span>@endif
                 </div>
                 <h1 class="post-title font-display font-bold">{{ $post->title }}</h1>
                 @if ($post->lead)<p class="post-lead">{{ $post->lead }}</p>@endif
                 <div class="post-byline">
                     @if ($post->author)
-                        @php($authorUrl = $post->author->profileUrl())
+                        @php($authorUrl = app(\App\Support\Founder::class)->urlFor($post->author)) {{-- A55 · основатель → /author --}}
                         <a @if ($authorUrl) href="{{ $authorUrl }}" @endif class="flex items-center gap-3 min-w-0">
                             @include('partials.avatar', ['u' => $post->author, 'c' => '!w-11 !h-11'])
-                            <span class="min-w-0"><b class="block truncate">{{ $post->author->name }}</b><span class="text-xs muted">{{ ['admin' => 'Главный редактор', 'editor' => 'Редактор'][$post->author->role] ?? 'Автор' }}</span></span>
+                            <span class="min-w-0"><b class="block truncate">{{ $post->author->name }}</b><span class="text-xs muted">{{ app(\App\Support\Founder::class)->is($post->author) ? settings('author.headline', 'Автор') : (['admin' => 'Главный редактор', 'editor' => 'Редактор'][$post->author->role] ?? 'Автор') }}</span></span>
                         </a>
                     @endif
                     <div class="post-byline-facts">
@@ -142,6 +142,8 @@
             <span class="icon-tile">@include('partials.icon', ['i' => 'quote', 'c' => 'w-[19px] h-[19px]'])</span>
             <span><b class="block">{{ $commentsCount ? $commentsCount.' '.plural($commentsCount, 'комментарий', 'комментария', 'комментариев') : 'Обсудить' }}</b><span class="text-xs muted">{{ $post->allow_comments ? 'Поделитесь опытом' : 'Комментарии закрыты' }}</span></span>
         </a>
+        {{-- A55 · материал основателя — короткий блок «Поддержать проект» --}}
+        @if (app(\App\Support\Founder::class)->is($post->author))@include('partials.donate', ['compact' => true])@endif
     </aside>
 </div>
 @endsection

@@ -5,6 +5,7 @@ namespace App\Admin\Resources;
 use App\Admin\Resource;
 use App\Models\Bank;
 use App\Models\Country;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -46,6 +47,12 @@ class BankResource extends Resource
         return 'banks';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'country_id';
+    }
+
     public function query(): Builder
     {
         return Bank::query()->with('country')->withCount(['depositProducts', 'depositProducts as live_products_count' => fn ($q) => $q->active()->whereHas('currentRates')]);
@@ -65,7 +72,7 @@ class BankResource extends Resource
     public function filters(): array
     {
         return [
-            'country' => ['label' => 'Страна', 'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->where('country_id', $v)],
+            'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->where('country_id', $v)],
             'status' => ['label' => 'Статус', 'options' => self::STATUSES, 'apply' => fn ($q, $v) => $q->where('status', $v)],
             'insured' => ['label' => 'Гарантия вкладов', 'options' => ['1' => 'Участник', '0' => 'Не участник'], 'apply' => fn ($q, $v) => $q->where('deposit_insured', $v === '1')],
             'data' => ['label' => 'Данные', 'options' => ['empty' => 'Без вкладов', 'norates' => 'Без действующих ставок', 'nofin' => 'Без финансов'], 'apply' => fn ($q, $v) => match ($v) {
@@ -81,7 +88,7 @@ class BankResource extends Resource
         return [
             ['key' => 'name', 'label' => 'Банк', 'sort' => 'name', 'render' => fn (Bank $b) => self::html(
                 '<div class="flex items-center gap-3"><span class="bank-mark" style="--c: '.e($b->brand_color ?? 'var(--ink)').'">'.e($b->mark()).'</span><div><p class="font-semibold">'.e($b->displayName()).'</p><p class="faint text-xs">'.e($b->name).'</p></div></div>')],
-            ['key' => 'country', 'label' => 'Страна', 'sort' => 'country_id', 'render' => fn (Bank $b) => trim(($b->country?->flag ?? '').' '.($b->country?->code ?? '—'))],
+            ['key' => 'country', 'label' => 'Страна', 'sort' => 'country_id', 'render' => fn (Bank $b) => self::html(trim(($b->country?->flagImg() ?? '').' '.e($b->country?->code ?? '—')))], // A46
             ['key' => 'code', 'label' => 'Код', 'sort' => 'code', 'class' => 'font-mono text-sm'],
             ['key' => 'products', 'label' => 'Вкладов', 'sort' => 'deposit_products_count', 'render' => fn (Bank $b) => self::html('<span class="tabular">'.$b->live_products_count.'</span><span class="faint"> / '.$b->deposit_products_count.'</span>')],
             ['key' => 'deposit_insured', 'label' => 'Гарантия', 'sort' => 'deposit_insured', 'render' => fn (Bank $b) => self::yesNo($b->deposit_insured)],
@@ -95,7 +102,7 @@ class BankResource extends Resource
         $countryId = request('country_id', $model?->country_id);
 
         return [
-            ['name' => 'country_id', 'label' => 'Страна', 'type' => 'select', 'options' => fn () => Country::query()->ordered()->get()->mapWithKeys(fn ($c) => [$c->id => trim($c->flag.' '.$c->name)])->all(), 'rules' => ['required', 'integer', 'exists:countries,id']],
+            ['name' => 'country_id', 'label' => 'Страна', 'type' => 'select', 'options' => fn () => app(AdminScope::class)->countryQuery()->get()->mapWithKeys(fn ($c) => [$c->id => trim($c->flag.' '.$c->name)])->all(), 'rules' => ['required', 'integer', 'exists:countries,id']],
             ['name' => 'code', 'label' => 'Код', 'help' => 'ключ для импорта: BCC, FFIN…', 'class' => 'font-mono uppercase', 'rules' => ['required', 'string', 'max:32', Rule::unique('banks')->where('country_id', $countryId)->ignore($model)]],
             ['name' => 'name', 'label' => 'Полное название', 'span' => 2, 'rules' => ['required', 'string', 'max:160']],
             ['name' => 'short_name', 'label' => 'Короткое имя', 'rules' => ['nullable', 'string', 'max:80']],

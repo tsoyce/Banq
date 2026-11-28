@@ -160,6 +160,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_public' => 'boolean',
             'notify' => 'array',
+            'admin_countries' => 'array', // A46 · страны сотрудника (null — все)
         ];
     }
 }
