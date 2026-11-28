@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(EnsureInstalled::class);
         $middleware->append(TrailingSlash::class); // A44 · /адрес/ → один 301 (вместо .htaccess, который за nginx уводил на http)
         $middleware->redirectGuestsTo('/login');
+        $middleware->validateCsrfTokens(except: ['ads/e']); // A51 · учёт показов: метки подписаны HMAC, сессия не нужна
         // A21 · Текущая страна витрины (после расшифровки cookie)
         $middleware->web(append: [ResolveCountry::class, Typography::class]); // A36 · неразрывные пробелы в HTML
     })

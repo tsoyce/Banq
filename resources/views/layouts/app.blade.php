@@ -4,9 +4,10 @@
 <head>
     @include('partials.head')
     @stack('head'){{-- A37 · RSS, Open Graph публикации --}}
-    {!! settings('site.counters') !!}
+    {{ app(\App\Services\Ads\Snippets::class)->render('head') }}{{-- A50 · коды и счётчики --}}
 </head>
 <body x-data="{ nav: false }">
+{{ app(\App\Services\Ads\Snippets::class)->render('body_start') }}
 
 {{-- A28 · Сообщение после действия (сохранено, добавлено в избранное…) --}}
 @if (session('status'))
@@ -141,5 +142,6 @@
         </div>
     </div>
 </footer>
+{{ app(\App\Services\Ads\Snippets::class)->render('body_end') }}
 </body>
 </html>

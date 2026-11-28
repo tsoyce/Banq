@@ -51,7 +51,8 @@
             <label class="field"><span>Год рождения проекта</span><input name="founded_year" type="number" x-model.number="founded" class="input" required></label>
             <label class="field"><span>Копирайт</span><input name="copyright" x-model="copyright" class="input"></label>
             <label class="field sm:col-span-2"><span>Текст подвала</span><textarea name="footer_text" x-model="footer" class="input"></textarea></label>
-            <label class="field sm:col-span-2"><span>Счётчики и метрики (HTML, вставляется в &lt;head&gt;)</span><textarea name="counters" class="input font-mono text-xs">{{ old('counters', $s['site.counters']) }}</textarea></label>
+            {{-- A50 · счётчики и метрики переехали в «Сайт → Коды и счётчики» --}}
+            @if (auth()->user()->role === 'admin')<p class="sm:col-span-2 text-sm muted">Счётчики, метрики и коды рекламных сетей — в разделе <a href="{{ route('admin.resource.index', 'code-snippets') }}" class="underline underline-offset-4">Коды и счётчики</a>.</p>@endif
         </section>
 
         {{-- A37 · Журнал --}}

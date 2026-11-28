@@ -26,9 +26,17 @@
             ['admin.reviews.index', [], 'Отзывы', 'quote', request()->routeIs('admin.reviews.*')],
             $role === 'admin' ? ['admin.resource.index', ['users'], 'Пользователи', 'users', request()->route('key') === 'users'] : null,
         ]),
+        // A51 · своя реклама
+        'Реклама' => [
+            ['admin.ads.index', [], 'Обзор и настройки', 'chart', request()->routeIs('admin.ads.*')],
+            ['admin.resource.index', ['ad-campaigns'], 'Кампании', 'spark', request()->route('key') === 'ad-campaigns'],
+            ['admin.resource.index', ['ad-creatives'], 'Объявления', 'image', request()->route('key') === 'ad-creatives'],
+            ['admin.resource.index', ['ad-slots'], 'Места', 'grid', request()->route('key') === 'ad-slots'],
+        ],
         'Сайт' => array_filter([
             ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
             ['admin.ticker.edit', [], 'Бегущая строка', 'news', request()->routeIs('admin.ticker.*')], // A40
+            $role === 'admin' ? ['admin.resource.index', ['code-snippets'], 'Коды и счётчики', 'code', request()->route('key') === 'code-snippets'] : null, // A50
             ['admin.currency.index', [], 'Курсы валют', 'coins', request()->routeIs('admin.currency.*')], // A40
             ['admin.resource.index', ['redirects'], 'Редиректы', 'arrow', request()->route('key') === 'redirects'], // A42
             $role === 'admin' ? ['admin.wordpress.index', [], 'Перенос с WordPress', 'upload', request()->routeIs('admin.wordpress.*')] : null, // A43

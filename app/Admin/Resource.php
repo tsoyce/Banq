@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
  * Контроллер — App\Http\Controllers\Admin\ResourceController, шаблоны — resources/views/admin/resource/*.
  * Новый раздел (карты, кредиты) = новый класс в App\Admin\Resources + строка в ResourceRegistry.
  *
- * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|datetime (A37)|list|json|password|email|url|checks (A32: набор флажков),
+ * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|datetime (A37)|list|json|password|email|url|checks (A32: набор флажков)|image (A51: загрузка в public/uploads/{dir}),
  *              'virtual' => true (A32: не атрибут модели — значение 'value' => fn (Model), запись — в saved()),
  *              'rules' => [...], 'options' => [v => label] | Closure, 'help', 'span' => 2, 'group' => 'Основное', 'placeholder'].
  * Имя с точкой (regulator.short) пишется внутрь JSON-поля модели.
@@ -221,6 +221,10 @@ abstract class Resource
             if ($type === 'json') {
                 $r[] = 'json';
             }
+            if ($type === 'image') { // A51 · картинка: файл + «удалить»
+                $r = ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,gif', 'max:'.($f['max_kb'] ?? 2048)];
+                $rules[$f['name'].'__remove'] = ['nullable', 'boolean'];
+            }
             if ($type === 'checks') { // A32
                 $r = ['nullable', 'array'];
                 $rules[$f['name'].'.*'] = [Rule::in(array_map('strval', array_keys($this->options($f['options']))))];
@@ -257,7 +261,7 @@ abstract class Resource
             if ($f['virtual'] ?? false) {
                 continue; // A32 · пишется в saved()
             }
-            if (! array_key_exists($name, $data) && ! in_array($f['type'] ?? '', ['bool', 'checks'], true) && ! str_contains($name, '.')) {
+            if (! array_key_exists($name, $data) && ! in_array($f['type'] ?? '', ['bool', 'checks', 'image'], true) && ! str_contains($name, '.')) {
                 continue;
             }
             $v = data_get($data, $name);
@@ -270,6 +274,18 @@ abstract class Resource
                 default => $v === '' ? null : $v,
             };
             if (($f['type'] ?? '') === 'password' && ($v === null || $v === '')) {
+                continue;
+            }
+            if (($f['type'] ?? '') === 'image') { // A51
+                if ($v instanceof \Illuminate\Http\UploadedFile) {
+                    $dir = 'uploads/'.($f['dir'] ?? $this->key());
+                    $file = Str::random(12).'.'.strtolower($v->guessExtension() ?: $v->getClientOriginalExtension());
+                    $v->move(public_path($dir), $file);
+                    $m->setAttribute($name, '/'.$dir.'/'.$file);
+                } elseif (! empty($data[$name.'__remove'])) {
+                    $m->setAttribute($name, null);
+                }
+
                 continue;
             }
             if (($f['type'] ?? '') === 'bool' && str_contains($name, '.') === false && ! array_key_exists($name, $data)) {

@@ -2,7 +2,7 @@
      («Показать ещё» без перезагрузки), справа — популярное, теги, RSS. --}}
 @php
     $heading = $category?->name ?? ($tag ? '#'.$tag->name : 'Журнал');
-    $sub = $category?->description ?? ($tag ? 'Публикации с тегом «'.$tag->name.'»' : 'Новости рынка, аналитика ставок, обзоры продуктов и гайды — без воды и рекламы.');
+    $sub = $category?->description ?? ($tag ? 'Публикации с тегом «'.$tag->name.'»' : 'Новости рынка, аналитика ставок, обзоры продуктов и гайды — без воды.');
 @endphp
 @extends('layouts.app', ['title' => $category ? $category->name.' · Журнал' : ($tag ? '#'.$tag->name.' · Журнал' : 'Журнал: новости и аналитика банков'), 'description' => $sub])
 
@@ -126,6 +126,8 @@
                 </ol>
             </section>
         @endif
+
+        @include('ads.slot', ['slot' => 'sidebar']){{-- A51 --}}
 
         @if ($tags->isNotEmpty())
             <section class="card p-6" data-reveal style="--d:.05s">

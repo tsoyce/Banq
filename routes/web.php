@@ -4,6 +4,7 @@
 
 use App\Admin\ResourceRegistry;
 use App\Http\Controllers\Account;
+use App\Http\Controllers\AdController;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -174,6 +175,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::post('/reset', 'reset')->name('reset');
     });
 
+    // A51 · Реклама: обзор, статистика, настройки показа и ads.txt
+    Route::get('/ads', [Admin\AdsController::class, 'index'])->name('ads.index');
+    Route::put('/ads', [Admin\AdsController::class, 'update'])->name('ads.update');
+
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');
 
@@ -188,6 +193,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     });
 });
+
+// A51 · Своя реклама: учёт показов и «Скрыть», переход по объявлению. A50 · ads.txt
+Route::post('/ads/e', [AdController::class, 'event'])->middleware('throttle:120,1')->name('ads.event');
+Route::get('/ads/c/{token}', [AdController::class, 'click'])->middleware('throttle:60,1')->where('token', '[A-Za-z0-9.\-]+')->name('ads.click');
+Route::get('/ads.txt', [AdController::class, 'adsTxt'])->name('ads.txt');
 
 // A42 · Страницы по адресу /{slug} и редиректы со старых адресов (WordPress tsoy.in, A43) — после всех маршрутов
 Route::fallback(PageController::class)->name('page.fallback');

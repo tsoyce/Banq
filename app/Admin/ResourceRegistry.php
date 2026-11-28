@@ -2,7 +2,11 @@
 
 namespace App\Admin;
 
+use App\Admin\Resources\AdCampaignResource;
+use App\Admin\Resources\AdCreativeResource;
+use App\Admin\Resources\AdSlotResource;
 use App\Admin\Resources\BankResource;
+use App\Admin\Resources\CodeSnippetResource;
 use App\Admin\Resources\CardResource;
 use App\Admin\Resources\CardTierResource;
 use App\Admin\Resources\CountryResource;
@@ -29,7 +33,8 @@ class ResourceRegistry
         foreach ([new CountryResource, new BankResource, new DepositProductResource, new DepositRateResource,
             new CardResource, new ServicePackageResource, new PaymentSystemResource, new CardTierResource, new UserResource,
             new PostResource, new PostCategoryResource, new CommentResource, // A37 · блог
-            new PageResource, new RedirectResource] as $r) { // A42 · страницы и редиректы
+            new PageResource, new RedirectResource, // A42 · страницы и редиректы
+            new AdCampaignResource, new AdCreativeResource, new AdSlotResource, new CodeSnippetResource] as $r) { // A51 реклама, A50 коды
             $this->resources[$r->key()] = $r;
         }
     }

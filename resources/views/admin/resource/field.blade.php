@@ -44,6 +44,14 @@
                     @endforeach
                 </div>
                 @break
+            @case('image')
+                {{-- A51 · картинка: превью, новый файл, «удалить» --}}
+                <div class="flex items-center gap-3 flex-wrap">
+                    @if ($value)<img src="{{ $value }}" alt="" class="h-16 max-w-[12rem] rounded-lg object-contain border border-[var(--line)] bg-[var(--card-2)]">@endif
+                    <input id="{{ $id }}" type="file" name="{{ $name }}" accept="image/png,image/jpeg,image/webp,image/gif" class="text-sm muted">
+                    @if ($value)<label class="flex items-center gap-2 text-xs muted"><input type="checkbox" name="{{ $name }}__remove" value="1"> удалить</label>@endif
+                </div>
+                @break
             @case('select')
                 <select id="{{ $id }}" name="{{ $name }}" class="input">
                     @unless ($required)<option value="">—</option>@endunless

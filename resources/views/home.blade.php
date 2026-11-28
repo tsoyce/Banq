@@ -122,6 +122,8 @@
             </div>
         </section>
 
+        @include('ads.slot', ['slot' => 'home-wide']){{-- A51 · рекламное место --}}
+
         {{-- Бренд-карточки: рейтинги и будущие разделы --}}
         <section id="ratings" class="grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-5 scroll-mt-32">
             {{-- A18 · Живой блок рейтингов вместо анонса --}}
@@ -165,6 +167,7 @@
         @if ($fx)
             @include('partials.fx-card', ['fx' => $fx])
         @endif
+        @include('ads.slot', ['slot' => 'sidebar']){{-- A51 --}}
 
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>

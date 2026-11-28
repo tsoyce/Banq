@@ -5,6 +5,7 @@
    Токены → база → компоненты (@layer components) → анимации. Темы: [data-theme=light|dark]. */
 @import 'tailwindcss';
 @import './blog.css'; /* A37 · журнал и редактор */
+@import './ads.css'; /* A51 · рекламные места */
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../**/*.blade.php';
