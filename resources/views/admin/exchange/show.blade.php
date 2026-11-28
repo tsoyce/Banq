@@ -1,5 +1,5 @@
 {{-- A22 · Журнал одного импорта. --}}
-@extends('layouts.admin', ['title' => 'Импорт #'.$import->id])
+@extends('layouts.admin', ['title' => 'Импорт #'.$import->id, 'crumbTail' => 'Импорт #'.$import->id]) {{-- A70 --}}
 
 @section('content')
 <header>

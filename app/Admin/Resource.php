@@ -169,10 +169,9 @@ abstract class Resource
 
     // ── Общая механика ──────────────────────────────────────
 
-    /** Применить поиск, фильтры и сортировку запроса. */
-    public function applyRequest(Builder $q, Request $request): Builder
+    /** A70 · Поиск по колонкам ресурса (список и общий поиск ⌘K). */
+    public function applySearch(Builder $q, string $term): Builder
     {
-        $term = trim((string) $request->query('q'));
         if ($term !== '') {
             $search = $this->search();
             if ($search instanceof \Closure) {
@@ -191,6 +190,14 @@ abstract class Resource
                 });
             }
         }
+
+        return $q;
+    }
+
+    /** Применить поиск, фильтры и сортировку запроса. */
+    public function applyRequest(Builder $q, Request $request): Builder
+    {
+        $this->applySearch($q, trim((string) $request->query('q')));
 
         foreach ($this->filters() as $name => $f) {
             $v = $request->query($name);

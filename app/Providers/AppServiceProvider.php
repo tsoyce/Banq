@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(Settings::class);
         $this->app->scoped(Market::class);
         $this->app->scoped(CurrentCountry::class); // A21
+        $this->app->scoped(\App\Admin\Navigation::class); // A70 · карта админки, бейджи — раз за запрос
         // A18 · Рейтинги: один расчёт на запрос
         $this->app->scoped(ObjectiveRating::class);
         $this->app->scoped(PeopleRating::class);

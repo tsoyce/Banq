@@ -223,21 +223,53 @@ Alpine.data('depositCalc', (opts = {}) => ({
     setAmount(e) { this.amount = parseMoney(e.target.value); },
 }));
 
-// A24 · Админка: палитра поиска ⌘K
-Alpine.data('adminPalette', (endpoint) => ({
-    open: false, q: '', items: [], active: 0, loading: false, ctrl: null,
+// A24 · Админка: палитра поиска ⌘K. A70: сразу — разделы и быстрые действия (фильтр по подписи и ключевым словам
+// без запроса к серверу), с 2 символов — ещё и записи всех доступных ресурсов с сервера.
+const norm = (s) => (s || '').toLowerCase().replace(/ё/g, 'е');
+Alpine.data('adminPalette', (endpoint, pages = [], actions = []) => ({
+    open: false, q: '', found: [], active: 0, loading: false, ctrl: null, pages, actions,
     show() { this.open = true; this.$nextTick(() => this.$refs.q.focus()); },
+    get local() {
+        const q = norm(this.q.trim());
+        const words = q.split(/\s+/).filter(Boolean);
+        const hit = (it) => words.every((w) => norm(`${it.title} ${it.sub} ${it.keywords || ''}`).includes(w));
+        const p = this.pages.filter(hit).map((it) => ({ ...it, type: 'Раздел' }));
+        const a = this.actions.filter(hit).map((it) => ({ ...it, type: 'Действие' }));
+        return q ? [...p.slice(0, 6), ...a.slice(0, 3)] : [...a, ...p.slice(0, 8)];
+    },
+    get items() { return [...this.local, ...this.found]; },
     async search() {
-        if (this.q.trim().length < 2) { this.items = []; return; }
+        this.active = 0;
+        if (this.q.trim().length < 2) { this.found = []; return; }
         this.ctrl?.abort(); this.ctrl = new AbortController(); this.loading = true;
         try {
             const r = await fetch(`${endpoint}?q=${encodeURIComponent(this.q)}`, { headers: { Accept: 'application/json' }, signal: this.ctrl.signal });
-            this.items = await r.json(); this.active = 0;
+            this.found = await r.json(); this.active = 0;
         } catch (e) { /* отменён — пришёл новый запрос */ } finally { this.loading = false; }
     },
-    move(d) { if (this.items.length) this.active = (this.active + d + this.items.length) % this.items.length; },
+    move(d) { const n = this.items.length; if (n) this.active = (this.active + d + n) % n; this.$nextTick(() => this.$root.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' })); },
     go() { const it = this.items[this.active]; if (it) location.href = it.url; },
 }));
+
+// A70 · Админка: меню — группы сворачиваются, режим «только иконки»; состояние в localStorage (может быть недоступен)
+Alpine.data('adminNav', (current = null) => {
+    const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+    const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* приватное окно */ } };
+    return {
+        mobile: false,
+        compact: read('banq.admin.compact', false),
+        closed: read('banq.admin.closed', []),
+        current,
+        isOpen(g) { return g === this.current || !this.closed.includes(g); },
+        toggle(g) {
+            if (this.compact) return;
+            if (g === this.current) { this.current = null; if (!this.closed.includes(g)) this.closed.push(g); }
+            else this.closed = this.isOpen(g) ? [...this.closed, g] : this.closed.filter((x) => x !== g);
+            write('banq.admin.closed', this.closed);
+        },
+        toggleCompact() { this.compact = !this.compact; write('banq.admin.compact', this.compact); },
+    };
+});
 
 // A24 · Админка: выбор строк для массовых действий (+ «все по фильтру»)
 Alpine.data('bulkSelect', (total = 0) => ({

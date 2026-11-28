@@ -3,7 +3,6 @@
 
 @section('content')
 <header>
-    <p class="label">Обмен</p>
     <h1 class="font-display font-bold text-3xl">Токены API</h1>
     <p class="muted text-sm mt-1 max-w-2xl">Токен даёт доступ к <span class="mono">/api/v1</span>: чтение — схема и выгрузки, запись — импорт. Так скрипт или Claude может собрать данные и залить их сам. В базе хранится только хеш.</p>
 </header>

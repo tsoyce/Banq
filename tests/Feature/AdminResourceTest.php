@@ -46,7 +46,7 @@ class AdminResourceTest extends TestCase
         $this->actingAs($admin)->get('/admin/banks/'.Bank::first()->id.'/edit')->assertOk()->assertSee('Вклады банка');
         $this->actingAs($admin)->get('/admin/deposits/'.DepositProduct::first()->id.'/edit')->assertOk()->assertSee('Действующие ставки')->assertSee('14,50%');
         $this->actingAs($admin)->get('/admin/countries/'.Country::first()->id.'/edit')->assertOk()->assertSee('КФГД');
-        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Что заполнить');
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Требует внимания'); // A70
     }
 
     public function test_search_filter_and_sort(): void
@@ -55,7 +55,7 @@ class AdminResourceTest extends TestCase
         $this->actingAs($admin)->get('/admin/banks?q=Halyk')->assertOk()->assertSee('Halyk Bank')->assertDontSee('Freedom Bank');
         $this->actingAs($admin)->get('/admin/banks?status=revoked')->assertOk()->assertSee('Под фильтр ничего не попало');
         $this->actingAs($admin)->get('/admin/banks?sort=name&dir=asc')->assertOk();
-        $this->actingAs($admin)->getJson('/admin/search?q=halyk')->assertOk()->assertJsonPath('0.type', 'Банк');
+        $this->actingAs($admin)->getJson('/admin/search?q=halyk')->assertOk()->assertJsonPath('0.type', 'Банки'); // A70 · тип — раздел меню
     }
 
     public function test_create_and_update_bank_and_country(): void

@@ -1,13 +1,12 @@
 {{-- A39 · Табличный редактор «как Excel»: любая сущность обмена данными, вставка диапазонов из Excel, горячие клавиши.
      Клиент — resources/js/sheet.js (Alpine.data('sheet')), сервер — Admin\GridController. --}}
-@extends('layouts.admin', ['title' => 'Таблица · '.$entity->label()])
+@extends('layouts.admin', ['title' => 'Таблица · '.$entity->label(), 'crumbTail' => $entity->label()]) {{-- A70 --}}
 
 @php($mod = str_contains(request()->userAgent() ?? '', 'Mac') ? '⌘' : 'Ctrl')
 @section('content')
 <div x-data="sheet(@js($config + ['country' => $country]))" class="space-y-4" @keydown.escape.window="help = false; colsOpen = false">
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div class="min-w-0">
-            <p class="label">Обмен · таблица</p>
             <h1 class="font-display font-bold text-3xl">{{ $entity->label() }} <span class="faint mono text-base font-normal">{{ $entity->key() }}</span></h1>
             <p class="muted text-sm mt-1 max-w-3xl">Правьте как в Excel: стрелки, Enter, Tab, {{ $mod }}+C / {{ $mod }}+V — диапазоны прямо из Excel и Google Таблиц. Строка заголовков в буфере — колонки сопоставятся сами. Записывается только при сохранении; сначала можно проверить.</p>
         </div>

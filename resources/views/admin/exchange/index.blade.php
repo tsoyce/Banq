@@ -4,7 +4,6 @@
 @section('content')
 <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <p class="label">Обмен</p>
         <h1 class="font-display font-bold text-3xl">Экспорт / Импорт данных</h1>
         <p class="muted text-sm mt-1 max-w-2xl">Один формат для всего: страны, банки, вклады, ставки. JSON, XML, YAML, NDJSON, CSV, TSV или XLSX — через эту страницу, <a href="{{ route('admin.exchange.grid.index') }}" class="underline">таблицу «как Excel»</a>, командой <code class="mono">php artisan banq:import</code> или API. Повторная заливка не плодит дублей, новая ставка закрывает старую.</p>
     </div>

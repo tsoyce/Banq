@@ -1,4 +1,4 @@
-{{-- A24 · Список ресурса: сводка, поиск, фильтры, сортировка по колонкам, выбор строк и массовые действия, экспорт. --}}
+{{-- A70 · группа раздела — в хлебных крошках макета. A24 · Список ресурса: сводка, поиск, фильтры, сортировка по колонкам, выбор строк и массовые действия, экспорт. --}}
 @extends('layouts.admin', ['title' => $resource->label()])
 
 @php
@@ -11,7 +11,6 @@
 @section('content')
 <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <p class="label">{{ $resource->singular() === 'пользователя' ? 'Сообщество' : 'Данные' }}</p>
         <h1 class="font-display font-bold text-3xl flex items-center gap-3">{{ $resource->label() }} <span class="faint text-xl tabular">{{ $items->total() }}</span></h1>
         @if ($resource->description())<p class="muted text-sm mt-1 max-w-2xl">{{ $resource->description() }}</p>@endif
     </div>
