@@ -32,7 +32,8 @@ app/
 │     ├─ Account/SettingsController . A28 профиль+аватар, почта, пароль, уведомления, удаление аккаунта
 │     ├─ ProfileController .......... A28 публичная карточка автора /u/{username}
 │     ├─ FavoriteController ......... A28 избранное (вклад/банк), JSON или редирект
-│     ├─ ComparisonController ....... A28 сохранённые сравнения: сохранить, переименовать, удалить
+│     ├─ ComparisonController ....... A28 сохранённые сравнения: сохранить, переименовать, удалить; A53 любого вида (type)
+│     ├─ CompareController .......... A53 раздел /compare (все виды) и /compare/{type} (общая таблица; вклады/карты → свои страницы)
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
 │     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports; A39 about (без токена), openapi.json, POST/DELETE {entity}, Idempotency-Key, постранично + updated_since
@@ -55,6 +56,9 @@ app/
 ├─ Http/Controllers/Admin/{Ticker,Currency}Controller   A40 /admin/ticker, /admin/currency
 ├─ views: partials/ticker (лента), partials/fx-card (карточка на главной), admin/ticker/edit, admin/currency/index   A40
 ├─ Services/Cards/ CardCatalog (scoped), CardFilters, CardScore (оценка 1–5 к рынку), CardOffer  A33
+├─ Services/Compare/ CompareRegistry (TYPES, SOON, forRequest), CompareType (items, head, rows, url, stored),
+│                    Types/{Deposit,Card,Package,Bank,PaymentSystem}Compare   A53 универсальное сравнение
+├─ views: compare/{index,show,_tabs}, partials/compare-toggle ($type, $item, $wide, $class)   A53
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
 ├─ Models/ Post, PostCategory, Tag, PostReaction, Comment  A37 журнал; Post::LINK_TYPES, cascade(), syncLinks(), about()
 ├─ Support/Blog/ HtmlSanitizer (белый список тегов/атрибутов), PostRenderer (оглавление, якоря, живые вставки, таблицы)  A37
@@ -172,7 +176,8 @@ HTTP запрос
               ├─ Account\AccountController (auth) ──► users, reviews, favorites → DepositCatalog::bestRate, RatingBoard, BankDirectory; saved_comparisons
               ├─ Account\SettingsController ──► users, public/uploads/avatars
               ├─ ProfileController ──► users(is_public), reviews(approved)
-              ├─ FavoriteController / ComparisonController (auth) ──► favorites / saved_comparisons
+              ├─ FavoriteController / ComparisonController (auth) ──► favorites / saved_comparisons (A53: CompareRegistry)
+              ├─ CompareController ──► CompareRegistry ──► Types: DepositProduct, Card, ServicePackage+RatingBoard, Bank+RatingBoard+BankDirectory, PaymentSystem+CardCatalog
               ├─ Admin\ReviewController ──► ReviewModerated (если user->wants(...)) ──► mail (MAIL_*)
               ├─ HomeController ──► RatingBoard::top() (блок рейтинга)
               ├─ layouts.app (View composer в AppServiceProvider) ──► Market::top() → бегущая строка
@@ -242,7 +247,7 @@ HTTP запрос
 | `cards` (A30) | bank_id, kind (CardKind), name, slug, segment, format, currencies, issue/annual/monthly fee, fee_note, cashback_max/base/note, balance_rate, credit_limit_max, grace_days, credit_rate(_effective), min_payment, cash_fee, free_cash_limit, transfer_fee, online_opening, delivery, validity_years, age_from, features json, color, color_2, image, description, conditions json, source_url, is_active, sort | админка, обмен | /cards, банк, главная, избранное |
 | `card_networks` (A30) | card_id, payment_system_id, card_tier_id nullable | CardEntity (networks), CardResource (флажки) | Card::networks() |
 | `service_packages` (A30) + `card_service_package` | bank_id, name, slug, segment, monthly/annual fee, fee_note, perks json, conditions, description, color, source_url, is_active, sort | админка, обмен | /packages, карточка карты, банк |
-| `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
+| `saved_comparisons` | user_id, type (A53: deposits·cards·packages·banks·payment-systems), title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
 | `currency_rates` (A40) | country_id, currency ISO, name, nominal (курс за N единиц), rate, change (к прошлому курсу по источнику), date, source (nbrk/cbu/cbr); unique(country_id, currency, date) | CurrencyRates::sync (cron `banq:fx-sync`, заход посетителя, админка) | карточка курсов, лента, админка → Курсы валют |
 | `post_categories` (A37) | slug, name, description, color, icon, is_active, sort (сидер: news, analytics, reviews, guides, opinion) | миграция, админка, обмен | лента, рубрики |
 | `posts` (A37) | country_id?, category_id?, author_id?, kind (article/news/review/guide/analytics), status draft/published, published_at (в будущем — отложено), title, slug, lead, body (HTML после санитайзера), cover, cover_alt, cover_caption, reading_minutes, is_featured (один), allow_comments, views, seo_title, seo_description, source_name, source_url, meta | редактор, обмен | /blog, главная, страницы продуктов |
@@ -301,6 +306,7 @@ HTTP запрос
 | GET | `/` | home | все (после установки) |
 | GET | `/deposits` | deposits.index | все. Фильтры: `type[]` `currency` `term` `amount` `bank[]` (slug) `replenish` `withdraw` `online` `q` `sort`=rate\|effective\|income\|bank; заголовок `X-Partial: results` → только список |
 | GET | `/deposits/compare?ids=1,2,3` | deposits.compare | все; до 4 вкладов, учитывает `amount`/`term` |
+| GET | `/compare`, `/compare/{type}?ids=` | compare.index, compare.show | все (A53); type ∈ CompareRegistry::TYPES, deposits/cards → редирект на свои страницы |
 | GET | `/deposits/{slug}` | deposits.show | все; 404 для неактивного вклада/банка |
 | GET | `/banks` | banks.index | все; `q` (имя/код/алиас), `sort`=objective\|people\|rate\|name (A18) |
 | GET | `/banks/{slug}` | banks.show | все; 404 для неактивного банка; `reviews=helpful`, `p` — страница отзывов (A18) |
@@ -357,6 +363,7 @@ HTTP запрос
 - A18: токены `--s-author --s-objective --s-people`; классы `.kicker .num-hero .num-card .cells(.cols-2|.cols-3, .cell-label) .delta(-up|-down|-flat) .gauge .stars .star-pick .dist-row .bank-card .avatar`, `.seg > a(.is-active)` (сегмент-ссылки), `.table .is-sorted`. Partials: `gauge` ($score, $color, $size, $sub), `stars` ($score, $starSize), `delta` ($d, $unit). Иконки: pen users thumb quote award info user.
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
+- A53: хранилища сравнения по видам — `COMPARE_TYPES` в app.js: `$store.compare` (вклады), `cardCompare`, `packageCompare`, `bankCompare`, `systemCompare` (ключи `banq.*.compare`); `$store.compareAll` (`count` по всем видам, `of(type)`, `current` — вид для панели: последний тронутый → `<html data-compare>` раздела → первый непустой; `banq.compare.last`). У хранилища `word(n)` — склонение. Классы `.cmp-tabs .cmp-count .cmp-group .cmp-sub .cmp-tile .ps-cmp`.
 - A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. `CardKind::genitivePlural()`; `.cmp-scroll` (закреплённая колонка сравнения), `.cb-short/.cb-long` (панель сравнения на телефоне). Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
 - A37 журнал: `.blog-hero`, `.post-grid` (`.is-3`), `.post-card`, `.post-cover` (сгенерированная обложка с цветом рубрики, если картинки нет), `.read-progress`, `.post-sheet/.post-title/.post-byline`, `.toc` (+ `.toc-inline` на телефоне), `.reactions`, `.prose-banq` (типографика статьи: врезки `aside[data-tone=info|tip|warn|money]`, `.prose-table`, `td.num`), `.embed` (живая карточка продукта в тексте), `.ed-*` (редактор, `.ed-focus` — режим фокуса). Иконки: eye, share, copy, rss, tag, send, image, bold…redo, table, hr, bulb, box, save, highlight, maximize, reply.
 - A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.
@@ -432,3 +439,9 @@ HTTP запрос
 - **Новый ресурс админки со страной:** `countryScope()` → путь к id страны (`'country_id'`, `'bank.country_id'`, `'product.bank.country_id'`; `'id'` — сами страны), `countryNullable()` — запись без страны общая. ResourceController сам сузит список по плашке, вернёт 404 на чужую запись и не даст сохранить в чужую страну.
 - **Свои страницы админки:** `app(AdminScope::class)->apply($query, 'country_id')`, код страны для выгрузок — `clampCode()` (сотрудник с ограничениями всегда получает свою страну).
 - Ограничения сотрудника пока не касаются API-токенов и CLI (`banq:import`), а в табличном редакторе и импорте — только страна по умолчанию: строки с явным чужим банком движок обмена не отсекает.
+
+## 13. Универсальное сравнение — A53
+
+- **Новый вид продукта** (кредиты, страховки…): класс `App\Services\Compare\Types\XxxCompare extends CompareType` (key, label, genitive, forms, icon, store, storageKey, catalogUrl, hint, items, head, rows, note) + строка в `CompareRegistry::TYPES` (убрать из `SOON`) + строка в `COMPARE_TYPES` (resources/js/app.js) + `@include('partials.compare-toggle', ['type' => 'xxx', 'item' => $m])` в каталоге. Страница, вкладка, плитка раздела, сохранение в кабинет, панель внизу — общие.
+- Строки `rows()`: `['group' => 'Подзаголовок']` или `['label', 'value' => fn, 'num' => fn → ?float, 'dir' => 'max'|'min', 'big' => bool, 'small' => bool, 'href' => fn]`. Лучшее выделяется, если числа различаются и на экране значения не совпадают; «Только различия» прячет строки с одинаковым текстом.
+- Сравниваются продукты одного вида; у каждого вида свой список до `limit()` (4).

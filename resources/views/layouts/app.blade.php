@@ -1,6 +1,6 @@
 {{-- A13 · Макет витрины v2: тёмная лента-тикер, шапка с пилюлями, левое меню, контент. --}}
 <!DOCTYPE html>
-<html lang="ru" data-theme="{{ settings('theme.default', 'light') }}" data-currency="{{ currency_symbol() }}">
+<html lang="ru" data-theme="{{ settings('theme.default', 'light') }}" data-currency="{{ currency_symbol() }}" data-compare="{{ app(\App\Services\Compare\CompareRegistry::class)->forRequest(request())->key() }}">
 <head>
     @include('partials.head')
     @stack('head'){{-- A37 · RSS, Open Graph публикации --}}
@@ -38,8 +38,9 @@
             <a href="{{ route('ratings') }}" class="pill {{ request()->routeIs('ratings') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'star', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('ratings') ? '' : 'text-[var(--brand-3)]')]) Рейтинги</a>
             {{-- A37 · Журнал --}}
             <a href="{{ route('blog.index') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('blog.*') ? 'is-active' : '' }}">@include('partials.icon', ['i' => 'news', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('blog.*') ? '' : 'text-[var(--brand-1)]')]) Журнал</a>
-            @php($cmpStore = request()->routeIs('cards.*', 'payment-systems.*', 'packages.*') ? 'cardCompare' : 'compare') {{-- A33 · в разделе карт — сравнение карт --}}
-            <a href="{{ route($cmpStore === 'cardCompare' ? 'cards.compare' : 'deposits.compare') }}" class="pill hidden xl:inline-flex {{ request()->routeIs('deposits.compare', 'cards.compare') ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.(request()->routeIs('deposits.compare', 'cards.compare') ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.{{ $cmpStore }}.items.length" x-text="$store.{{ $cmpStore }}.items.length" x-cloak></span></a>
+            {{-- A53 · «Сравнение» ведёт в общий раздел, счётчик — по всем видам продуктов --}}
+            @php($cmpPage = request()->routeIs('compare.*', 'deposits.compare', 'cards.compare'))
+            <a href="{{ route('compare.index') }}" class="pill hidden xl:inline-flex {{ $cmpPage ? 'is-active' : '' }}" x-data>@include('partials.icon', ['i' => 'scale', 'c' => 'w-[18px] h-[18px] '.($cmpPage ? '' : 'text-[var(--ok)]')]) Сравнение <span class="chip !py-0 !px-1.5 !text-[0.7rem]" x-show="$store.compareAll.count" x-text="$store.compareAll.count" x-cloak></span></a>
         </nav>
         <div class="ml-auto flex items-center gap-2">
             <button class="btn btn-ghost !p-2.5" aria-label="Поиск">@include('partials.icon', ['i' => 'search', 'c' => 'w-[18px] h-[18px]'])</button>
@@ -86,7 +87,7 @@
                     ['piggy', 'Вклады', route('deposits.index')],
                     ['bank', 'Банки', route('banks.index')],
                     ['star', 'Рейтинг банков', route('ratings')],
-                    ['scale', 'Сравнение', route(($cmpStore ?? 'compare') === 'cardCompare' ? 'cards.compare' : 'deposits.compare')],
+                    ['scale', 'Сравнение', route('compare.index')], // A53
                     ['calc', 'Калькулятор', route('home').'#calc'],
                     ['card', 'Карты', route('cards.index')],
                     ['gift', 'Пакеты услуг', route('packages.index')],
@@ -112,18 +113,19 @@
     </main>
 </div>
 
-{{-- A14 · Плавающая панель сравнения (данные — $store.compare в resources/js/app.js). A33: в разделе карт — $store.cardCompare --}}
-@unless (request()->routeIs('deposits.compare', 'cards.compare'))
-<div x-data x-show="$store.{{ $cmpStore }}.items.length" x-cloak x-transition.opacity.duration.300ms class="compare-bar">
+{{-- A14 · Плавающая панель сравнения (resources/js/app.js). A33: карты. A53: любой вид — $store.compareAll.current
+     (последний тронутый список, иначе вид раздела из <html data-compare>); на страницах сравнения панели нет --}}
+@unless ($cmpPage)
+<div x-data="{ get c() { return $store.compareAll.current } }" x-show="c.items.length" x-cloak x-transition.opacity.duration.300ms class="compare-bar">
     <div class="flex items-center">
-        <template x-for="i in $store.{{ $cmpStore }}.items" :key="i.id">
+        <template x-for="i in c.items" :key="i.id">
             <span class="bank-mark" :style="'--c:' + i.color" x-text="i.code" :title="i.name"></span>
         </template>
     </div>
-    <span class="cb-short text-sm font-semibold tabular whitespace-nowrap" x-text="$store.{{ $cmpStore }}.items.length + '/' + $store.{{ $cmpStore }}.limit"></span>
-    <span class="cb-long text-sm font-semibold whitespace-nowrap" x-text="$store.{{ $cmpStore }}.full ? 'Максимум ' + $store.{{ $cmpStore }}.limit + ' {{ $cmpStore === 'cardCompare' ? 'карты' : 'вклада' }}' : 'К сравнению: ' + $store.{{ $cmpStore }}.items.length + ' из ' + $store.{{ $cmpStore }}.limit"></span>
-    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="$store.{{ $cmpStore }}.clear()" aria-label="Очистить сравнение"><span class="cb-long">очистить</span><span class="cb-short">@include('partials.icon', ['i' => 'x', 'c' => 'w-4 h-4'])</span></button>
-    <a :href="$store.{{ $cmpStore }}.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
+    <span class="cb-short text-sm font-semibold tabular whitespace-nowrap" x-text="c.items.length + '/' + c.limit"></span>
+    <span class="cb-long text-sm font-semibold whitespace-nowrap" x-text="c.full ? 'Максимум ' + c.limit + ' ' + c.word(c.limit) : 'К сравнению: ' + c.items.length + ' ' + c.word(c.items.length) + ' из ' + c.limit"></span>
+    <button type="button" class="text-sm opacity-60 hover:opacity-100 px-1" @click="c.clear()" aria-label="Очистить сравнение"><span class="cb-long">очистить</span><span class="cb-short">@include('partials.icon', ['i' => 'x', 'c' => 'w-4 h-4'])</span></button>
+    <a :href="c.url()" class="btn btn-brand !py-2">Сравнить @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
 </div>
 @endunless
 
