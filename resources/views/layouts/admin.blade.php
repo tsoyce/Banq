@@ -28,6 +28,7 @@
         ]),
         'Сайт' => array_filter([
             ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
+            ['admin.author.edit', [], 'Автор и соцсети', 'user', request()->routeIs('admin.author.*')], // A55
             ['admin.ticker.edit', [], 'Бегущая строка', 'news', request()->routeIs('admin.ticker.*')], // A40
             ['admin.currency.index', [], 'Курсы валют', 'coins', request()->routeIs('admin.currency.*')], // A40
             ['admin.flags.index', [], 'Флаги', 'globe', request()->routeIs('admin.flags.*')], // A46
