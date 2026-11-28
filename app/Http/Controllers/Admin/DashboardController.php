@@ -26,7 +26,7 @@ class DashboardController extends Controller
                 ['Вкладов', DepositProduct::count(), route('admin.resource.index', 'deposits')],
                 ['Действующих ставок', DepositRate::current()->count(), route('admin.resource.index', ['rates', 'state' => 'current'])],
             ],
-            'countries' => Country::query()->ordered()->withCount([
+            'countries' => app(\App\Support\AdminScope::class)->apply(Country::query()->ordered(), 'id')->withCount([ // A46
                 'banks', 'banks as active_banks_count' => fn ($q) => $q->active(),
             ])->get()->map(fn (Country $c) => [
                 'country' => $c,

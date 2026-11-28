@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Tag;
 use App\Models\User;
+use App\Support\AdminScope;
 use App\Support\Blog\HtmlSanitizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -63,6 +64,17 @@ class PostResource extends Resource
         return 'posts';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'country_id';
+    }
+
+    public function countryNullable(): bool
+    {
+        return true; // публикация без страны — для всех стран
+    }
+
     public function query(): Builder
     {
         return Post::query()->where('type', 'post')->with(['category', 'author'])->withCount(['comments', 'reactions']); // A42 · страницы — в PageResource
@@ -88,7 +100,7 @@ class PostResource extends Resource
             }],
             'category' => ['label' => 'Рубрика', 'options' => fn () => PostCategory::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->where('category_id', $v)],
             'kind' => ['label' => 'Формат', 'options' => Post::KINDS, 'apply' => fn ($q, $v) => $q->where('kind', $v)],
-            'country' => ['label' => 'Страна', 'options' => fn () => ['all' => 'Для всех стран'] + Country::query()->ordered()->pluck('name', 'id')->all(),
+            'country' => ['label' => 'Страна', 'options' => fn () => ['all' => 'Для всех стран'] + app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(),
                 'apply' => fn ($q, $v) => $v === 'all' ? $q->whereNull('country_id') : $q->where('country_id', $v)],
         ];
     }
@@ -119,7 +131,7 @@ class PostResource extends Resource
             ['name' => 'published_at', 'label' => 'Дата публикации', 'type' => 'datetime', 'rules' => ['nullable', 'date']],
             ['name' => 'category_id', 'label' => 'Рубрика', 'type' => 'select', 'options' => fn () => PostCategory::query()->ordered()->pluck('name', 'id')->all(), 'rules' => ['nullable', 'integer']],
             ['name' => 'kind', 'label' => 'Формат', 'type' => 'select', 'options' => Post::KINDS, 'rules' => ['required'], 'default' => 'article'],
-            ['name' => 'country_id', 'label' => 'Страна', 'type' => 'select', 'options' => fn () => Country::query()->ordered()->get()->mapWithKeys(fn ($c) => [$c->id => trim($c->flag.' '.$c->name)])->all(), 'rules' => ['nullable', 'integer'], 'help' => 'пусто — для всех стран'],
+            ['name' => 'country_id', 'label' => 'Страна', 'type' => 'select', 'options' => fn () => app(AdminScope::class)->countryQuery()->get()->mapWithKeys(fn ($c) => [$c->id => trim($c->flag.' '.$c->name)])->all(), 'rules' => ['nullable', 'integer'], 'help' => 'пусто — для всех стран'],
             ['name' => 'author_id', 'label' => 'Автор', 'type' => 'select', 'options' => fn () => User::query()->whereIn('role', ['admin', 'editor'])->orderBy('name')->pluck('name', 'id')->all(), 'rules' => ['nullable', 'integer']],
             ['name' => 'is_featured', 'label' => 'Главный материал', 'type' => 'bool'],
             ['name' => 'allow_comments', 'label' => 'Комментарии открыты', 'type' => 'bool', 'default' => true],

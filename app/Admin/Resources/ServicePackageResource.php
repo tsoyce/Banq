@@ -7,6 +7,7 @@ use App\Models\Bank;
 use App\Models\Card;
 use App\Models\Country;
 use App\Models\ServicePackage;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -47,6 +48,12 @@ class ServicePackageResource extends Resource
         return 'service_packages';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'bank.country_id';
+    }
+
     public function query(): Builder
     {
         return ServicePackage::query()->with('bank.country')->withCount('cards');
@@ -65,7 +72,7 @@ class ServicePackageResource extends Resource
     public function filters(): array
     {
         return [
-            'country' => ['label' => 'Страна', 'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
+            'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
             'bank' => ['label' => 'Банк', 'options' => fn () => Bank::query()->inCountry(request('country') ?: null)->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => $b->displayName()])->all(), 'apply' => fn ($q, $v) => $q->where('bank_id', $v)],
             'segment' => ['label' => 'Сегмент', 'options' => ServicePackage::SEGMENTS, 'apply' => fn ($q, $v) => $q->where('segment', $v)],
         ];
@@ -74,7 +81,7 @@ class ServicePackageResource extends Resource
     public function columns(): array
     {
         return [
-            ['key' => 'name', 'label' => 'Пакет', 'sort' => 'name', 'render' => fn (ServicePackage $p) => self::html('<b>'.e($p->name).'</b><span class="faint text-xs block">'.e(($p->bank?->country?->flag ?? '').' '.$p->bank?->displayName()).'</span>')],
+            ['key' => 'name', 'label' => 'Пакет', 'sort' => 'name', 'render' => fn (ServicePackage $p) => self::html('<b>'.e($p->name).'</b><span class="faint text-xs block">'.($p->bank?->country?->flagImg() ?? '').' '.e($p->bank?->displayName()).'</span>')],
             ['key' => 'segment', 'label' => 'Сегмент', 'sort' => 'segment', 'render' => fn (ServicePackage $p) => $p->segmentLabel()],
             ['key' => 'monthly_fee', 'label' => 'В месяц', 'sort' => 'monthly_fee', 'render' => fn (ServicePackage $p) => self::html('<span class="tabular">'.($p->monthly_fee === null ? '<span class="faint">—</span>' : e(money_format((float) $p->monthly_fee, currency_symbol($p->bank?->country?->currency)))).'</span>')],
             ['key' => 'cards', 'label' => 'Карт', 'sort' => 'cards_count', 'render' => fn (ServicePackage $p) => self::html('<span class="tabular">'.$p->cards_count.'</span>')],
@@ -86,7 +93,7 @@ class ServicePackageResource extends Resource
     {
         return [
             ['name' => 'bank_id', 'label' => 'Банк', 'type' => 'select', 'span' => 2, 'rules' => ['required', 'integer', 'exists:banks,id'],
-                'options' => fn () => Bank::query()->with('country')->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
+                'options' => fn () => Bank::query()->with('country')->tap(fn ($q) => app(AdminScope::class)->apply($q, 'country_id', selection: false))->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
             ['name' => 'name', 'label' => 'Название', 'rules' => ['required', 'string', 'max:160']],
             ['name' => 'segment', 'label' => 'Сегмент', 'type' => 'select', 'rules' => ['required'], 'options' => ServicePackage::SEGMENTS, 'default' => 'mass'],
             ['name' => 'slug', 'label' => 'Адрес на сайте', 'help' => 'пусто — из банка и названия', 'rules' => ['nullable', 'alpha_dash', 'max:160', Rule::unique('service_packages')->ignore($model)]],

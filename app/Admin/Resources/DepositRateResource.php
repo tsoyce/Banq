@@ -6,6 +6,7 @@ use App\Admin\Resource;
 use App\Models\Country;
 use App\Models\DepositProduct;
 use App\Models\DepositRate;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -52,6 +53,12 @@ class DepositRateResource extends Resource
         return 'deposit_rates';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'product.bank.country_id';
+    }
+
     public function query(): Builder
     {
         return DepositRate::query()->with('product.bank.country');
@@ -71,7 +78,7 @@ class DepositRateResource extends Resource
     {
         return [
             'state' => ['label' => 'Состояние', 'options' => ['current' => 'Действующие', 'closed' => 'История'], 'apply' => fn ($q, $v) => $v === 'current' ? $q->whereNull('valid_to') : $q->whereNotNull('valid_to')],
-            'country' => ['label' => 'Страна', 'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('product.bank', fn ($b) => $b->where('country_id', $v))],
+            'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('product.bank', fn ($b) => $b->where('country_id', $v))],
             'currency' => ['label' => 'Валюта', 'options' => fn () => DepositRate::query()->distinct()->orderBy('currency')->pluck('currency', 'currency')->all(), 'apply' => fn ($q, $v) => $q->where('currency', $v)],
             'source' => ['label' => 'Источник', 'options' => ['manual' => 'Вручную', 'import' => 'Импорт', 'api' => 'API', 'parser' => 'Парсер'], 'apply' => fn ($q, $v) => $q->where('source', $v)],
             'product' => ['label' => 'Вклад (id)', 'apply' => fn ($q, $v) => $q->where('deposit_product_id', (int) $v)],
@@ -81,7 +88,7 @@ class DepositRateResource extends Resource
     public function columns(): array
     {
         return [
-            ['key' => 'product', 'label' => 'Вклад', 'render' => fn (DepositRate $r) => self::html('<a class="font-semibold hover:underline" href="'.route('admin.resource.edit', ['deposits', $r->deposit_product_id]).'">'.e($r->product?->name).'</a><p class="faint text-xs">'.e(($r->product?->bank?->country?->flag ?? '').' '.$r->product?->bank?->displayName()).'</p>')],
+            ['key' => 'product', 'label' => 'Вклад', 'render' => fn (DepositRate $r) => self::html('<a class="font-semibold hover:underline" href="'.route('admin.resource.edit', ['deposits', $r->deposit_product_id]).'">'.e($r->product?->name).'</a><p class="faint text-xs">'.($r->product?->bank?->country?->flagImg() ?? '').' '.e($r->product?->bank?->displayName()).'</p>')],
             ['key' => 'currency', 'label' => 'Валюта', 'sort' => 'currency', 'class' => 'font-mono text-sm'],
             ['key' => 'term_months', 'label' => 'Срок', 'sort' => 'term_months', 'render' => fn (DepositRate $r) => $r->term_months ? $r->term_months.' мес' : 'любой'],
             ['key' => 'amount_from', 'label' => 'Сумма от', 'sort' => 'amount_from', 'render' => fn (DepositRate $r) => $r->amount_from === null ? '—' : money_format($r->amount_from, $r->product?->bank?->country?->symbol())],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ApiToken;
 use App\Models\Country;
+use App\Support\AdminScope;
 use App\Models\Import;
 use App\Services\Exchange\DataExchange;
 use App\Services\Exchange\EntityRegistry;
@@ -33,7 +34,8 @@ class ExchangeController extends Controller
     {
         return view('admin.exchange.index', [
             'entities' => $this->registry->all(),
-            'countries' => Country::query()->ordered()->get(),
+            'countries' => app(AdminScope::class)->countryQuery()->get(), // A46
+            'scopeCode' => app(AdminScope::class)->code(),
             'imports' => Import::query()->with(['user', 'token'])->latest('id')->paginate(15)->withQueryString(),
             'modes' => ImportOptions::MODES,
             'tab' => in_array($request->query('tab'), ['import', 'export', 'format', 'history'], true) ? $request->query('tab') : 'import',
@@ -51,6 +53,7 @@ class ExchangeController extends Controller
             'mode' => ['required', 'in:'.implode(',', array_keys(ImportOptions::MODES))],
             'country' => ['nullable', 'string', 'max:2'],
         ]);
+        $data['country'] = app(AdminScope::class)->clampCode($data['country'] ?? null); // A46 · страна по умолчанию — своя
         $file = $request->file('file');
         $content = $file ? (string) file_get_contents($file->getRealPath()) : (string) ($data['text'] ?? '');
         if (trim($content) === '') {
@@ -104,6 +107,7 @@ class ExchangeController extends Controller
             'country' => ['nullable', 'string', 'max:2'], 'current' => ['nullable', 'boolean'],
         ]);
         $format = $this->exchange->format($data['format'] ?? 'json');
+        $data['country'] = app(AdminScope::class)->clampCode($data['country'] ?? null); // A46 · сотрудник выгружает только свои страны
         $bundle = $this->exchange->export($data['entities'] ?? [], ['country' => $data['country'] ?? null, 'current' => (bool) ($data['current'] ?? false)]);
 
         return response($format->write($bundle), 200, [

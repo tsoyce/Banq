@@ -20,7 +20,7 @@
         @php($c = $row['country'])
         <section class="glass p-6 space-y-5">
             <div class="flex flex-wrap items-center gap-3">
-                <h2 class="font-display font-bold text-xl flex items-center gap-2">{{ $c->flag }} {{ $c->name }}</h2>
+                <h2 class="font-display font-bold text-xl flex items-center gap-2">{!! $c->flagImg('h-5') !!} {{ $c->name }}</h2>
                 @if ($row['provider'])
                     <a href="{{ $row['provider']->url() }}" target="_blank" rel="noopener" class="chip">{{ $row['provider']->name() }} @include('partials.icon', ['i' => 'external', 'c' => 'w-3 h-3'])</a>
                 @else
@@ -44,13 +44,14 @@
                 </div>
 
                 {{-- Выбор валют: клик по чипу добавляет/убирает, стрелки — порядок в карточке и ленте --}}
-                <div x-data="{ all: @js($row['available']), picked: @js($row['codes']),
+                <div x-data="{ all: @js($row['available']), picked: @js($row['codes']), flags: @js(collect($row['available'])->keys()->mapWithKeys(fn ($k) => [$k => \App\Support\Flags::url(\App\Support\Flags::forCurrency($k), '1x1')])),
                                toggle(k) { this.picked = this.picked.includes(k) ? this.picked.filter(x => x !== k) : [...this.picked, k]; },
                                move(i, d) { const j = i + d; if (j < 0 || j >= this.picked.length) return; [this.picked[i], this.picked[j]] = [this.picked[j], this.picked[i]]; } }" class="space-y-3">
                     <p class="text-sm font-semibold">Валюты в карточке и ленте <span class="muted font-normal">— по порядку</span></p>
                     <ol class="flex flex-wrap gap-2">
                         <template x-for="(k, i) in picked" :key="k">
                             <li class="chip !py-1.5 !pl-3 !pr-1.5 gap-1" style="background: var(--ink); color: var(--ink-text)">
+                                <img x-show="flags[k]" :src="flags[k]" alt="" class="flag flag-round"> {{-- A46 --}}
                                 <b x-text="k"></b>
                                 <button type="button" class="px-1 opacity-60 hover:opacity-100" @click="move(i, -1)" aria-label="Левее">←</button>
                                 <button type="button" class="px-1 opacity-60 hover:opacity-100" @click="move(i, 1)" aria-label="Правее">→</button>
@@ -62,7 +63,7 @@
                     </ol>
                     <div class="flex flex-wrap gap-1.5">
                         <template x-for="(name, k) in all" :key="k">
-                            <button type="button" class="chip !py-1 hover:!bg-[var(--card-2)]" :class="picked.includes(k) && 'opacity-40'" @click="toggle(k)" :title="name"><span x-text="k"></span></button>
+                            <button type="button" class="chip !py-1 hover:!bg-[var(--card-2)]" :class="picked.includes(k) && 'opacity-40'" @click="toggle(k)" :title="name"><img x-show="flags[k]" :src="flags[k]" alt="" class="flag flag-round" loading="lazy"><span x-text="k"></span></button>
                         </template>
                     </div>
                 </div>
@@ -75,7 +76,7 @@
                                 <thead><tr><th>Код</th><th>Валюта</th><th class="!text-right">За</th><th class="!text-right">Курс, {{ $c->symbol() }}</th><th class="!text-right">Изм.</th></tr></thead>
                                 <tbody>
                                 @foreach ($row['rows'] as $r)
-                                    <tr><td class="font-semibold">{{ \App\Support\CurrencyInfo::flag($r->currency) }} {{ $r->currency }}</td><td class="muted">{{ \App\Support\CurrencyInfo::name($r->currency, $r->name) }}</td>
+                                    <tr><td class="font-semibold">@include('partials.flag', ['currency' => $r->currency, 'c' => 'mr-1']) {{ $r->currency }}</td><td class="muted">{{ \App\Support\CurrencyInfo::name($r->currency, $r->name) }}</td>
                                         <td class="text-right tabular muted">{{ $r->nominal }}</td><td class="text-right tabular font-semibold">{{ number_format($r->rate, 2, ',', ' ') }}</td>
                                         <td class="text-right tabular" style="color: var({{ $r->change > 0 ? '--ok' : ($r->change < 0 ? '--bad' : '--muted') }})">{{ $r->change === null ? '—' : ($r->change > 0 ? '+' : '').number_format($r->change, 2, ',', ' ') }}</td></tr>
                                 @endforeach
