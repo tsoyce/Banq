@@ -9,9 +9,11 @@ use App\Admin\Resources\CountryResource;
 use App\Admin\Resources\DepositProductResource;
 use App\Admin\Resources\DepositRateResource;
 use App\Admin\Resources\CommentResource;
+use App\Admin\Resources\PageResource;
 use App\Admin\Resources\PaymentSystemResource;
 use App\Admin\Resources\PostCategoryResource;
 use App\Admin\Resources\PostResource;
+use App\Admin\Resources\RedirectResource;
 use App\Admin\Resources\ServicePackageResource;
 use App\Admin\Resources\UserResource;
 
@@ -26,7 +28,8 @@ class ResourceRegistry
         // A32 · карты, пакеты, платёжные системы и уровни
         foreach ([new CountryResource, new BankResource, new DepositProductResource, new DepositRateResource,
             new CardResource, new ServicePackageResource, new PaymentSystemResource, new CardTierResource, new UserResource,
-            new PostResource, new PostCategoryResource, new CommentResource] as $r) { // A37 · блог
+            new PostResource, new PostCategoryResource, new CommentResource, // A37 · блог
+            new PageResource, new RedirectResource] as $r) { // A42 · страницы и редиректы
             $this->resources[$r->key()] = $r;
         }
     }

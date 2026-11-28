@@ -36,13 +36,31 @@ class Post extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'published_at' => 'datetime', 'is_featured' => 'boolean', 'allow_comments' => 'boolean',
+        'published_at' => 'datetime', 'is_featured' => 'boolean', 'in_feed' => 'boolean', 'nav_sort' => 'integer', 'allow_comments' => 'boolean',
         'views' => 'integer', 'reading_minutes' => 'integer', 'meta' => 'array',
     ];
 
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * A42 · Публикации и страницы живут в одной таблице (type). Post видит публикации и страницы,
+     * которым включено «показывать в ленте»; Page — только страницы.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('type', function (Builder $q) {
+            static::class === Page::class
+                ? $q->where($q->qualifyColumn('type'), 'page')
+                : $q->where(fn ($w) => $w->where($q->qualifyColumn('type'), 'post')->orWhere($q->qualifyColumn('in_feed'), true));
+        });
+    }
+
+    public function isPage(): bool
+    {
+        return $this->type === 'page';
     }
 
     // ── Связи ──────────────────────────────────────────────
@@ -186,7 +204,7 @@ class Post extends Model
 
     public function url(): string
     {
-        return route('blog.show', $this);
+        return $this->type === 'page' ? url('/'.$this->slug) : route('blog.show', $this->slug); // A42 · страница — по адресу /{slug}
     }
 
     public function metaTitle(): string

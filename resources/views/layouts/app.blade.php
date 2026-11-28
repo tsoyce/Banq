@@ -101,7 +101,8 @@
                 @endforeach
             </nav>
             <div class="border-t border-[var(--line)] pt-4 px-2.5 text-[13px] faint flex flex-wrap gap-x-4 gap-y-1">
-                <a href="#soon">О проекте</a><a href="#soon">Для банков</a><a href="#soon">Рассылка</a>
+                @php($asidePages = \App\Models\Page::nav('aside')) {{-- A42 · страницы с местом «под левым меню» --}}
+                @forelse ($asidePages as $np)<a href="{{ $np['url'] }}">{{ $np['title'] }}</a>@empty<a href="#soon">О проекте</a><a href="#soon">Для банков</a><a href="#soon">Рассылка</a>@endforelse
             </div>
         </div>
     </aside>
@@ -135,6 +136,8 @@
         <div class="faint md:text-right space-y-1">
             <p>© {{ project_years() }} {{ settings('site.copyright') ?: settings('site.name') }}@if (settings('site.contact_email')) · <a href="mailto:{{ settings('site.contact_email') }}">{{ settings('site.contact_email') }}</a>@endif</p>
             <p class="max-w-xl">{{ settings('site.footer_text') }}</p>
+            @php($footerPages = \App\Models\Page::nav('footer')) {{-- A42 --}}
+            @if ($footerPages->isNotEmpty())<p class="flex flex-wrap md:justify-end gap-x-4 gap-y-1">@foreach ($footerPages as $np)<a href="{{ $np['url'] }}" class="hover:text-[var(--text)]">{{ $np['title'] }}</a>@endforeach</p>@endif
         </div>
     </div>
 </footer>

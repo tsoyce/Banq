@@ -6,7 +6,7 @@ namespace App\Support\Blog;
  * A37 · Очистка HTML публикации по белому списку (редактор, импорт, API).
  * Остаётся только разметка, которую умеет редактор: абзацы, заголовки H2–H4, списки, цитаты, код,
  * ссылки (http/https/mailto/относительные), картинки с подписями, таблицы, врезки <aside data-tone>,
- * вставки продуктов <div data-embed="bank|deposit|card|package|payment_system" data-slug>.
+ * вставки продуктов <div data-embed="bank|deposit|card|package|payment_system" data-slug>, видео <div data-embed="youtube" data-slug="ID"> (A43).
  * Всё прочее (script, style, on*-атрибуты, javascript:-ссылки, iframe) выбрасывается, текст сохраняется.
  */
 class HtmlSanitizer
@@ -26,7 +26,7 @@ class HtmlSanitizer
 
     public const TONES = ['info', 'tip', 'warn', 'money'];
 
-    public const EMBEDS = ['bank', 'deposit', 'card', 'package', 'payment_system'];
+    public const EMBEDS = ['bank', 'deposit', 'card', 'package', 'payment_system', 'youtube']; // A43 · youtube: data-slug = id видео
 
     public function clean(?string $html): string
     {

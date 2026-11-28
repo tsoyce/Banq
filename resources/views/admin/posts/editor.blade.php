@@ -9,17 +9,20 @@
     $state = $model?->state() ?? 'draft';
     $links = old('links', $model ? $model->linkKeys() : []);
     $coverPath = $v('cover');
+    $key = $resource->key();          // A42 · posts | pages — один редактор на двоих
+    $isPage = $key === 'pages';
+    $noun = $isPage ? ['Новая страница', 'Правка страницы', 'Страницы', 'Удалить страницу безвозвратно?', 'Удалить страницу'] : ['Новая публикация', 'Правка публикации', 'Публикации', 'Удалить публикацию безвозвратно? Комментарии и реакции тоже удалятся.', 'Удалить публикацию'];
 @endphp
-@extends('layouts.admin', ['title' => $isNew ? 'Новая публикация' : $resource->title($model)])
+@extends('layouts.admin', ['title' => $isNew ? $noun[0] : $resource->title($model)])
 
 @section('content')
 <form method="POST" enctype="multipart/form-data" novalidate x-ref="form" data-post-editor
-      action="{{ $isNew ? route('admin.resource.store', 'posts') : route('admin.resource.update', ['posts', $model->id]) }}"
+      action="{{ $isNew ? route('admin.resource.store', $key) : route('admin.resource.update', [$key, $model->id]) }}"
       x-data="postEditor(@js([
           'title' => $v('title'), 'lead' => $v('lead'), 'slug' => $v('slug'), 'seoTitle' => $v('seo_title'), 'seoDescription' => $v('seo_description'),
           'cover' => $coverPath, 'coverUrl' => $coverPath ? (\Illuminate\Support\Str::startsWith($coverPath, ['http://', 'https://']) ? $coverPath : asset(ltrim($coverPath, '/'))) : '',
           'links' => array_values((array) $links),
-          'draftKey' => 'banq.post.'.($model?->id ?? 'new'), 'updatedAt' => $model?->updated_at?->timestamp ?? 0,
+          'draftKey' => 'banq.'.($isPage ? 'page' : 'post').'.'.($model?->id ?? 'new'), 'updatedAt' => $model?->updated_at?->timestamp ?? 0,
           'uploadUrl' => route('admin.blog.upload'), 'lookupUrl' => route('admin.blog.lookup'), 'embedUrl' => route('admin.blog.embed'),
       ]))"
       :class="focus && 'ed-focus'" class="space-y-5">
@@ -30,9 +33,9 @@
     {{-- Шапка редактора --}}
     <header class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
-            <a href="{{ route('admin.resource.index', 'posts') }}" class="muted text-sm inline-flex items-center gap-1 hover:text-[var(--text)]">@include('partials.icon', ['i' => 'back', 'c' => 'w-4 h-4']) Публикации</a>
+            <a href="{{ route('admin.resource.index', $key) }}" class="muted text-sm inline-flex items-center gap-1 hover:text-[var(--text)]">@include('partials.icon', ['i' => 'back', 'c' => 'w-4 h-4']) {{ $noun[2] }}</a>
             <div class="flex items-center gap-3 mt-1 flex-wrap">
-                <h1 class="font-display font-bold text-2xl">{{ $isNew ? 'Новая публикация' : 'Правка публикации' }}</h1>
+                <h1 class="font-display font-bold text-2xl">{{ $isNew ? $noun[0] : $noun[1] }}</h1>
                 <span class="chip status-{{ ['draft' => 'pending', 'scheduled' => 'pending', 'published' => 'approved'][$state] }}"><span class="status-dot"></span>{{ $model?->stateLabel() ?? 'Черновик' }}</span>
                 <span class="ed-status" :class="saving ? 'is-saved' : (dirty ? 'is-dirty' : 'is-saved')"><i></i><span x-text="saving ? 'Сохраняю…' : (dirty ? 'Есть несохранённые правки' : '{{ $model ? 'Сохранено '.$model->updated_at->diffForHumans() : 'Новый материал' }}')"></span></span>
             </div>
@@ -160,20 +163,30 @@
             {{-- Публикация --}}
             <section class="card p-5 space-y-4">
                 <p class="font-display font-bold text-lg">Публикация</p>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid {{ $isPage ? '' : 'grid-cols-2' }} gap-3">
                     <label class="field"><span>Статус</span>
                         <select name="status" class="input !py-2.5 !pl-3 !pr-7 text-sm">@foreach ($opts('status') as $k => $l)<option value="{{ $k }}" @selected($v('status') === $k)>{{ $l }}</option>@endforeach</select>
                     </label>
+                    @unless ($isPage)
                     <label class="field"><span>Формат</span>
                         <select name="kind" class="input !py-2.5 !pl-3 !pr-7 text-sm">@foreach ($opts('kind') as $k => $l)<option value="{{ $k }}" @selected($v('kind') === $k)>{{ $l }}</option>@endforeach</select>
                     </label>
+                    @endunless
                 </div>
                 <label class="field"><span>Дата и время</span>
                     <input type="datetime-local" name="published_at" value="{{ $v('published_at') }}" class="input !py-2.5">
                     <span class="text-xs faint !font-normal">Пусто — в момент публикации. Будущая дата — выйдет сама.</span>
                 </label>
                 <div class="grid gap-2">
+                    @if ($isPage)
+                        <label class="field"><span>Ссылка в меню сайта</span>
+                            <select name="nav" class="input !py-2.5 text-sm">@foreach ($opts('nav') as $k => $l)<option value="{{ $k }}" @selected((string) $v('nav') === (string) $k)>{{ $l }}</option>@endforeach</select>
+                        </label>
+                        <label class="field"><span>Порядок в меню</span><input type="number" name="nav_sort" value="{{ $v('nav_sort') }}" min="0" max="65000" class="input !py-2.5 text-sm"></label>
+                        <label class="switch"><span>Показывать в ленте журнала</span><input type="hidden" name="in_feed" value="0"><input type="checkbox" name="in_feed" value="1" class="sr-only" @checked($v('in_feed'))><i></i></label>
+                    @else
                     <label class="switch"><span>Главный материал</span><input type="hidden" name="is_featured" value="0"><input type="checkbox" name="is_featured" value="1" class="sr-only" @checked($v('is_featured'))><i></i></label>
+                    @endif
                     <label class="switch"><span>Комментарии открыты</span><input type="hidden" name="allow_comments" value="0"><input type="checkbox" name="allow_comments" value="1" class="sr-only" @checked($v('allow_comments'))><i></i></label>
                 </div>
                 <div class="grid gap-2 pt-1">
@@ -206,6 +219,7 @@
                 <input name="cover_caption" value="{{ $v('cover_caption') }}" class="input !py-2 text-sm" placeholder="Подпись / автор фото" maxlength="200">
             </section>
 
+            @unless ($isPage)
             {{-- Рубрика, страна, автор, теги --}}
             <section class="card p-5 space-y-3">
                 <p class="font-display font-bold text-lg">Рубрика и теги</p>
@@ -254,13 +268,15 @@
                 </div>
             </section>
 
+            @endunless
+
             {{-- SEO --}}
             <section class="card p-5 space-y-3" x-data="{ open: {{ $v('seo_title') || $v('seo_description') || $errors->has('slug') ? 'true' : 'false' }} }">
                 <button type="button" class="flex items-center justify-between w-full" @click="open = !open" :aria-expanded="open">
                     <span class="font-display font-bold text-lg">SEO и адрес</span>@include('partials.icon', ['i' => 'down', 'c' => 'w-4 h-4 transition'])
                 </button>
                 <div class="ed-seo">
-                    <p class="u truncate">{{ preg_replace('#^https?://#', '', url('/blog')) }}/<span x-text="slug || slugify(title) || '…'"></span></p>
+                    <p class="u truncate">{{ preg_replace('#^https?://#', '', url($isPage ? '/' : '/blog')) }}{{ $isPage ? '' : '/' }}<span x-text="slug || slugify(title) || '…'"></span></p>
                     <p class="t line-clamp-1" x-text="(seoTitle || title || 'Заголовок публикации') + ' · {{ settings('site.name') }}'"></p>
                     <p class="d line-clamp-2" x-text="seoDescription || lead || 'Описание появится из лида публикации.'"></p>
                 </div>
@@ -272,16 +288,19 @@
             </section>
 
             {{-- Источник --}}
+            @unless ($isPage)
             <section class="card p-5 space-y-3">
                 <p class="font-display font-bold text-lg">Источник <span class="text-xs muted font-normal">для новостей</span></p>
                 <input name="source_name" value="{{ $v('source_name') }}" class="input !py-2.5" placeholder="Нацбанк РК, пресс-релиз банка…" maxlength="120">
                 <input name="source_url" type="url" value="{{ $v('source_url') }}" class="input !py-2.5" placeholder="https://…" maxlength="255">
             </section>
+            @endunless
 
             @if ($model)
                 <section class="card p-5 text-sm space-y-2">
                     <div class="flex justify-between"><span class="muted">Просмотры</span><b class="tabular">{{ number_format($model->views, 0, ',', ' ') }}</b></div>
-                    <div class="flex justify-between"><span class="muted">Комментарии</span><a class="font-semibold underline underline-offset-4" href="{{ route('admin.resource.index', ['comments', 'q' => $model->title]) }}">{{ $model->comments()->count() }}</a></div>
+                    @unless ($isPage)<div class="flex justify-between"><span class="muted">Комментарии</span><a class="font-semibold underline underline-offset-4" href="{{ route('admin.resource.index', ['comments', 'q' => $model->title]) }}">{{ $model->comments()->count() }}</a></div>@endunless
+                    @if (data_get($model->meta, 'wp.link'))<div class="flex justify-between gap-3"><span class="muted">Было на WordPress</span><a class="truncate underline underline-offset-4" href="{{ data_get($model->meta, 'wp.link') }}" target="_blank" rel="noopener">{{ rawurldecode(parse_url(data_get($model->meta, 'wp.link'), PHP_URL_PATH) ?? '') }}</a></div>@endif
                     <div class="flex justify-between"><span class="muted">Создано</span><span>{{ $model->created_at->translatedFormat('j M Y, H:i') }}</span></div>
                 </section>
             @endif
@@ -290,9 +309,9 @@
 </form>
 
 @if ($model)
-    <form method="POST" action="{{ route('admin.resource.destroy', ['posts', $model->id]) }}" onsubmit="return confirm('Удалить публикацию безвозвратно? Комментарии и реакции тоже удалятся.')">
+    <form method="POST" action="{{ route('admin.resource.destroy', [$key, $model->id]) }}" onsubmit="return confirm(@js($noun[3]))">
         @csrf @method('DELETE')
-        <button class="btn btn-outline !py-2 text-sm text-[var(--bad)]">@include('partials.icon', ['i' => 'trash', 'c' => 'w-4 h-4']) Удалить публикацию</button>
+        <button class="btn btn-outline !py-2 text-sm text-[var(--bad)]">@include('partials.icon', ['i' => 'trash', 'c' => 'w-4 h-4']) {{ $noun[4] }}</button>
     </form>
 @endif
 @endsection

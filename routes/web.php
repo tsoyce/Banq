@@ -14,6 +14,7 @@ use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentSystemController;
 use App\Http\Controllers\Install\InstallController;
 use App\Http\Controllers\ProfileController;
@@ -164,6 +165,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/blog/lookup', [Admin\BlogController::class, 'lookup'])->name('blog.lookup');
     Route::get('/blog/embed', [Admin\BlogController::class, 'embed'])->name('blog.embed');
 
+    // A43 · Перенос с WordPress: пробный прогон, шаги переноса, отчёт (только admin — проверка в контроллере)
+    Route::prefix('wordpress')->name('wordpress.')->controller(Admin\WordPressController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/scan', 'scan')->middleware('throttle:10,1')->name('scan');
+        Route::post('/step', 'step')->middleware('throttle:120,1')->name('step');
+        Route::get('/report', 'report')->name('report');
+        Route::post('/reset', 'reset')->name('reset');
+    });
+
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');
 
@@ -178,3 +188,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     });
 });
+
+// A42 · Страницы по адресу /{slug} и редиректы со старых адресов (WordPress tsoy.in, A43) — после всех маршрутов
+Route::fallback(PageController::class)->name('page.fallback');

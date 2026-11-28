@@ -16,8 +16,12 @@ use Illuminate\View\View;
 /** A10/A13/A18/A40 · Главная-дашборд. Данные — App\Support\Market. */
 class HomeController extends Controller
 {
-    public function __invoke(Market $market, RatingBoard $board, CardCatalog $cards, CurrencyRates $fx): View
+    public function __invoke(Market $market, RatingBoard $board, CardCatalog $cards, CurrencyRates $fx): View|\Symfony\Component\HttpFoundation\Response
     {
+        // A42 · короткие ссылки WordPress (/?p=123, /?page_id=45) — на новые адреса
+        if (request()->hasAny(\App\Models\Redirect::QUERY_KEYS) && ($r = PageController::redirectFor(request()))) {
+            return $r;
+        }
         $rates = $market->rates();
         // A40 · Карточка курсов валют (если у страны есть источник и карточка не выключена в админке)
         if ($showFx = (bool) settings('fx.home_card', true)) {

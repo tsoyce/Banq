@@ -65,7 +65,7 @@ class PostResource extends Resource
 
     public function query(): Builder
     {
-        return Post::query()->with(['category', 'author'])->withCount(['comments', 'reactions']);
+        return Post::query()->where('type', 'post')->with(['category', 'author'])->withCount(['comments', 'reactions']); // A42 · страницы — в PageResource
     }
 
     public function search(): array
@@ -166,7 +166,7 @@ class PostResource extends Resource
 
         if (! $m->slug) {
             $base = Str::limit(Str::slug($m->title, '-', 'ru'), 120, '') ?: 'post';
-            for ($i = 1, $s = $base; Post::query()->where('slug', $s)->whereKeyNot($m->id)->exists(); $s = $base.'-'.++$i);
+            for ($i = 1, $s = $base; Post::withoutGlobalScopes()->where('slug', $s)->whereKeyNot($m->id)->exists(); $s = $base.'-'.++$i);
             $m->slug = $s;
         }
 
@@ -190,6 +190,7 @@ class PostResource extends Resource
         // Связи: отмеченные в редакторе + продукты, вставленные в текст карточками
         preg_match_all('/data-embed="([a-z_]+)" data-slug="([A-Za-z0-9_-]+)"|data-slug="([A-Za-z0-9_-]+)" data-embed="([a-z_]+)"/', (string) $m->body, $mm, PREG_SET_ORDER);
         $embedded = array_map(fn ($x) => ($x[1] ?: $x[4]).':'.($x[2] ?: $x[3]), $mm);
+        $embedded = array_filter($embedded, fn ($k) => isset(Post::LINK_TYPES[strtok($k, ':')])); // A43 · видео YouTube — не связь
         $m->syncLinks([...(array) $request->input('links', []), ...$embedded]);
     }
 
@@ -226,8 +227,8 @@ class PostResource extends Resource
     public function summary(): array
     {
         return [
-            'Опубликовано' => Post::query()->published()->count(),
-            'Черновиков' => Post::query()->where(fn ($w) => $w->where('status', '!=', 'published')->orWhereNull('published_at'))->count(),
+            'Опубликовано' => Post::query()->where('type', 'post')->published()->count(),
+            'Черновиков' => Post::query()->where('type', 'post')->where(fn ($w) => $w->where('status', '!=', 'published')->orWhereNull('published_at'))->count(),
             'Запланировано' => Post::query()->where('status', 'published')->where('published_at', '>', now())->count(),
             'Просмотров' => (int) Post::query()->sum('views'),
         ];
