@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\TrailingSlash;
 use App\Models\Bank;
 use App\Models\Country;
 use App\Models\Page;
@@ -14,6 +15,7 @@ use App\Services\WordPress\WpImporter;
 use App\Services\WordPress\WpMedia;
 use App\Services\WordPress\WxrReader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
@@ -269,6 +271,16 @@ class WordPressImportTest extends TestCase
         $this->get('/wp-content/uploads/2025/08/card-1024x768.png')->assertRedirect();
         $this->get('/nothing-here')->assertNotFound();
         $this->assertSame(1, Redirect::query()->where('from_path', '/halyk-2025')->value('hits'));
+        // A44 · слеш в конце — один 301 приложением (не через .htaccess)
+        $mw = new TrailingSlash;
+        $pass = fn () => response('next');
+        $go = fn (string $uri, string $method = 'GET') => $mw->handle(Request::create('https://bank.example'.$uri, $method), $pass);
+        $this->assertStringEndsWith('/blog/halyk-2025', $go('/halyk-2025/')->headers->get('Location'));  // сразу на новый адрес
+        $this->assertSame(2, Redirect::query()->where('from_path', '/halyk-2025')->value('hits'));
+        $this->assertSame('https://bank.example/blog?page=2', $go('/blog/?page=2')->headers->get('Location')); // схема и хост — из самого запроса
+        $this->assertSame(301, $go('/oferta/')->getStatusCode());
+        $this->assertSame('next', $go('/blog/', 'POST')->getContent());
+        $this->assertSame('next', $go('/')->getContent());
     }
 
     /** A44 · оригинал переименован в «-scaled-1» / лежит в другой папке; Jetpack i2.wp.com; повторный прогон не качает файлы заново. */

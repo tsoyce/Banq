@@ -19,6 +19,7 @@ app/
 │  ├─ Middleware/EnsureAdmin.php .... A09 роль admin|editor для /admin
 │  ├─ Middleware/ResolveCountry.php . A21 текущая страна витрины (?country= → cookie → настройка)
 │  ├─ Middleware/Typography.php ..... A36 неразрывные пробелы в HTML-ответах (web, после ResolveCountry) → Support/Typograph
+│  ├─ Middleware/TrailingSlash.php .. A44 глобальный: /адрес/ → один 301 (сразу по «Редиректам»); вместо правила .htaccess
 │  ├─ Middleware/AuthenticateApiToken A23 Bearer-токен для /api/v1, право read|write|delete (delete — A39)
 │  └─ Controllers/
 │     ├─ HomeController.php ......... A10 главная-дашборд
