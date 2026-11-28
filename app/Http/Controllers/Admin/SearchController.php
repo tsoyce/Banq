@@ -2,39 +2,68 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Admin\Navigation;
+use App\Admin\ResourceRegistry;
 use App\Http\Controllers\Controller;
-use App\Models\Bank;
-use App\Models\Country;
-use App\Models\DepositProduct;
-use App\Models\User;
+use App\Support\AdminScope;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** A24 · Глобальный поиск админки (⌘K): страны, банки, вклады, пользователи. JSON для палитры в layouts.admin. */
+/**
+ * A24 · Глобальный поиск админки (⌘K). A70: ищет по всем ресурсам, которые видит роль, в порядке меню
+ * (поиск ресурса — его же колонки из Resource::search()), в пределах стран сотрудника. Разделы и быстрые
+ * действия палитра фильтрует сама (App\Admin\Navigation), сюда приходят только записи.
+ */
 class SearchController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    /** Ресурсы без осмысленного заголовка записи в поиске не участвуют. */
+    private const SKIP = ['rates'];
+
+    private const PER = ['banks' => 6, 'posts' => 6, 'deposits' => 5, 'cards' => 5];
+
+    public function __invoke(Request $request, Navigation $nav, ResourceRegistry $registry, AdminScope $scope): JsonResponse
     {
         $q = trim((string) $request->query('q'));
         if (mb_strlen($q) < 2) {
             return response()->json([]);
         }
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $q).'%';
-        $hit = fn ($type, $title, $sub, $url) => compact('type', 'title', 'sub', 'url');
-
-        $results = collect()
-            ->merge(Country::query()->where('name', 'like', $like)->orWhere('code', $q)->limit(5)->get()
-                ->map(fn ($c) => $hit('Страна', trim($c->flag.' '.$c->name), $c->code.' · '.$c->currency, route('admin.resource.edit', ['countries', $c->id]))))
-            ->merge(Bank::query()->with('country')->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('short_name', 'like', $like)->orWhere('code', 'like', $like)->orWhere('aliases', 'like', $like))->limit(8)->get()
-                ->map(fn ($b) => $hit('Банк', $b->displayName(), trim(($b->country?->flag ?? '').' '.$b->code.' · '.$b->name), route('admin.resource.edit', ['banks', $b->id]))))
-            ->merge(DepositProduct::query()->with('bank')->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('slug', 'like', $like))->limit(8)->get()
-                ->map(fn ($p) => $hit('Вклад', $p->name, $p->bank?->displayName().' · '.$p->type?->label(), route('admin.resource.edit', ['deposits', $p->id]))));
-
-        if ($request->user()->role === 'admin') {
-            $results = $results->merge(User::query()->where('name', 'like', $like)->orWhere('email', 'like', $like)->limit(5)->get()
-                ->map(fn ($u) => $hit('Пользователь', $u->name, $u->email, route('admin.resource.edit', ['users', $u->id]))));
+        $all = $registry->all();
+        $results = [];
+        foreach ($nav->items($request->user()) as $item) {
+            $r = $all[$item['key']] ?? null;
+            if (! $r || in_array($r->key(), self::SKIP, true)) {
+                continue;
+            }
+            $query = $scope->apply($r->query(), $r->countryScope(), $r->countryNullable(), selection: false);
+            foreach ($r->applySearch($query, $q)->reorder()->latest($query->getModel()->getQualifiedKeyName())->limit(self::PER[$r->key()] ?? 4)->get() as $m) {
+                $results[] = [
+                    'type' => $item['label'], 'title' => $r->title($m), 'sub' => $this->hint($r->key(), $m),
+                    'url' => route('admin.resource.edit', [$r->key(), $m->getKey()]),
+                ];
+            }
+            if (count($results) >= 40) {
+                break;
+            }
         }
 
-        return response()->json($results->values());
+        return response()->json($results);
+    }
+
+    /** Подсказка под заголовком: чей продукт, код, e-mail, статус. */
+    private function hint(string $key, Model $m): string
+    {
+        return (string) match ($key) {
+            'countries' => $m->code.' · '.$m->currency,
+            'banks' => trim(($m->country?->name ?? '').' · '.$m->code.' · '.$m->name, ' ·'),
+            'deposits' => trim(($m->bank?->displayName() ?? '').' · '.($m->type?->label() ?? ''), ' ·'),
+            'cards', 'packages' => $m->bank?->displayName() ?? '',
+            'card-tiers' => $m->paymentSystem?->name ?? '',
+            'users' => $m->email.' · '.$m->role,
+            'posts', 'pages' => '/'.ltrim((string) $m->slug, '/').(method_exists($m, 'stateLabel') ? ' · '.$m->stateLabel() : ''),
+            'comments' => mb_strimwidth(strip_tags((string) $m->body), 0, 80, '…'),
+            'redirects' => $m->from_path.' → '.$m->to_url,
+            default => '#'.$m->getKey(),
+        };
     }
 }

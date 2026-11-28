@@ -1,13 +1,13 @@
 {{-- A24 · Форма ресурса: поля по группам (карточки), подсказки, ошибки; справа — дополнительный блок (ставки вклада и т.п.). --}}
-@extends('layouts.admin', ['title' => $model ? $resource->title($model) : 'Добавить '.$resource->singular()])
+{{-- A70 · «назад к списку» — в хлебных крошках макета (crumbTail) --}}
+@extends('layouts.admin', ['title' => $model ? $resource->title($model) : 'Добавить '.$resource->singular(), 'crumbTail' => $model ? $resource->title($model) : 'Новая запись'])
 
 @php($aside = $model ? $resource->editAside($model) : null)
 
 @section('content')
 <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <a href="{{ route('admin.resource.index', $resource->key()) }}" class="muted text-sm inline-flex items-center gap-1 hover:text-[var(--text)]">@include('partials.icon', ['i' => 'back', 'c' => 'w-4 h-4']) {{ $resource->label() }}</a>
-        <h1 class="font-display font-bold text-3xl mt-1">{{ $model ? $resource->title($model) : 'Добавить '.$resource->singular() }}</h1>
+        <h1 class="font-display font-bold text-3xl">{{ $model ? $resource->title($model) : 'Добавить '.$resource->singular() }}</h1>
         @if ($model)<p class="faint text-xs mt-1">#{{ $model->getKey() }} @if ($model->updated_at)· изменено {{ $model->updated_at->diffForHumans() }}@endif</p>@endif
     </div>
     @if ($model && ($url = $resource->publicUrl($model)))<a href="{{ $url }}" target="_blank" class="btn btn-ghost !py-2.5 text-sm">@include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4']) На сайте</a>@endif

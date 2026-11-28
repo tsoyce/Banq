@@ -8,7 +8,7 @@
 
 ```
 app/
-├─ Admin/ Resource (A24 описание ресурса: колонки, поля, фильтры, массовые действия), ResourceRegistry,
+├─ Admin/ Navigation (A70 карта админки: группы меню, крошки, ⌘K, быстрые действия), Resource (A24 описание ресурса: колонки, поля, фильтры, массовые действия; A70 applySearch), ResourceRegistry,
 │         Resources/{Country,Bank,DepositProduct,DepositRate,User}Resource   A24
 │         Resources/{Card,ServicePackage,PaymentSystem,CardTier}Resource   A32 (раздел меню «Карты»)
 ├─ Console/Commands/ banq:import, banq:export, banq:schema, banq:token   A22 A23
@@ -37,11 +37,11 @@ app/
 │     ├─ Install/InstallController .. A03 мастер установки (3 шага)
 │     ├─ Auth/LoginController ....... A09 вход/выход
 │     ├─ Api/ExchangeController ..... A23 /api/v1: schema, export, {entity}, import, imports; A39 about (без токена), openapi.json, POST/DELETE {entity}, Idempotency-Key, постранично + updated_since
-│     └─ Admin/{Dashboard,Settings,Import}Controller  A05 A08 A09 (A24: обзор со «здоровьем данных»)
+│     └─ Admin/{Dashboard,Settings,Import}Controller  A05 A08 A09 (A24: обзор со «здоровьем данных»; A70: бенто по группам, «Требует внимания», последние правки)
 │        Admin/ResourceController ... A24 универсальный CRUD по App\Admin\Resource (+ /bulk)
 │        Admin/ExchangeController ... A22 обмен данными: check (dry-run) → apply, export, schema, шаблоны, токены
 │        Admin/GridController ....... A39 табличный редактор «как Excel»: show, rows (экспорт с _id + подсказки), save (dry-run/запись, allowDelete)
-│        Admin/SearchController ..... A24 поиск ⌘K (JSON)
+│        Admin/SearchController ..... A24 поиск ⌘K (JSON); A70 — все ресурсы роли по Navigation, в пределах стран сотрудника
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
@@ -344,7 +344,7 @@ HTTP запрос
 | GET, PUT, DELETE | `/admin/reviews?status=`, `/admin/reviews/{review}` (action=approve\|reject\|reply) | admin.reviews.* | admin, editor (A18) |
 | любой | все публичные страницы `?country=kz` | — | A21: выбрать страну (запоминается в cookie `banq_country`) |
 | GET, GET, POST, POST, GET, PUT, DELETE | `/admin/{key}`, `/{key}/create`, `/{key}`, `/{key}/bulk`, `/{key}/{id}/edit`, `/{key}/{id}` — key: countries\|banks\|deposits\|rates\|users\|cards\|packages\|payment-systems\|card-tiers (A32) | admin.resource.* | admin, editor; users — только admin (A24). Список: `q`, фильтры ресурса, `sort`, `dir`, `per` |
-| GET | `/admin/search?q=` | admin.search | JSON для ⌘K (A24) |
+| GET | `/admin/search?q=` | admin.search | JSON для ⌘K (A24): записи всех ресурсов, доступных роли (A70); разделы и действия — на клиенте |
 | GET, POST, POST, POST | `/admin/database`, `/database/test`, `/database/switch`, `/database/restore` | admin.database.* | только admin (A34); switch/restore — throttle 5/мин, switch требует `confirm` |
 | GET, POST, POST, GET, GET, GET, GET | `/admin/exchange?tab=`, `/exchange/check`, `/exchange/apply`, `/exchange/export`, `/exchange/schema`, `/exchange/template/{entity}/{format}`, `/exchange/history/{import}` | admin.exchange.* | admin, editor (A22) |
 | GET, POST, DELETE | `/admin/exchange/tokens`, `/exchange/tokens/{token}` | admin.exchange.tokens* | выпуск/отзыв — только admin (A23) |
@@ -386,6 +386,7 @@ HTTP запрос
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
 - A53: хранилища сравнения по видам — `COMPARE_TYPES` в app.js: `$store.compare` (вклады), `cardCompare`, `packageCompare`, `bankCompare`, `systemCompare` (ключи `banq.*.compare`); `$store.compareAll` (`count` по всем видам, `of(type)`, `current` — вид для панели: последний тронутый → `<html data-compare>` раздела → первый непустой; `banq.compare.last`). У хранилища `word(n)` — склонение. Классы `.cmp-tabs .cmp-count .cmp-group .cmp-sub .cmp-tile .ps-cmp`.
+- A70: админка — `adminNav(current)` (группы меню сворачиваются, режим «только иконки»; localStorage `banq.admin.compact`, `banq.admin.closed`), `adminPalette(endpoint, pages, actions)` (разделы и действия фильтруются на клиенте, записи — `/admin/search`). Классы `.admin-shell(.is-compact) .admin-side-* .admin-link(.is-on .is-soon) .admin-group* .admin-badge .admin-crumbs .dash-tile .dash-{brand,ink,plain} .dash-go .dash-row`. Макет: `crumbTail` — последняя крошка у страниц правки.
 - A54: `.aud-tabs` (переключатель «Физлицам / Бизнесу / Все»), `.tier-badge` (`.is-img`), `.ps-logo`. Поле админки `type => 'image'` (`Resource::absorbUploads` → `public/uploads/{ключ ресурса}/`, SVG проверяется `Resource::safeSvg`; рядом остаётся поле пути/URL).
 - A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. `CardKind::genitivePlural()`; `.cmp-scroll` (закреплённая колонка сравнения), `.cb-short/.cb-long` (панель сравнения на телефоне). Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
 - A37 журнал: `.blog-hero`, `.post-grid` (`.is-3`), `.post-card`, `.post-cover` (сгенерированная обложка с цветом рубрики, если картинки нет), `.read-progress`, `.post-sheet/.post-title/.post-byline`, `.toc` (+ `.toc-inline` на телефоне), `.reactions`, `.prose-banq` (типографика статьи: врезки `aside[data-tone=info|tip|warn|money]`, `.prose-table`, `td.num`), `.embed` (живая карточка продукта в тексте), `.ed-*` (редактор, `.ed-focus` — режим фокуса). Иконки: eye, share, copy, rss, tag, send, image, bold…redo, table, hr, bulb, box, save, highlight, maximize, reply.

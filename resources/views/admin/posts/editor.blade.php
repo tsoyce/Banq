@@ -13,7 +13,7 @@
     $isPage = $key === 'pages';
     $noun = $isPage ? ['Новая страница', 'Правка страницы', 'Страницы', 'Удалить страницу безвозвратно?', 'Удалить страницу'] : ['Новая публикация', 'Правка публикации', 'Публикации', 'Удалить публикацию безвозвратно? Комментарии и реакции тоже удалятся.', 'Удалить публикацию'];
 @endphp
-@extends('layouts.admin', ['title' => $isNew ? $noun[0] : $resource->title($model)])
+@extends('layouts.admin', ['title' => $isNew ? $noun[0] : $resource->title($model), 'crumbTail' => $isNew ? $noun[0] : $resource->title($model)]) {{-- A70 --}}
 
 @section('content')
 <form method="POST" enctype="multipart/form-data" novalidate x-ref="form" data-post-editor
@@ -33,8 +33,7 @@
     {{-- Шапка редактора --}}
     <header class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
-            <a href="{{ route('admin.resource.index', $key) }}" class="muted text-sm inline-flex items-center gap-1 hover:text-[var(--text)]">@include('partials.icon', ['i' => 'back', 'c' => 'w-4 h-4']) {{ $noun[2] }}</a>
-            <div class="flex items-center gap-3 mt-1 flex-wrap">
+            <div class="flex items-center gap-3 flex-wrap">
                 <h1 class="font-display font-bold text-2xl">{{ $isNew ? $noun[0] : $noun[1] }}</h1>
                 <span class="chip status-{{ ['draft' => 'pending', 'scheduled' => 'pending', 'published' => 'approved'][$state] }}"><span class="status-dot"></span>{{ $model?->stateLabel() ?? 'Черновик' }}</span>
                 <span class="ed-status" :class="saving ? 'is-saved' : (dirty ? 'is-dirty' : 'is-saved')"><i></i><span x-text="saving ? 'Сохраняю…' : (dirty ? 'Есть несохранённые правки' : '{{ $model ? 'Сохранено '.$model->updated_at->diffForHumans() : 'Новый материал' }}')"></span></span>
