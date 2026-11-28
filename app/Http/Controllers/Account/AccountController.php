@@ -74,7 +74,7 @@ class AccountController extends Controller
         $user = $request->user();
 
         return view('account.comparisons', $this->shell($user) + [
-            'comparisons' => $user->comparisons()->latest()->get()->map(fn ($c) => ['item' => $c, 'products' => $c->products()]),
+            'comparisons' => $user->comparisons()->latest()->get()->map(fn ($c) => ['item' => $c, 'heads' => $c->heads()]), // A53 · любой вид
         ]);
     }
 

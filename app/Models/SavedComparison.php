@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Collection;
+use App\Services\Compare\CompareRegistry;
+use App\Services\Compare\CompareType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 
-/** A28 · Сохранённое сравнение вкладов: набор id + сумма и срок, открывается ссылкой /deposits/compare. */
+/**
+ * A28 · Сохранённое сравнение: набор id + (для вкладов) сумма и срок.
+ * A53 · type — вид продукта из CompareRegistry (deposits, cards, packages, banks, payment-systems).
+ */
 class SavedComparison extends Model
 {
     protected $guarded = ['id'];
+
+    protected $attributes = ['type' => 'deposits'];
 
     protected $casts = ['product_ids' => 'array', 'amount' => 'integer', 'term_months' => 'integer'];
 
@@ -18,19 +25,28 @@ class SavedComparison extends Model
         return $this->belongsTo(User::class);
     }
 
-    /** Вклады в исходном порядке (неактивные и удалённые пропускаются). */
+    public function kind(): CompareType
+    {
+        $registry = app(CompareRegistry::class);
+
+        return $registry->get((string) $this->type) ?? $registry->get('deposits');
+    }
+
+    /** Записи в исходном порядке (удалённые пропускаются, снятые — остаются с пометкой). */
     public function products(): Collection
     {
-        $ids = array_map('intval', $this->product_ids ?? []);
+        return $this->kind()->stored(collect($this->product_ids ?? [])->map(fn ($id) => (int) $id));
+    }
 
-        return DepositProduct::query()->whereIn('id', $ids)->with('bank')->get()
-            ->sortBy(fn ($p) => array_search($p->id, $ids, true))->values();
+    /** Шапки для списка в кабинете: title, sub, code, color, url, active. */
+    public function heads(): Collection
+    {
+        return $this->products()->map(fn ($m) => $this->kind()->head($m));
     }
 
     public function url(): string
     {
-        return route('deposits.compare', array_filter([
-            'ids' => implode(',', $this->product_ids ?? []),
+        return $this->kind()->url(array_map('intval', $this->product_ids ?? []), array_filter([
             'amount' => $this->amount,
             'term' => $this->term_months,
         ]));
