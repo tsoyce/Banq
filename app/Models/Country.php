@@ -58,6 +58,18 @@ class Country extends Model
         return $this->name_locative ?: 'в стране «'.$this->name.'»';
     }
 
+    /** A46 · Код флага: свой из flag_code (например, gb-sct) или ISO-код страны. Картинка — App\Support\Flags. */
+    public function flagCode(): string
+    {
+        return strtolower((string) ($this->flag_code ?: $this->code));
+    }
+
+    /** A46 · HTML флага (SVG из библиотеки или загруженный в админке). */
+    public function flagImg(string $class = '', bool $round = false): string
+    {
+        return \App\Support\Flags::img($this->flagCode(), $class, $round, true, $this->name);
+    }
+
     public function symbol(): string
     {
         return $this->currency_symbol ?: $this->currency;

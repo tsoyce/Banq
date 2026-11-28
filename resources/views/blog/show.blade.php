@@ -41,7 +41,7 @@
                 <div class="flex items-center gap-2 flex-wrap mt-6">
                     @include('blog._category', ['post' => $post])
                     @if ($post->kind !== 'article' && mb_substr($post->kindLabel(), 0, 4) !== mb_substr($post->category?->name ?? '', 0, 4))<span class="chip !py-0.5 !text-[0.72rem]">{{ $post->kindLabel() }}</span>@endif
-                    @if ($post->country)<span class="chip !py-0.5 !text-[0.72rem]">{{ $post->country->flag }} {{ $post->country->name }}</span>@endif
+                    @if ($post->country)<span class="chip !py-0.5 !text-[0.72rem]">{!! $post->country->flagImg() !!} {{ $post->country->name }}</span>@endif
                 </div>
                 <h1 class="post-title font-display font-bold">{{ $post->title }}</h1>
                 @if ($post->lead)<p class="post-lead">{{ $post->lead }}</p>@endif

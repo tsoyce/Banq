@@ -5,6 +5,7 @@ namespace App\Services\Currency;
 use App\Models\Country;
 use App\Models\CurrencyRate;
 use App\Support\CurrencyInfo;
+use App\Support\Flags;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -134,7 +135,7 @@ class CurrencyRates
      * Витрина курсов страны: null — у страны нет источника.
      *
      * @return array{provider: RateProvider, date: ?Carbon, stale: bool, base: string, symbol: string,
-     *               items: list<array{code: string, name: string, flag: string, symbol: string, nominal: int, rate: float, unit: float, delta: ?float, pct: ?float, trend: list<float>}>}|null
+     *               items: list<array{code: string, name: string, flag: ?string, symbol: string, nominal: int, rate: float, unit: float, delta: ?float, pct: ?float, trend: list<float>}>}|null
      */
     public function board(?Country $country, ?array $codes = null): ?array
     {
@@ -165,7 +166,7 @@ class CurrencyRates
                 $delta = $last->change ?? ($prev ? $last->rate - $prev->rate * $last->nominal / max(1, $prev->nominal) : null);
                 $base = $delta !== null ? $last->rate - $delta : null;
                 $items[] = [
-                    'code' => $code, 'name' => CurrencyInfo::name($code, $last->name), 'flag' => CurrencyInfo::flag($code), 'symbol' => CurrencyInfo::symbol($code),
+                    'code' => $code, 'name' => CurrencyInfo::name($code, $last->name), 'flag' => Flags::forCurrency($code), 'symbol' => CurrencyInfo::symbol($code),
                     'nominal' => $last->nominal, 'rate' => $last->rate, 'unit' => $last->perUnit(),
                     'delta' => $delta, 'pct' => $base ? $delta / $base * 100 : null,
                     'trend' => $rows->map(fn (CurrencyRate $r) => round($r->perUnit(), 6))->values()->all(),

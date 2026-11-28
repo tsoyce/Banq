@@ -24,12 +24,14 @@ class CurrencySource implements TickerSource
         }
 
         return [
+            'flag' => $country->code, // A46 · флаг страны у подписи группы
             'title' => $board['provider']->short().($board['date'] ? ' · '.$board['date']->translatedFormat('j M') : ''),
             'href' => $board['provider']->url(),
             'items' => array_map(fn ($i) => [
                 'label' => ($i['nominal'] > 1 ? $i['nominal'].' ' : '').$i['code'],
                 'value' => number_format($i['rate'], 2, ',', ' ').' '.$board['symbol'],
                 'delta' => $i['delta'],
+                'flag' => $i['flag'] ?? null, // A46
             ], $board['items']),
         ];
     }

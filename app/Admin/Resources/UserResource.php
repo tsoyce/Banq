@@ -3,7 +3,9 @@
 namespace App\Admin\Resources;
 
 use App\Admin\Resource;
+use App\Models\Country;
 use App\Models\User;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -65,6 +67,9 @@ class UserResource extends Resource
         return [
             ['key' => 'name', 'label' => 'Имя', 'sort' => 'name', 'render' => fn (User $u) => self::html('<p class="font-semibold">'.e($u->name).'</p><p class="faint text-xs">'.e($u->email).'</p>')],
             ['key' => 'role', 'label' => 'Роль', 'sort' => 'role', 'render' => fn (User $u) => self::html('<span class="chip">'.e(self::ROLES[$u->role] ?? $u->role).'</span>')],
+            ['key' => 'countries', 'label' => 'Страны', 'render' => fn (User $u) => self::html($u->admin_countries
+                ? Country::query()->whereIn('id', $u->admin_countries)->ordered()->get()->map(fn ($c) => $c->flagImg('', false))->implode(' ')
+                : (in_array($u->role, ['admin', 'editor'], true) ? '<span class="faint text-xs">все</span>' : ''))], // A46
             ['key' => 'reviews_count', 'label' => 'Отзывов', 'sort' => 'reviews_count', 'class' => 'tabular'],
             ['key' => 'created_at', 'label' => 'С нами с', 'sort' => 'created_at', 'render' => fn (User $u) => $u->created_at?->format('d.m.Y')],
         ];
@@ -76,12 +81,19 @@ class UserResource extends Resource
             ['name' => 'name', 'label' => 'Имя', 'rules' => ['required', 'string', 'max:120']],
             ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'rules' => ['required', 'email', 'max:191', Rule::unique('users')->ignore($model)]],
             ['name' => 'role', 'label' => 'Роль', 'type' => 'select', 'options' => self::ROLES, 'rules' => ['required'], 'default' => 'user'],
+            // A46 · страны сотрудника: админ/редактор работает только в них (пусто — во всех). Правит только админ без ограничений.
+            ...(app(AdminScope::class)->isRestricted() ? [] : [['name' => 'admin_countries', 'label' => 'Страны сотрудника', 'type' => 'checks',
+                'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'help' => 'ничего не отмечено — все страны; иначе админка покажет только отмеченные']]),
             ['name' => 'password', 'label' => $model ? 'Новый пароль' : 'Пароль', 'type' => 'password', 'rules' => [$model ? 'nullable' : 'required', 'string', 'min:8', 'max:191'], 'help' => $model ? 'пусто — не менять' : null],
         ];
     }
 
     public function saving(Model $m, array $data, Request $request): void
     {
+        // A46 · id стран — числами; пустой список — «все страны»
+        if ($m->admin_countries) {
+            $m->admin_countries = array_values(array_map('intval', $m->admin_countries));
+        }
         // пароль хешируется кастом 'hashed' модели User
         // себя нельзя лишить прав админа — иначе можно запереть админку
         if ($m->is($request->user()) && $m->role !== 'admin') {

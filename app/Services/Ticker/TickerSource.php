@@ -19,7 +19,7 @@ interface TickerSource
     /**
      * Группа ленты для страны: подпись группы и элементы. null/пусто — группа не показывается.
      *
-     * @return array{title: ?string, href: ?string, items: list<array{label: string, value?: ?string, delta?: ?float, href?: ?string}>}|null
+     * @return array{title: ?string, href: ?string, flag?: ?string, items: list<array{label: string, value?: ?string, delta?: ?float, href?: ?string, flag?: ?string}>} (A46: flag — код флага)|null
      */
     public function group(?Country $country): ?array;
 }

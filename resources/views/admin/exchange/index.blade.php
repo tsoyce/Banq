@@ -5,7 +5,7 @@
 <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
         <p class="label">Обмен</p>
-        <h1 class="font-display font-bold text-3xl">Импорт и экспорт данных</h1>
+        <h1 class="font-display font-bold text-3xl">Экспорт / Импорт данных</h1>
         <p class="muted text-sm mt-1 max-w-2xl">Один формат для всего: страны, банки, вклады, ставки. JSON, XML, YAML, NDJSON, CSV, TSV или XLSX — через эту страницу, <a href="{{ route('admin.exchange.grid.index') }}" class="underline">таблицу «как Excel»</a>, командой <code class="mono">php artisan banq:import</code> или API. Повторная заливка не плодит дублей, новая ставка закрывает старую.</p>
     </div>
     <nav class="seg">
@@ -51,7 +51,7 @@
             <label class="field"><span>Формат</span>
                 <select name="format" class="input"><option value="">По файлу</option>@foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $v => $l)<option value="{{ $v }}" @selected(old('format') === $v)>{{ $l }}</option>@endforeach</select></label>
             <label class="field"><span>Страна по умолчанию</span>
-                <select name="country" class="input">@foreach ($countries as $c)<option value="{{ $c->code }}" @selected(old('country', country()?->code) === $c->code)>{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
+                <select name="country" class="input">@foreach ($countries as $c)<option value="{{ $c->code }}" @selected(old('country', $scopeCode ?? country()?->code) === $c->code)>{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
         </div>
         <fieldset class="field"><legend class="text-[0.85rem] font-semibold mb-2">Режим</legend>
             <div class="grid gap-2">
@@ -61,7 +61,7 @@
             </div>
         </fieldset>
         <button class="btn btn-primary w-full">@include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4']) Проверить — ничего не запишется</button>
-        <p class="faint text-xs">Сначала покажем, что будет создано и изменено (с диффом по полям), потом — кнопка «Применить». Старая матрица Excel — в разделе <a href="{{ route('admin.import.index') }}" class="underline">«Матрица Excel»</a>.</p>
+        <p class="faint text-xs">Сначала покажем, что будет создано и изменено (с диффом по полям), потом — кнопка «Применить». Матрица «банк × тип вклада» — в разделе <a href="{{ route('admin.import.index') }}" class="underline">«Матрица ставок»</a>.</p>
     </div>
 </form>
 @endif
@@ -78,7 +78,7 @@
     </fieldset>
     <div class="space-y-4">
         <label class="field"><span>Страна</span>
-            <select name="country" class="input"><option value="">Все страны</option>@foreach ($countries as $c)<option value="{{ $c->code }}">{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
+            <select name="country" class="input"><option value="">Все страны</option>@foreach ($countries as $c)<option value="{{ $c->code }}" @selected($scopeCode === $c->code)>{{ $c->flag }} {{ $c->name }}</option>@endforeach</select></label>
         <fieldset class="field"><legend class="text-[0.85rem] font-semibold mb-2">Формат</legend>
             <div class="seg flex-wrap">@foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $v => $l)<label><input type="radio" name="format" value="{{ $v }}" class="sr-only" @checked($v === 'json')>{{ $l }}</label>@endforeach</div>
         </fieldset>
