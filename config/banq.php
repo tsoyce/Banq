@@ -7,7 +7,7 @@ return [
     'install_lock' => env('BANQ_INSTALL_LOCK'),
     // A36 · Экранная типографика (неразрывные пробелы) для HTML-ответов — App\Http\Middleware\Typography
     'typograph' => env('BANQ_TYPOGRAPH', true),
-    // A46 · Соцсети: ключи API для счётчиков подписчиков (можно задать и в админке → «Автор и соцсети»)
+    // A55 · Соцсети: ключи API для счётчиков подписчиков (можно задать и в админке → «Автор и соцсети»)
     'social' => [
         'auto_refresh' => env('BANQ_SOCIAL_AUTO_REFRESH', true),
         'keys' => [

@@ -11,7 +11,7 @@ use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 /**
- * A46 · Страница автора /author: основатель TSOY.IN — профиль, соцсети со счётчиками, его публикации
+ * A55 · Страница автора /author: основатель TSOY.IN — профиль, соцсети со счётчиками, его публикации
  * (в т.ч. перенесённые с WordPress), поддержка проекта. Публикации — «Показать ещё» через X-Partial, как в ленте журнала.
  */
 class AuthorController extends Controller

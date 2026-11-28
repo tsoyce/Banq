@@ -6,10 +6,11 @@
             @foreach ([1, 2] as $pass)
                 @foreach ($groups as $g)
                     @if ($g['title'])
-                        <a @if ($g['href']) href="{{ $g['href'] }}" @if (str_starts_with($g['href'], 'http')) target="_blank" rel="noopener" @endif @endif class="ticker-tag" @if ($pass === 2) aria-hidden="true" tabindex="-1" @endif>{{ $g['title'] }}</a>
+                        <a @if ($g['href']) href="{{ $g['href'] }}" @if (str_starts_with($g['href'], 'http')) target="_blank" rel="noopener" @endif @endif class="ticker-tag" @if ($pass === 2) aria-hidden="true" tabindex="-1" @endif>@if (! empty($g['flag']))@include('partials.flag', ['code' => $g['flag'], 'round' => true, 'c' => 'ticker-flag'])@endif{{ $g['title'] }}</a>
                     @endif
                     @foreach ($g['items'] as $it)
                         <a @if (! empty($it['href'])) href="{{ $it['href'] }}" @endif class="ticker-item" @if ($pass === 2) aria-hidden="true" tabindex="-1" @endif>
+                            @if (! empty($it['flag']))@include('partials.flag', ['code' => $it['flag'], 'round' => true, 'c' => 'ticker-flag'])@endif {{-- A46 --}}
                             <span class="{{ isset($it['value']) ? 'text-white/55' : 'text-white/80' }}">{{ $it['label'] }}</span>
                             @isset($it['value'])<b class="text-white">{{ $it['value'] }}</b>@endisset
                             @if (isset($it['delta']) && $it['delta'] !== null)

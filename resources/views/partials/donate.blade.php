@@ -1,4 +1,4 @@
-{{-- A46 · Блок «Поддержать проект»: ссылки на переводы и реквизиты с копированием. Настройки donate.* — админка → «Автор и соцсети».
+{{-- A55 · Блок «Поддержать проект»: ссылки на переводы и реквизиты с копированием. Настройки donate.* — админка → «Автор и соцсети».
      $compact — короткая карточка (сайдбар статьи): заголовок, одна строка и кнопки. --}}
 @php($donateItems = collect((array) settings('donate.items', []))->filter(fn ($d) => filled($d['url'] ?? null) || filled($d['details'] ?? null))->values())
 @if (settings('donate.enabled', true) && $donateItems->isNotEmpty())

@@ -18,7 +18,8 @@ class CurrencyController extends Controller
 {
     public function index(CurrencyRates $fx): View
     {
-        $countries = Country::query()->active()->ordered()->get()->map(function (Country $c) use ($fx) {
+        $countries = app(\App\Support\AdminScope::class)->apply(Country::query()->active()->ordered(), 'id')->get()->map( // A46 · страны из плашки
+            function (Country $c) use ($fx) {
             $provider = $fx->provider($c);
             $date = $provider ? $fx->latestDate($c) : null;
 

@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-/** A46 · Страница автора, соцсети со счётчиками, поддержка проекта. */
+/** A55 · Страница автора, соцсети со счётчиками, поддержка проекта. */
 class AuthorPageTest extends TestCase
 {
     use RefreshDatabase;

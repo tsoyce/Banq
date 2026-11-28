@@ -10,7 +10,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * A46 · Соцсети TSOY.IN и счётчики подписчиков.
+ * A55 · Соцсети TSOY.IN и счётчики подписчиков.
  *
  * Список — настройка social.networks: [{network, url, label?, followers? (ручное число), visible}].
  * Счётчики, полученные по API, — настройка social.counts: {network: {count, at, source, error?}}; хранится в базе,

@@ -30,8 +30,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(\App\Services\Cards\CardCatalog::class); // A33 · одна выборка карт на запрос
         $this->app->scoped(\App\Services\Currency\CurrencyRates::class); // A40
         $this->app->scoped(\App\Services\Ticker\Ticker::class);
-        $this->app->scoped(\App\Support\Founder::class); // A46 · автор /author — один запрос на запрос
+        $this->app->scoped(\App\Support\Founder::class); // A55 · автор /author — один запрос на запрос
         $this->app->scoped(\App\Services\Social\SocialStats::class);
+        $this->app->scoped(\App\Support\AdminScope::class); // A46
     }
 
     /**

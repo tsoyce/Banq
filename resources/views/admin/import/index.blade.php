@@ -1,7 +1,7 @@
-@extends('layouts.admin', ['title' => 'Импорт Excel'])
+@extends('layouts.admin', ['title' => 'Матрица ставок'])
 
 @section('content')
-<h1 class="font-display font-bold text-3xl">Импорт ставок из Excel</h1>
+<h1 class="font-display font-bold text-3xl">Импорт матрицы ставок</h1>
 
 <form method="POST" action="{{ route('admin.import.preview') }}" enctype="multipart/form-data" class="glass glow-edge p-8"
       x-data="{ name: '', over: false }" @dragover.prevent="over = true" @dragleave="over = false" @drop.prevent="over = false; $refs.file.files = $event.dataTransfer.files; name = $refs.file.files[0]?.name">

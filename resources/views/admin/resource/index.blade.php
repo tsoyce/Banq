@@ -17,7 +17,17 @@
     </div>
     <div class="flex flex-wrap gap-2">
         @if ($resource->exchangeEntity())
-            <a href="{{ route('admin.exchange.export', ['entities' => [$resource->exchangeEntity()], 'format' => 'xlsx']) }}" class="btn btn-ghost !py-2.5 text-sm">@include('partials.icon', ['i' => 'download', 'c' => 'w-4 h-4']) Всё в XLSX</a>
+            {{-- A46 · «Экспорт» с выбором формата (не привязан к XLSX) и «Импорт» — в общий обмен данными; страна — из плашки --}}
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+                <button type="button" class="btn btn-ghost !py-2.5 text-sm" @click="open = !open" :aria-expanded="open" aria-haspopup="menu">@include('partials.icon', ['i' => 'download', 'c' => 'w-4 h-4']) Экспорт</button>
+                <div x-show="open" x-cloak x-transition.origin.top.right class="absolute right-0 top-full mt-2 z-30 card p-1.5 min-w-52 shadow-xl" role="menu">
+                    <p class="label px-3 pt-1.5 pb-1">Всё в формате</p>
+                    @foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $fk => $fl)
+                        <a role="menuitem" href="{{ route('admin.exchange.export', array_filter(['entities' => [$resource->exchangeEntity()], 'format' => $fk, 'country' => app(\App\Support\AdminScope::class)->code()])) }}" class="flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--card-2)]">{{ $fl }} <span class="faint mono text-xs">.{{ $fk === 'yaml' ? 'yaml' : $fk }}</span></a>
+                    @endforeach
+                </div>
+            </div>
+            <a href="{{ route('admin.exchange.index') }}" class="btn btn-ghost !py-2.5 text-sm">@include('partials.icon', ['i' => 'upload', 'c' => 'w-4 h-4']) Импорт</a>
         @endif
         @if ($resource->canCreate())
             <a href="{{ route('admin.resource.create', $resource->key()) }}" class="btn btn-primary !py-2.5">@include('partials.icon', ['i' => 'plus', 'c' => 'w-4 h-4']) Добавить {{ $resource->singular() }}</a>
@@ -82,7 +92,7 @@
                 @endif
             </select>
             @if ($resource->exchangeEntity())
-                <select name="format" class="input !w-auto !py-2 text-sm" :disabled="!count" aria-label="Формат экспорта"><option value="json">JSON</option><option value="csv">CSV</option><option value="xlsx">XLSX</option></select>
+                <select name="format" class="input !w-auto !py-2 text-sm" :disabled="!count" aria-label="Формат экспорта">@foreach (\App\Services\Exchange\DataExchange::FORMAT_LABELS as $fk => $fl)<option value="{{ $fk }}">{{ $fl }}</option>@endforeach</select>
             @endif
             <button class="btn btn-primary !py-2 text-sm" :disabled="!count">Применить</button>
         </div>

@@ -1,4 +1,4 @@
-{{-- A46 · Соцсети TSOY.IN. $variant: grid — карточки с числом подписчиков (страница автора), row — значки в строку (подвал, карточка автора).
+{{-- A55 · Соцсети TSOY.IN. $variant: grid — карточки с числом подписчиков (страница автора), row — значки в строку (подвал, карточка автора).
      Данные — App\Services\Social\SocialStats::profiles() (число по API, иначе ручное из админки). --}}
 @php($social = app(\App\Services\Social\SocialStats::class))
 @php($profiles = $profiles ?? (settings('social.enabled', true) ? $social->profiles() : []))

@@ -33,7 +33,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <span class="level"><i>@include('partials.icon', ['i' => 'award', 'c' => 'w-3.5 h-3.5'])</i>{{ $level['label'] }}</span>
-                @if (app(\App\Support\Founder::class)->is($user))<a href="{{ route('author') }}" class="chip hover:!bg-[var(--card-2)]">@include('partials.icon', ['i' => 'pen', 'c' => 'w-3.5 h-3.5']) Страница автора →</a>@endif {{-- A46 --}}
+                @if (app(\App\Support\Founder::class)->is($user))<a href="{{ route('author') }}" class="chip hover:!bg-[var(--card-2)]">@include('partials.icon', ['i' => 'pen', 'c' => 'w-3.5 h-3.5']) Страница автора →</a>@endif {{-- A55 --}}
                 @if ($user->isStaff())<span class="chip">@include('partials.icon', ['i' => 'shield', 'c' => 'w-3.5 h-3.5']) команда портала</span>@endif
             </div>
             @if ($user->bio)<p class="text-[15px] leading-[1.55] max-w-2xl">{{ $user->bio }}</p>@endif

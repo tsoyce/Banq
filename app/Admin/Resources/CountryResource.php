@@ -4,6 +4,8 @@ namespace App\Admin\Resources;
 
 use App\Admin\Resource;
 use App\Models\Country;
+use App\Support\AdminScope;
+use App\Support\Flags;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -47,6 +49,12 @@ class CountryResource extends Resource
         return 'countries';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'id';
+    }
+
     public function query(): Builder
     {
         return Country::query()->withCount('banks');
@@ -70,7 +78,7 @@ class CountryResource extends Resource
     public function columns(): array
     {
         return [
-            ['key' => 'name', 'label' => 'Страна', 'sort' => 'name', 'render' => fn (Country $c) => self::html('<span class="text-xl mr-2">'.e($c->flag).'</span><b>'.e($c->name).'</b> <span class="faint text-xs">'.e($c->name_en).'</span>')],
+            ['key' => 'name', 'label' => 'Страна', 'sort' => 'name', 'render' => fn (Country $c) => self::html($c->flagImg('mr-2 h-[1.15em]').'<b>'.e($c->name).'</b> <span class="faint text-xs">'.e($c->name_en).'</span>')],
             ['key' => 'code', 'label' => 'Код', 'sort' => 'code', 'class' => 'font-mono'],
             ['key' => 'currency', 'label' => 'Валюта', 'sort' => 'currency', 'render' => fn (Country $c) => $c->currency.' '.$c->currency_symbol],
             ['key' => 'guarantee', 'label' => 'Гарантия вкладов', 'render' => fn (Country $c) => $c->guaranteeName() ?? '—'],
@@ -88,7 +96,10 @@ class CountryResource extends Resource
             ['name' => 'name', 'label' => 'Название', 'rules' => ['required', 'string', 'max:120'], 'placeholder' => 'Казахстан'],
             ['name' => 'code', 'label' => 'ISO-код', 'rules' => ['required', 'alpha', 'size:2', Rule::unique('countries')->ignore($model)], 'placeholder' => 'KZ', 'class' => 'font-mono uppercase'],
             ['name' => 'slug', 'label' => 'В URL (?country=)', 'rules' => ['nullable', 'alpha_dash', 'max:32', Rule::unique('countries')->ignore($model)], 'placeholder' => 'kz'],
-            ['name' => 'flag', 'label' => 'Флаг (эмодзи)', 'rules' => ['nullable', 'string', 'max:16'], 'placeholder' => '🇰🇿'],
+            // A46 · флаг на сайте — SVG из библиотеки по ISO-коду; здесь можно выбрать другой (регион, старый флаг) или загрузить свой в «Сайт → Флаги»
+            ['name' => 'flag_code', 'label' => 'Флаг', 'type' => 'select', 'options' => fn () => ['' => 'По ISO-коду страны'] + collect(Flags::all())->map(fn ($f, $k) => $f['name'].' · '.$k)->all(),
+                'rules' => ['nullable', 'string', 'max:16'], 'help' => 'SVG из библиотеки; свой флаг — в «Сайт → Флаги»'],
+            ['name' => 'flag', 'label' => 'Флаг-эмодзи', 'rules' => ['nullable', 'string', 'max:16'], 'placeholder' => '🇰🇿', 'help' => 'для мест, где картинка невозможна (списки выбора)'],
             ['name' => 'name_genitive', 'label' => 'Родительный падеж', 'help' => '«банки Казахстана»', 'rules' => ['nullable', 'string', 'max:120']],
             ['name' => 'name_locative', 'label' => 'Предложный', 'help' => '«в Казахстане»', 'rules' => ['nullable', 'string', 'max:120']],
             ['name' => 'name_en', 'label' => 'По-английски', 'rules' => ['nullable', 'string', 'max:120']],

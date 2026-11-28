@@ -27,7 +27,7 @@
             @foreach ($fx['items'] as $n => $i)
                 @php($d = $i['delta'])
                 <li class="fx-row" style="--d: {{ 0.04 * $n }}s">
-                    <span class="fx-flag" aria-hidden="true">{{ $i['flag'] ?: $i['symbol'] }}</span>
+                    <span class="fx-flag" aria-hidden="true">@if ($i['flag'])@include('partials.flag', ['code' => $i['flag'], 'round' => true, 'c' => 'w-full h-full'])@else{{ $i['symbol'] }}@endif</span>{{-- A46 · SVG-флаг вместо эмодзи (на Windows эмодзи — буквы) --}}
                     <span class="min-w-0">
                         <b class="block leading-tight">{{ $i['code'] }}@if ($i['nominal'] > 1) <span class="muted font-normal text-xs">×{{ $i['nominal'] }}</span>@endif</b>
                         <span class="block text-xs muted truncate">{{ $i['name'] }}</span>

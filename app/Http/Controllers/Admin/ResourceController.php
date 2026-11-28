@@ -9,6 +9,7 @@ use App\Models\DepositProduct;
 use App\Services\Exchange\DataExchange;
 use App\Services\Exchange\EntityRegistry;
 use App\Services\Exchange\ImportOptions;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ use Illuminate\View\View;
  */
 class ResourceController extends Controller
 {
-    public function __construct(private ResourceRegistry $registry) {}
+    public function __construct(private ResourceRegistry $registry, private AdminScope $scope) {}
 
     private function resource(Request $request, string $key): Resource
     {
@@ -34,16 +35,31 @@ class ResourceController extends Controller
         return $r;
     }
 
+    /** A46 · Базовый запрос ресурса в пределах стран: выбор в плашке ($selection) или права сотрудника. */
+    private function scoped(Resource $r, bool $selection = true): \Illuminate\Database\Eloquent\Builder
+    {
+        return $this->scope->apply($r->query(), $r->countryScope(), $r->countryNullable(), $selection);
+    }
+
+    /** Запись — только из стран сотрудника (чужая страна — 404, как будто её нет). */
     private function find(Resource $r, string $id): Model
     {
-        return ($r->model())::query()->findOrFail($id);
+        return $this->scope->apply(($r->model())::query(), $r->countryScope(), $r->countryNullable(), selection: false)->findOrFail($id);
+    }
+
+    /** A46 · Сохранить можно только в свои страны. */
+    private function guardCountry(Resource $r, Model $model): void
+    {
+        if (! $this->scope->permits($model, $r->countryScope(), $r->countryNullable())) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['country_id' => 'Эта страна вам недоступна: вы работаете только со своими странами.']);
+        }
     }
 
     public function index(Request $request, string $key): View
     {
         $r = $this->resource($request, $key);
         $perPage = in_array((int) $request->query('per'), [25, 50, 100, 200], true) ? (int) $request->query('per') : 25;
-        $items = $r->applyRequest($r->query(), $request)->paginate($perPage)->withQueryString();
+        $items = $r->applyRequest($this->scoped($r), $request)->paginate($perPage)->withQueryString();
 
         return view('admin.resource.index', [
             'resource' => $r, 'items' => $items, 'perPage' => $perPage, 'sort' => $r->sort($request),
@@ -72,6 +88,7 @@ class ResourceController extends Controller
         $model = new ($r->model());
         $r->fill($model, $data);
         $r->saving($model, $data, $request);
+        $this->guardCountry($r, $model); // A46
         $model->save();
         $r->saved($model, $data, $request); // A32
 
@@ -96,6 +113,7 @@ class ResourceController extends Controller
 
         $r->fill($model, $data);
         $r->saving($model, $data, $request);
+        $this->guardCountry($r, $model); // A46
         $model->save();
         $r->saved($model, $data, $request); // A32
 
@@ -126,13 +144,13 @@ class ResourceController extends Controller
         $actions = $r->bulkActions() + ($r->exchangeEntity() ? ['export' => ['label' => 'Экспорт']] : []);
         $data = $request->validate([
             'action' => ['required', Rule::in(array_keys($actions))],
-            'ids' => ['array'], 'ids.*' => ['integer'], 'all' => ['boolean'], 'format' => ['nullable', 'in:json,csv,xlsx'],
+            'ids' => ['array'], 'ids.*' => ['integer'], 'all' => ['boolean'], 'format' => ['nullable', Rule::in(array_keys(DataExchange::FORMAT_LABELS))], // A46 · все форматы обмена
         ]);
 
         // all=1 — ровно тот запрос, что на экране (поиск и фильтры приходят из скрытых полей)
         $query = $request->boolean('all')
-            ? $r->applyRequest($r->query(), $request->duplicate(query: $request->input('filters', [])))
-            : $r->query()->whereKey($data['ids'] ?? []);
+            ? $r->applyRequest($this->scoped($r), $request->duplicate(query: $request->input('filters', [])))
+            : $this->scoped($r, selection: false)->whereKey($data['ids'] ?? []);
         $models = $query->limit(5000)->get();
         if ($models->isEmpty()) {
             return back()->withErrors(['bulk' => 'Ничего не выбрано.']);
@@ -161,7 +179,7 @@ class ResourceController extends Controller
     /** Новая ставка — через движок обмена: та же логика истории, что у импорта и API. */
     private function storeRate(Request $request, array $data): RedirectResponse
     {
-        $product = DepositProduct::query()->findOrFail($data['deposit_product_id']);
+        $product = $this->scope->apply(DepositProduct::query(), 'bank.country_id', selection: false)->findOrFail($data['deposit_product_id']); // A46
         $report = app(DataExchange::class)->import(['deposit_rates' => [array_filter([
             'product' => $product->slug, 'currency' => $data['currency'] ?? null, 'term_months' => $data['term_months'] ?? null,
             'amount_from' => $data['amount_from'] ?? null, 'amount_to' => $data['amount_to'] ?? null, 'rate' => $data['rate'],

@@ -133,7 +133,7 @@
             @include('partials.logo')
             <span class="muted max-w-sm">{{ settings('site.tagline') }}</span>
         </div>
-        {{-- A46 · Соцсети TSOY.IN и ссылки на автора и поддержку --}}
+        {{-- A55 · Соцсети TSOY.IN и ссылки на автора и поддержку --}}
         <div class="flex flex-col gap-3 md:items-center">
             @include('partials.socials', ['class' => 'is-footer'])
             <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] faint md:justify-center">

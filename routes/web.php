@@ -101,7 +101,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comparisons/{comparison}', [ComparisonController::class, 'destroy'])->name('comparisons.destroy');
 });
 
-// A46 · Страница автора (основатель TSOY.IN): профиль, соцсети, публикации, поддержка; /donate — короткая ссылка на блок поддержки
+// A55 · Страница автора (основатель TSOY.IN): профиль, соцсети, публикации, поддержка; /donate — короткая ссылка на блок поддержки
 Route::get('/author', [AuthorController::class, 'show'])->name('author');
 Route::redirect('/donate', '/author#donate', 302)->name('donate');
 
@@ -159,7 +159,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/currency', [Admin\CurrencyController::class, 'update'])->name('currency.update');
     Route::post('/currency/{country}/sync', [Admin\CurrencyController::class, 'sync'])->middleware('throttle:10,1')->name('currency.sync');
 
-    // A46 · Автор, соцсети (счётчики подписчиков), поддержка проекта
+    // A55 · Автор, соцсети (счётчики подписчиков), поддержка проекта
     Route::get('/author', [Admin\AuthorController::class, 'edit'])->name('author.edit');
     Route::put('/author', [Admin\AuthorController::class, 'update'])->name('author.update');
     Route::post('/author/refresh', [Admin\AuthorController::class, 'refresh'])->middleware('throttle:10,1')->name('author.refresh');
@@ -183,6 +183,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::get('/report', 'report')->name('report');
         Route::post('/reset', 'reset')->name('reset');
     });
+
+    // A46 · Страна в плашке админки и библиотека флагов (свои флаги — загрузка/замена)
+    Route::post('/country', Admin\CountryScopeController::class)->name('country');
+    Route::get('/flags', [Admin\FlagController::class, 'index'])->name('flags.index');
+    Route::post('/flags', [Admin\FlagController::class, 'store'])->middleware('throttle:30,1')->name('flags.store');
+    Route::delete('/flags/{code}', [Admin\FlagController::class, 'destroy'])->where('code', '[a-z0-9-]+')->name('flags.destroy');
 
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');

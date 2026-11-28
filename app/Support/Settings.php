@@ -40,7 +40,7 @@ class Settings
             'ticker.speed' => 5,
             'fx.currencies' => [],       // {"KZ": ["USD","EUR","RUB","CNY"]} — пусто: config('banq.fx.defaults')
             'fx.home_card' => true,
-            // A46 · Автор, соцсети, донаты (админка → Сайт → «Автор и соцсети»)
+            // A55 · Автор, соцсети, донаты (админка → Сайт → «Автор и соцсети»)
             'author.user_id' => null,
             'author.headline' => 'Основатель TSOY.IN',
             'author.slogan' => 'My Unlimited Story',
