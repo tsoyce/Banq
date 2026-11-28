@@ -114,7 +114,10 @@
                 <button type="button" class="ed-btn" @click="pickImage()" :disabled="uploading" title="Картинка (можно перетащить в текст)" aria-label="Картинка">
                     <span x-show="!uploading">@include('partials.icon', ['i' => 'image', 'c' => 'w-4 h-4'])</span><span x-show="uploading" x-cloak class="dot-loader"><i></i><i></i><i></i></span>
                 </button>
-                <button type="button" class="ed-btn" x-show="is('image')" x-cloak @click="imageAlt()" title="Описание картинки" aria-label="Описание картинки">alt</button>
+                {{-- A46 · галерея из нескольких картинок; подпись к картинке --}}
+                <button type="button" class="ed-btn" @click="pickGallery()" :disabled="uploading" title="Галерея: несколько картинок сеткой, мозаикой или слайдером (можно перетащить несколько файлов)" aria-label="Галерея">@include('partials.icon', ['i' => 'grid', 'c' => 'w-4 h-4'])</button>
+                <button type="button" class="ed-btn" x-show="is('image') || is('figureImage')" x-cloak @click="imageAlt()" title="Описание картинки" aria-label="Описание картинки">alt</button>
+                <button type="button" class="ed-btn" x-show="is('image')" x-cloak @click="addCaption()" title="Добавить подпись под картинкой" aria-label="Подпись">Подпись</button>
                 <div class="relative">
                     <button type="button" class="ed-btn" :class="is('table') && 'is-on'" @click="is('table') ? (menu = menu === 'table' ? null : 'table') : insertTable()" title="Таблица" aria-label="Таблица">@include('partials.icon', ['i' => 'table', 'c' => 'w-4 h-4'])</button>
                     <div class="ed-menu" x-show="menu === 'table'" x-cloak x-transition.origin.top.left>
@@ -145,6 +148,7 @@
                 <button type="button" class="ed-btn" @click="run(c => c.undo())" :disabled="!can(c => c.undo())" title="Отменить · Ctrl+Z" aria-label="Отменить">@include('partials.icon', ['i' => 'undo', 'c' => 'w-4 h-4'])</button>
                 <button type="button" class="ed-btn" @click="run(c => c.redo())" :disabled="!can(c => c.redo())" title="Вернуть · Ctrl+Shift+Z" aria-label="Вернуть">@include('partials.icon', ['i' => 'redo', 'c' => 'w-4 h-4'])</button>
                 <input type="file" accept="image/*" class="hidden" x-ref="imageFile" @change="uploadImage($event.target.files[0]); $event.target.value = ''">
+                <input type="file" accept="image/*" multiple class="hidden" x-ref="galleryFiles" @change="insertGallery($event.target.files); $event.target.value = ''">
             </div>
 
             <div class="ed-body px-5 sm:px-10 pt-6" x-ref="body"></div>

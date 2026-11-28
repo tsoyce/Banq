@@ -28,7 +28,7 @@
                 @if ($page->updated_at)<p class="text-sm faint mt-4">Обновлено {{ $page->updated_at->translatedFormat('j F Y') }}</p>@endif
             </header>
             @if ($page->coverUrl())
-                <figure class="post-hero-cover">
+                <figure class="post-hero-cover" data-lightbox>
                     @include('blog._cover', ['post' => $page, 'eager' => true])
                     @if ($page->cover_caption)<figcaption>{{ $page->cover_caption }}</figcaption>@endif
                 </figure>
@@ -39,7 +39,7 @@
                     <ol>@foreach ($toc as $h)<li class="lvl-{{ $h['level'] }}"><a href="#{{ $h['id'] }}">{{ $h['text'] }}</a></li>@endforeach</ol>
                 </details>
             @endif
-            <div class="prose-banq" id="post-body">{!! $html !!}</div>
+            <div class="prose-banq" id="post-body" data-lightbox>{!! $html !!}</div>
         </div>
     </article>
 
