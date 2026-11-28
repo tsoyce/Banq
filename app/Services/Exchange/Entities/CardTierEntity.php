@@ -44,7 +44,9 @@ class CardTierEntity extends Entity
             'segment' => ['enum', 'values' => array_keys(CardTier::SEGMENTS), 'example' => 'elite'],
             'description' => ['text'],
             'privileges' => ['list', 'desc' => 'привилегии уровня', 'example' => ['Консьерж-сервис', 'Бизнес-залы']],
-            'meta' => ['json'],
+            'badge' => ['string', 'desc' => 'свой значок уровня: путь /uploads/… или URL (SVG/PNG); пусто — рисуется по умолчанию', 'rules' => 'max:255'], // A54
+            'badge_text' => ['string', 'desc' => 'подпись на значке: «MIR Privilege» или «МИР Привилегия»', 'rules' => 'max:60'],
+            'meta' => ['json', 'desc' => 'прочее; tone — металл значка: '.implode(', ', array_keys(CardTier::TONES))],
             'is_active' => ['bool'],
             'sort' => ['int'],
         ];

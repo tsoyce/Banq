@@ -69,7 +69,7 @@ class CardTierResource extends Resource
     public function columns(): array
     {
         return [
-            ['key' => 'name', 'label' => 'Уровень', 'sort' => 'name', 'render' => fn (CardTier $t) => self::html('<b>'.e($t->name).'</b><span class="faint text-xs block font-mono">'.e($t->slug).'</span>')],
+            ['key' => 'name', 'label' => 'Уровень', 'sort' => 'name', 'render' => fn (CardTier $t) => self::html('<span class="flex items-center gap-3">'.view('partials.tier-badge', ['tier' => $t, 'c' => 'w-12'])->render().'<span><b>'.e($t->name).'</b><span class="faint text-xs block font-mono">'.e($t->slug).'</span></span></span>')], // A54: значок
             ['key' => 'system', 'label' => 'Система', 'render' => fn (CardTier $t) => $t->paymentSystem?->name],
             ['key' => 'level', 'label' => 'Ступень', 'sort' => 'level', 'render' => fn (CardTier $t) => self::html('<span class="level-dots" aria-label="'.$t->level.' из 6">'.str_repeat('<i class="on"></i>', $t->level).str_repeat('<i></i>', max(0, 6 - $t->level)).'</span>')],
             ['key' => 'segment', 'label' => 'Сегмент', 'sort' => 'segment', 'render' => fn (CardTier $t) => $t->segmentLabel()],
@@ -88,6 +88,12 @@ class CardTierResource extends Resource
             ['name' => 'slug', 'label' => 'Адрес', 'help' => 'пусто — система + код', 'rules' => ['nullable', 'alpha_dash', 'max:120', Rule::unique('card_tiers')->ignore($model)]],
             ['name' => 'level', 'label' => 'Ступень 1–6', 'type' => 'number', 'help' => '1 — базовая (Classic), 3 — Platinum, 5 — Infinite / World Elite', 'rules' => ['required', 'integer', 'min:1', 'max:6'], 'default' => 1],
             ['name' => 'segment', 'label' => 'Сегмент', 'type' => 'select', 'rules' => ['required'], 'options' => CardTier::SEGMENTS, 'default' => 'mass'],
+            // A54 · значок уровня: свой файл или нейтральный рисунок по умолчанию (металл по ступени, подпись)
+            ['name' => 'badge', 'label' => 'Значок уровня', 'type' => 'image', 'span' => 2, 'group' => 'Значок',
+                'help' => 'SVG/PNG/WebP до 1 МБ; пусто — рисуем сами: «мини-карта» с металлом по ступени. Логотипы систем — только если есть право их использовать.'],
+            ['name' => 'badge_text', 'label' => 'Подпись на значке', 'group' => 'Значок', 'rules' => ['nullable', 'string', 'max:60'],
+                'help' => 'пусто — короткое имя («Gold»); можно латиницей или кириллицей: «MIR Privilege» / «МИР Привилегия»'],
+            ['name' => 'meta.tone', 'label' => 'Металл значка', 'type' => 'select', 'group' => 'Значок', 'options' => CardTier::TONES, 'help' => 'пусто — по коду и ступени'],
             ['name' => 'privileges', 'label' => 'Привилегии', 'type' => 'list', 'span' => 2, 'help' => 'по одной в строке', 'placeholder' => "Консьерж-сервис\nБизнес-залы аэропортов"],
             ['name' => 'description', 'label' => 'Описание', 'type' => 'textarea', 'rules' => ['nullable', 'string', 'max:5000']],
             ['name' => 'sort', 'label' => 'Порядок', 'type' => 'number', 'rules' => ['nullable', 'integer', 'min:0'], 'default' => 500],

@@ -236,6 +236,10 @@ abstract class Resource
             if ($type === 'json') {
                 $r[] = 'json';
             }
+            if ($type === 'image') { // A54 · путь/URL строкой + загрузка файла рядом
+                $rules[$f['name'].'__upload'] = ['nullable', 'file', 'mimes:svg,png,jpg,jpeg,webp', 'max:1024'];
+                $r = array_merge(['nullable', 'string', 'max:255'], array_diff($r, ['nullable']));
+            }
             if ($type === 'checks') { // A32
                 $r = ['nullable', 'array'];
                 $rules[$f['name'].'.*'] = [Rule::in(array_map('strval', array_keys($this->options($f['options']))))];
@@ -262,6 +266,37 @@ abstract class Resource
             'password' => '',
             default => $v,
         };
+    }
+
+    /**
+     * A54 · Загруженные картинки полей type=image: файл → public/uploads/{ключ ресурса}/, путь — в данные поля.
+     * SVG проверяется: без скриптов, обработчиков on*, javascript: и foreignObject (картинку можно открыть по прямой ссылке).
+     */
+    public function absorbUploads(Request $request, array $data, ?Model $m = null): array
+    {
+        foreach ($this->fields($m) as $f) {
+            if (($f['type'] ?? '') !== 'image' || ! ($file = $request->file($f['name'].'__upload'))) {
+                continue;
+            }
+            $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+            if ($ext === 'svg' && ! self::safeSvg((string) file_get_contents($file->getRealPath()))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([$f['name'] => 'В SVG есть скрипт или внешние ссылки — такой файл не принимаем.']);
+            }
+            $dir = 'uploads/'.$this->key();
+            $name = Str::slug(Str::beforeLast($file->getClientOriginalName(), '.')) ?: 'image';
+            $name = Str::limit($name, 40, '').'-'.Str::lower(Str::random(6)).'.'.$ext;
+            $file->move(public_path($dir), $name);
+            $data[$f['name']] = '/'.$dir.'/'.$name;
+            unset($data[$f['name'].'__upload']);
+        }
+
+        return $data;
+    }
+
+    /** A54 · SVG без активного содержимого. */
+    public static function safeSvg(string $svg): bool
+    {
+        return ! preg_match('/<\s*(script|foreignObject|iframe|embed|object)\b|\son[a-z]+\s*=|javascript:|<!ENTITY|(?:xlink:)?href\s*=\s*["\']\s*(?!#|data:image)/i', $svg);
     }
 
     /** Заполнить модель проверенными данными формы. */

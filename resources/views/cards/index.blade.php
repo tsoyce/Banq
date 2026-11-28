@@ -1,23 +1,34 @@
 {{-- A33 · Каталог карт: бенто-шапка с крупными цифрами, фильтры слева, список справа (fetch без перезагрузки). --}}
 @php
     $kindTitle = count($filters->kinds) === 1 ? $filters->kinds[0]->plural().' карты' : 'Банковские карты';
+    $kindTitle .= $filters->audience ? ' '.$filters->audience->forWhom() : ''; // A54
+    $aud = $filters->audienceParam(); // A54 · текущая аудитория в ссылках
 @endphp
 @extends('layouts.app', ['title' => $kindTitle.' '.(country()?->genitive() ? 'банков '.country()->genitive() : ''), 'description' => 'Дебетовые и кредитные карты банков '.(country()?->genitive() ?? '').': кэшбэк, стоимость обслуживания, льготный период, платёжные системы и уровни карт, сравнение.'])
 
 @section('content')
-@php $catalogEmpty = $stats['count'] === 0 && ! $filters->activeCount(); @endphp {{-- A36 --}}
+@php $catalogEmpty = ! array_sum($audienceCounts) && ! $filters->activeCount(); @endphp {{-- A36, A54: пусто во всей стране, а не в выбранной вкладке --}}
 <div x-data="cardFilters" class="space-y-5">
 
     <section class="grid grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:gap-5">{{-- A36: цифры на телефоне — в ряд --}}
         <div class="card p-7 flex flex-col justify-between gap-6 relative overflow-hidden col-span-2 md:col-span-1" data-reveal>
             <nav class="text-sm muted flex items-center gap-2"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><span>Карты</span></nav>
             <div>
-                <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Карты <span class="text-grad">банков {{ country()?->genitive() }}</span></h1>
-                <p class="muted mt-3">Дебетовые, кредитные и виртуальные: кэшбэк, стоимость, льготный период и уровень карты. «Оценка Banq» считается из данных — относительно лучших карт рынка.</p>
-                <div class="flex flex-wrap gap-2 mt-5">
+                <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Карты @if ($filters->audience){{ $filters->audience->forWhom() }} @endif<span class="text-grad">банков {{ country()?->genitive() }}</span></h1>
+                <p class="muted mt-3">{{ $filters->audience === \App\Enums\CardAudience::Business ? 'Корпоративные и бизнес-карты для юрлиц и ИП: обслуживание, кэшбэк, лимиты и уровень карты.' : 'Дебетовые, кредитные и виртуальные: кэшбэк, стоимость, льготный период и уровень карты.' }} «Оценка Banq» считается из данных — относительно лучших карт рынка.</p>
+                {{-- A54 · физлица / бизнес — первая развилка каталога, вид карты — вторая --}}
+                <nav class="aud-tabs mt-5" aria-label="Для кого">
+                    @foreach (\App\Enums\CardAudience::cases() as $a)
+                        <a href="{{ route('cards.index', array_filter(['audience' => $filters->audienceParam($a), 'kind' => array_map(fn ($k) => $k->value, $filters->kinds)])) }}" @class(['is-active' => $filters->audience === $a]) title="{{ $a->hint() }}"
+                           @if ($filters->audience === $a) aria-current="page" @endif>@include('partials.icon', ['i' => $a->icon(), 'c' => 'w-4 h-4']) {{ $a->label() }} <span class="count">{{ $audienceCounts[$a->value] ?? 0 }}</span></a>
+                    @endforeach
+                    <a href="{{ route('cards.index', array_filter(['audience' => 'all', 'kind' => array_map(fn ($k) => $k->value, $filters->kinds)])) }}" @class(['is-active' => $filters->audience === null])>Все <span class="count">{{ array_sum($audienceCounts) }}</span></a>
+                </nav>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <a href="{{ route('cards.index', array_filter(['audience' => $aud])) }}" class="pill {{ ! $filters->kinds ? 'is-active' : '' }}">Все виды <span class="faint tabular">{{ array_sum($kindCounts) }}</span></a>
                     @foreach (\App\Enums\CardKind::cases() as $k)
                         @continue(! ($kindCounts[$k->value] ?? 0))
-                        <a href="{{ route('cards.index', ['kind' => [$k->value]]) }}" class="pill {{ $filters->kinds === [$k] ? 'is-active' : '' }}">{{ $k->plural() }} <span class="faint tabular">{{ $kindCounts[$k->value] }}</span></a>
+                        <a href="{{ route('cards.index', array_filter(['kind' => [$k->value], 'audience' => $aud])) }}" class="pill {{ $filters->kinds === [$k] ? 'is-active' : '' }}">{{ $k->plural() }} <span class="faint tabular">{{ $kindCounts[$k->value] }}</span></a>
                     @endforeach
                     <a href="{{ route('payment-systems.index') }}" class="pill">@include('partials.icon', ['i' => 'globe', 'c' => 'w-4 h-4 text-[var(--brand-2)]']) Платёжные системы</a>
                 </div>
@@ -145,9 +156,10 @@
                 @endif
 
                 <input type="hidden" name="sort" value="{{ $filters->sort }}" x-ref="sort">
+                @if ($aud)<input type="hidden" name="audience" value="{{ $aud }}">@endif {{-- A54 --}}
                 <div class="flex gap-2 pt-1">
                     <button type="submit" class="btn btn-primary flex-1">Показать</button>
-                    <a href="{{ route('cards.index') }}" class="btn btn-ghost" @click.prevent="reset()">Сбросить</a>
+                    <a href="{{ route('cards.index', array_filter(['audience' => $aud])) }}" class="btn btn-ghost" @click.prevent="reset()">Сбросить</a>
                 </div>
             </form>
         </aside>

@@ -14,7 +14,7 @@
 </header>
 
 <div class="grid gap-6 {{ $aside ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : '' }} items-start">
-    <form method="POST" action="{{ $model ? route('admin.resource.update', [$resource->key(), $model->getKey()]) : route('admin.resource.store', $resource->key()) }}" class="space-y-4 max-w-4xl" novalidate>
+    <form method="POST" action="{{ $model ? route('admin.resource.update', [$resource->key(), $model->getKey()]) : route('admin.resource.store', $resource->key()) }}" class="space-y-4 max-w-4xl" enctype="multipart/form-data" novalidate>
         @csrf
         @if ($model) @method('PUT') @endif
 

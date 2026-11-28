@@ -56,7 +56,7 @@ class CardCatalogTest extends TestCase
     {
         $r = $this->importDemo();
         $this->assertSame(0, $r['totals']['error'], json_encode($r['rows'], JSON_UNESCAPED_UNICODE));
-        $this->assertSame(6, Card::count());
+        $this->assertSame(7, Card::count()); // A54: + бизнес-карта
         $this->assertSame(1, ServicePackage::count());
 
         $travel = Card::where('slug', 'demo-ffin-travel')->firstOrFail();

@@ -44,7 +44,7 @@ app/
 │        Admin/{Rating,Review}Controller ... A18 авторская оценка + данные банка, снимок; модерация отзывов
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Country (A21), ApiToken (A23)
 ├─ Models/ Setting, Bank, DepositProduct, DepositRate, Import, User, Rating (A18), Review (A18), Favorite (A28), SavedComparison (A28)
-├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid)
+├─ Models/ PaymentSystem, CardTier, Card, ServicePackage (A30) · Enums/CardKind (A30: debit/credit/prepaid) · Enums/CardAudience (A54: personal/business — физлицам/бизнесу)
 ├─ Http/Controllers/ CardController (каталог, карточка, сравнение), PaymentSystemController, ServicePackageController  A33
 ├─ Services/Database/DatabaseSwitcher  A34 переключение SQLite ⇄ MySQL: миграции, перенос таблиц, копии .env, откат; A38 только таблицы своей базы, explain() ошибок SQL; A41 пересоздание остатков прошлой попытки
 ├─ Http/Controllers/Admin/DatabaseController  A34 /admin/database (только admin)
@@ -113,8 +113,8 @@ resources/
    ├─ profile/ show (публичный профиль)  A28 · partials/ avatar, fav (кнопка-сердце)  A28
    ├─ deposits/ index (каталог), _results (список, отдаётся и по fetch), _offer (строка), show (карточка), compare  A14
    ├─ install/ welcome, database, site
-   ├─ cards/{index,_results,_offer,show,compare}, payment-systems/{index,show}, packages/{index,_card,show}  A33
-   ├─ partials/plastic (объёмная карта, x-tilt), partials/ps-mark (знак платёжной системы)  A33
+   ├─ cards/{index,_results,_offer,show,compare}, payment-systems/{index,show}, packages/{index,_card,show}  A33 · cards/_split (вкладки «Физлицам/Бизнесу» × виды, на странице системы и банка) A54
+   ├─ partials/plastic (объёмная карта, x-tilt), partials/ps-mark (знак платёжной системы; A54 — загруженный logo / logo_alt)  A33 · partials/tier-badge (значок уровня: загруженный или SVG «мини-карта», металл по ступени) A54
    ├─ partials/country-switch ....... A21 переключатель стран в ленте
    └─ admin/ dashboard, settings/edit, import/{index,preview}, ratings/{index,edit}, reviews/index (A18)
             resource/{index,form,field,aside-bank,aside-deposit} (A24), aside-payment-system (A32), database/index (A34), exchange/{index,report,_rows,show,tokens} (A22 A23), exchange/grid (A39)
@@ -132,7 +132,7 @@ tests/ .............................. Unit: парсер Excel · Feature: ус�
                                        обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
 public/uploads/blog/wp/ГГГГ/ММ/ ...... A43 файлы, перенесённые с WordPress (в git не попадают)
-tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28), карты (A33: CardCatalogTest; fixtures/cards-demo.json — вымышленные условия)
+tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28), карты (A33: CardCatalogTest; fixtures/cards-demo.json — вымышленные условия; A54: CardAudienceTest)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
 deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot; A35: DEPLOY_SKIP_PULL
 deploy/banq-deploy .................. A35 принудительная команда ключа выкладки (копия в /usr/local/sbin): бэкап базы, deploy.sh от tsoy, проверка, откат
@@ -232,9 +232,9 @@ HTTP запрос
 | `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
 | `users` (+A46) | **admin_countries** json — id стран сотрудника (null — все); ставит только админ без ограничений | админка → Пользователи | AdminScope: списки, правка, выгрузки, таблица, импорт по умолчанию |
 | `favorites` | user_id, favoritable_type (`deposit`\|`bank`\|`card` A30), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
-| `payment_systems` (A30) | code (unique), slug, name, short_name, aliases json, scope international/regional/national, home_country, countries json, color, color_2, logo, website, founded_year, headquarters, wallets json, description, meta, is_active, sort | миграция (сидер), админка, обмен | /payment-systems, карты |
-| `card_tiers` (A30) | payment_system_id, code, slug (unique), name, level 1–6, segment, description, privileges json, meta; unique(payment_system_id, code) | сидер, админка, обмен | карточка карты, страница системы |
-| `cards` (A30) | bank_id, kind (CardKind), name, slug, segment, format, currencies, issue/annual/monthly fee, fee_note, cashback_max/base/note, balance_rate, credit_limit_max, grace_days, credit_rate(_effective), min_payment, cash_fee, free_cash_limit, transfer_fee, online_opening, delivery, validity_years, age_from, features json, color, color_2, image, description, conditions json, source_url, is_active, sort | админка, обмен | /cards, банк, главная, избранное |
+| `payment_systems` (A30) | code (unique), slug, name, short_name, aliases json, scope international/regional/national, home_country, countries json, color, color_2, logo, logo_alt (A54: второй вариант знака), website, founded_year, headquarters, wallets json, description, meta, is_active, sort | миграция (сидер), админка, обмен | /payment-systems, карты |
+| `card_tiers` (A30) | payment_system_id, code, slug (unique), name, level 1–6, segment, description, privileges json, badge (A54: свой значок), badge_text (A54: подпись, «MIR Privilege»), meta (A54: tone — металл значка); unique(payment_system_id, code) | сидер, админка, обмен | карточка карты, страница системы |
+| `cards` (A30) | bank_id, kind (CardKind), audience (A54: CardAudience personal/business, индекс), name, slug, segment (без business — с A54 это audience), format, currencies, issue/annual/monthly fee, fee_note, cashback_max/base/note, balance_rate, credit_limit_max, grace_days, credit_rate(_effective), min_payment, cash_fee, free_cash_limit, transfer_fee, online_opening, delivery, validity_years, age_from, features json, color, color_2, image, description, conditions json, source_url, is_active, sort | админка, обмен | /cards, банк, главная, избранное |
 | `card_networks` (A30) | card_id, payment_system_id, card_tier_id nullable | CardEntity (networks), CardResource (флажки) | Card::networks() |
 | `service_packages` (A30) + `card_service_package` | bank_id, name, slug, segment, monthly/annual fee, fee_note, perks json, conditions, description, color, source_url, is_active, sort | админка, обмен | /packages, карточка карты, банк |
 | `saved_comparisons` | user_id, title, product_ids json, amount, term_months | ComparisonController (≤30 на пользователя) | кабинет → Сравнения |
@@ -319,7 +319,7 @@ HTTP запрос
 | GET | `/api/v1`, `/api/v1/openapi.json` | api.about, api.openapi | без токена: руководство для агентов и OpenAPI 3.1 (A39) |
 | POST, DELETE | `/api/v1/{entity}` | api.entity.upsert, api.entity.destroy | write; DELETE — ещё право delete (A39) |
 | GET, GET, GET, POST | `/admin/exchange/grid`, `/exchange/grid/{entity}`, `/exchange/grid/{entity}/rows`, `/exchange/grid/{entity}` | admin.exchange.grid* | admin, editor — табличный редактор (A39) |
-| GET | `/cards?kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=`, `/cards/compare?ids=`, `/cards/{card:slug}` | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
+| GET | `/cards?audience=&kind=&system=&bank=&currency=&segment=&feat[]=&free=&sort=` (A54: audience по умолчанию personal, `business`, `all`), `/cards/compare?ids=`, `/cards/{card:slug}?from=ps:{slug}|bank` (A54: хлебные крошки назад) | cards.index, cards.compare, cards.show | все (A33); список — частичный ответ при `X-Requested-With` |
 | GET | `/payment-systems`, `/payment-systems/{system:slug}` | payment-systems.* | все (A33) |
 | GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |
 | GET, PUT | `/admin/ticker` | admin.ticker.* | admin, editor (A40) |
@@ -342,6 +342,7 @@ HTTP запрос
 - A18: токены `--s-author --s-objective --s-people`; классы `.kicker .num-hero .num-card .cells(.cols-2|.cols-3, .cell-label) .delta(-up|-down|-flat) .gauge .stars .star-pick .dist-row .bank-card .avatar`, `.seg > a(.is-active)` (сегмент-ссылки), `.table .is-sorted`. Partials: `gauge` ($score, $color, $size, $sub), `stars` ($score, $starSize), `delta` ($d, $unit). Иконки: pen users thumb quote award info user.
 - A28: классы `.avatar.is-gen` (буква на градиенте, `--h` — оттенок пользователя), `.avatar-xl`, `.fav-btn(.is-on, .btn-like)`, `.pop` (меню в шапке), `.tabs` (вкладки кабинета), `.toast` (session status), `.level`, `.status-{approved,pending,rejected}` + `.status-dot`, `.cells.cols-4`, `.empty`. Alpine `favorite(on)` — переключение избранного fetch'ем. Иконки: heart bell camera trash pin grid calendar link.
 - A33: `$store.cardCompare` (localStorage `banq.cardCompare`, та же фабрика `compareStore`), `cardFilters` (общий `catalogFilters` с вкладами), директива `x-tilt` (наклон и блик). Классы `.plastic*`, `.mini-card`, `.ps-*`, `.ps-tile`, `.level-dots`, `.card-offer`, `.key-nums`, `.perk`, `.score-bar`, `.ps-card`, `.tier-step`. Иконки: gift percent wifi plane coins cash layers crown.
+- A54: `.aud-tabs` (переключатель «Физлицам / Бизнесу / Все»), `.tier-badge` (`.is-img`), `.ps-logo`. Поле админки `type => 'image'` (`Resource::absorbUploads` → `public/uploads/{ключ ресурса}/`, SVG проверяется `Resource::safeSvg`; рядом остаётся поле пути/URL).
 - A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. `CardKind::genitivePlural()`; `.cmp-scroll` (закреплённая колонка сравнения), `.cb-short/.cb-long` (панель сравнения на телефоне). Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
 - A37 журнал: `.blog-hero`, `.post-grid` (`.is-3`), `.post-card`, `.post-cover` (сгенерированная обложка с цветом рубрики, если картинки нет), `.read-progress`, `.post-sheet/.post-title/.post-byline`, `.toc` (+ `.toc-inline` на телефоне), `.reactions`, `.prose-banq` (типографика статьи: врезки `aside[data-tone=info|tip|warn|money]`, `.prose-table`, `td.num`), `.embed` (живая карточка продукта в тексте), `.ed-*` (редактор, `.ed-focus` — режим фокуса). Иконки: eye, share, copy, rss, tag, send, image, bold…redo, table, hr, bulb, box, save, highlight, maximize, reply.
 - A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.

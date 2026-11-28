@@ -3,6 +3,7 @@
 namespace App\Admin\Resources;
 
 use App\Admin\Resource;
+use App\Enums\CardAudience;
 use App\Enums\CardKind;
 use App\Models\Bank;
 use App\Models\Card;
@@ -76,6 +77,7 @@ class CardResource extends Resource
         return [
             'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
             'bank' => ['label' => 'Банк', 'options' => fn () => Bank::query()->inCountry(request('country') ?: null)->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => $b->displayName()])->all(), 'apply' => fn ($q, $v) => $q->where('bank_id', $v)],
+            'audience' => ['label' => 'Для кого', 'options' => collect(CardAudience::cases())->mapWithKeys(fn ($a) => [$a->value => $a->label()])->all(), 'apply' => fn ($q, $v) => $q->where('audience', $v)], // A54
             'kind' => ['label' => 'Вид', 'options' => collect(CardKind::cases())->mapWithKeys(fn ($k) => [$k->value => $k->label()])->all(), 'apply' => fn ($q, $v) => $q->where('kind', $v)],
             'system' => ['label' => 'Система', 'options' => fn () => PaymentSystem::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('paymentSystems', fn ($p) => $p->whereKey($v))],
             'active' => ['label' => 'На сайте', 'options' => ['1' => 'Активные', '0' => 'Скрытые'], 'apply' => fn ($q, $v) => $q->where('is_active', $v === '1')],
@@ -90,7 +92,7 @@ class CardResource extends Resource
         return [
             ['key' => 'name', 'label' => 'Карта', 'sort' => 'name', 'render' => fn (Card $c) => self::html(
                 '<span class="flex items-center gap-3"><span class="mini-card" style="background: '.e($c->face()).'"></span><span><b>'.e($c->name).'</b><span class="faint text-xs block">'.($c->bank?->country?->flagImg() ?? '').' '.e($c->bank?->displayName()).' · <span class="font-mono">'.e($c->slug).'</span></span></span></span>')],
-            ['key' => 'kind', 'label' => 'Вид', 'sort' => 'kind', 'render' => fn (Card $c) => $c->kind?->label()],
+            ['key' => 'kind', 'label' => 'Вид', 'sort' => 'kind', 'render' => fn (Card $c) => self::html(e($c->kind?->label()).'<span class="faint text-xs block">'.e($c->audience?->label()).'</span>')], // A54: + для кого
             ['key' => 'networks', 'label' => 'Системы', 'render' => fn (Card $c) => self::html($c->networks()->map(fn ($n) => '<span class="chip !py-0.5">'.e($n['tier']?->name ?? $n['system']->displayName()).'</span>')->implode(' ') ?: '<span class="text-[var(--warn)] text-sm">не указаны</span>')],
             ['key' => 'annual_fee', 'label' => 'В год', 'sort' => 'annual_fee', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->yearlyFee() === null ? '<span class="faint">—</span>' : ($c->yearlyFee() == 0 ? 'бесплатно' : e(money_format($c->yearlyFee(), currency_symbol($c->bank?->country?->currency))))).'</span>')],
             ['key' => 'cashback_max', 'label' => 'Кэшбэк', 'sort' => 'cashback_max', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->cashback_max !== null ? 'до '.percent_format($c->cashback_max) : '<span class="faint">—</span>').'</span>')],
@@ -123,6 +125,8 @@ class CardResource extends Resource
             ['name' => 'name', 'label' => 'Название', 'rules' => ['required', 'string', 'max:160']],
             ['name' => 'kind', 'label' => 'Вид', 'type' => 'select', 'rules' => ['required'], 'options' => collect(CardKind::cases())->mapWithKeys(fn ($k) => [$k->value => $k->label().' — '.mb_strtolower($k->hint())])->all()],
             ['name' => 'slug', 'label' => 'Адрес на сайте', 'help' => 'пусто — из банка и названия', 'rules' => ['nullable', 'alpha_dash', 'max:160', Rule::unique('cards')->ignore($model)]],
+            ['name' => 'audience', 'label' => 'Для кого', 'type' => 'select', 'default' => 'personal', 'help' => 'пусто — по уровню карты (Visa Business → бизнесу)', // A54
+                'options' => collect(CardAudience::cases())->mapWithKeys(fn ($a) => [$a->value => $a->label().' — '.mb_strtolower($a->hint())])->all()],
             ['name' => 'segment', 'label' => 'Сегмент', 'type' => 'select', 'options' => Card::SEGMENTS],
             ['name' => 'format', 'label' => 'Формат', 'type' => 'select', 'rules' => ['required'], 'options' => Card::FORMATS, 'default' => 'physical'],
             ['name' => 'currencies', 'label' => 'Валюты', 'type' => 'list', 'help' => 'по одной в строке', 'placeholder' => "KZT\nUSD"],
@@ -170,12 +174,13 @@ class CardResource extends Resource
     {
         $bank = Bank::find($request->query('bank'));
 
-        return ['bank_id' => $bank?->id, 'currencies' => [$bank?->country?->currency ?? country()?->currency ?? 'KZT'], 'kind' => $request->query('kind', 'debit')];
+        return ['bank_id' => $bank?->id, 'currencies' => [$bank?->country?->currency ?? country()?->currency ?? 'KZT'], 'kind' => $request->query('kind', 'debit'), 'audience' => $request->query('audience', 'personal')];
     }
 
     public function saving(Model $m, array $data, Request $request): void
     {
         $m->sort ??= 500;
+        $m->audience ??= CardAudience::Personal; // A54 · уточняется по уровням в saved()
         if (! $m->slug) {
             $base = Str::slug(Bank::find($m->bank_id)?->slug.'-'.$m->name);
             for ($i = 1, $s = $base; Card::query()->where('slug', $s)->whereKeyNot($m->id)->exists(); $s = $base.'-'.++$i);
@@ -189,6 +194,10 @@ class CardResource extends Resource
             ->map(fn ($v) => explode(':', $v))->map(fn ($p) => ['card_id' => $m->id, 'payment_system_id' => (int) $p[0], 'card_tier_id' => (int) $p[1] ?: null])->values();
         DB::table('card_networks')->where('card_id', $m->id)->delete();
         DB::table('card_networks')->insert($rows->all());
+        if (! $request->filled('audience')) { // A54 · не выбрано — по уровню карты
+            $m->unsetRelation('tiers');
+            $m->forceFill(['audience' => $m->guessAudience()])->saveQuietly();
+        }
     }
 
     public function bulkActions(): array
@@ -212,6 +221,6 @@ class CardResource extends Resource
 
     public function summary(): array
     {
-        return ['Всего' => Card::count(), 'Дебетовых' => Card::where('kind', 'debit')->count(), 'Кредитных' => Card::where('kind', 'credit')->count(), 'Без системы' => Card::doesntHave('paymentSystems')->count()];
+        return ['Всего' => Card::count(), 'Бизнесу' => Card::where('audience', 'business')->count(), 'Дебетовых' => Card::where('kind', 'debit')->count(), 'Кредитных' => Card::where('kind', 'credit')->count(), 'Без системы' => Card::doesntHave('paymentSystems')->count()];
     }
 }

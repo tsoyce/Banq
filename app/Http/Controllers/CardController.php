@@ -22,11 +22,12 @@ class CardController extends Controller
         $data = [
             'filters' => $filters,
             'offers' => $this->catalog->search($filters),
-            'kindCounts' => $this->catalog->kindCounts(),
+            'kindCounts' => $this->catalog->kindCounts($filters->audience),
+            'audienceCounts' => $this->catalog->audienceCounts(), // A54
             'systems' => $this->catalog->systems(),
             'banks' => $this->catalog->banks(),
             'currencies' => $this->catalog->currencies(),
-            'stats' => $this->catalog->stats(),
+            'stats' => $this->catalog->stats($filters->audience), // A54
         ];
 
         if ($request->header('X-Partial') === 'results') {
@@ -36,7 +37,7 @@ class CardController extends Controller
         return view('cards.index', $data);
     }
 
-    public function show(Card $card): View
+    public function show(Request $request, Card $card): View
     {
         abort_unless($card->is_active && $card->bank?->status === 'active', 404);
         $card->load(['bank.country', 'paymentSystems', 'tiers.paymentSystem', 'packages' => fn ($q) => $q->where('is_active', true)]);
@@ -46,10 +47,30 @@ class CardController extends Controller
             'card' => $card,
             'offer' => $this->catalog->offer($card),
             'rank' => $this->catalog->rank($card),
-            'sameKind' => $this->catalog->all()->where('kind', $card->kind)->count(),
+            'sameKind' => $this->catalog->peers($card)->count(), // A54: среди того же вида и аудитории
+            'from' => $this->from($request, $card), // A54: откуда пришли — для хлебных крошек
             'similar' => $this->catalog->similar($card),
             'siblings' => $this->catalog->all()->where('bank_id', $card->bank_id)->whereNotIn('id', [$card->id])->values(),
         ]);
+    }
+
+    /**
+     * A54 · Хлебные крошки «назад»: ?from=ps:visa — из платёжной системы, ?from=bank — со страницы банка.
+     * Только если карта и правда в этой системе / банке; иначе — обычный путь через каталог.
+     *
+     * @return array{type: string, system?: \App\Models\PaymentSystem, tier?: ?\App\Models\CardTier}|null
+     */
+    private function from(Request $request, Card $card): ?array
+    {
+        $from = (string) $request->query('from');
+        if ($from === 'bank') {
+            return ['type' => 'bank'];
+        }
+        if (str_starts_with($from, 'ps:') && ($ps = $card->paymentSystems->firstWhere('slug', substr($from, 3)))) {
+            return ['type' => 'ps', 'system' => $ps, 'tier' => $card->tiers->where('payment_system_id', $ps->id)->sortByDesc('level')->first()];
+        }
+
+        return null;
     }
 
     public function compare(Request $request): View

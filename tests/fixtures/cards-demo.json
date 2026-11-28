@@ -11,7 +11,10 @@
         {"slug": "demo-bcc-credit", "name": "Рассрочка Демо", "kind": "credit", "networks": ["VISA:platinum"], "segment": "mass", "format": "physical",
          "issue_fee": 0, "annual_fee": 12000, "fee_note": "бесплатно при тратах от 150 000 ₸ в месяц", "cashback_max": 3, "credit_limit_max": 3000000, "grace_days": 60,
          "credit_rate": 28, "credit_rate_effective": 32.4, "min_payment": 5, "online_opening": true,
-         "features": ["contactless", "apple_pay", "installments"], "color": "#1F2937", "color_2": "#00A0E3"}
+         "features": ["contactless", "apple_pay", "installments"], "color": "#1F2937", "color_2": "#00A0E3"},
+        {"slug": "demo-bcc-business", "name": "Бизнес Демо", "kind": "debit", "audience": "business", "networks": ["VISA:business"], "format": "physical",
+         "currencies": ["KZT"], "issue_fee": 0, "monthly_fee": 1500, "cashback_max": 1, "online_opening": true,
+         "features": ["contactless"], "color": "#0D1B3E", "color_2": "#3157A4"}
       ],
       "service_packages": [
         {"slug": "demo-bcc-premium", "name": "Премиум Демо", "segment": "premium", "monthly_fee": 9900, "fee_note": "бесплатно при остатке от 10 млн ₸",
