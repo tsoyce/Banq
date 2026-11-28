@@ -76,6 +76,11 @@ app/
 ├─ Admin/Resources/{AdCampaign,AdCreative,AdSlot,CodeSnippet}Resource  A51 раздел меню «Реклама»; A50 Сайт → «Коды и счётчики» (только admin); поле ресурса type=image (A51)
 ├─ views: ads/slot (место; @include('ads.slot', ['slot' => key])), admin/ads/{index,_slot-aside,_campaign-aside,_creative-aside}; css/ads.css, js/ads.js   A51
 ├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset
+├─ Support/Founder ................. A55 основатель (settings author.user_id, иначе первый админ): user(), is(), urlFor() — подпись автора ведёт на /author
+├─ Services/Social/SocialStats ...... A55 соцсети: NETWORKS (подпись, цвет, способ счёта), profiles() (число API → ручное), refresh() (YouTube API, t.me / Bot API, VK API, GitHub), ensureFresh() (defer, 12 ч), compact(), handle()
+├─ Http/Controllers/AuthorController  A55 /author: профиль, соцсети, публикации автора (X-Partial: posts, ?c=рубрика), поддержка
+├─ Http/Controllers/Admin/AuthorController  A55 /admin/author: автор, соцсети (порядок, ручные числа, видимость), ключи API (не отдаются в HTML), донаты; refresh
+├─ views: author/show, admin/author/edit, partials/{socials (grid|row), social-icon (знаки сетей), donate (полный | compact)} · css/author.css · public/images/brand/ta-500.png (монограмма TA)  A55
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
@@ -129,6 +134,11 @@ resources/
    │        embeds/{bank,deposit,card,package,payment_system}  A37 (_about — блок «В журнале» на страницах банка, вклада, карты, пакета, системы)
 public/build/ ....................... собранный фронтенд (коммитится: на сервере нет Node)
 public/uploads/branding/ ............ логотип и фавикон из админки (в git не попадают)
+public/flags/{4x3,1x1}/*.svg ........ A46 библиотека флагов flag-icons 7.5 (MIT, LICENSE.txt рядом), 271 код: страны ISO + eu, un, gb-sct…
+public/uploads/flags/ ............... A46 свои флаги из админки «Сайт → Флаги» (в git не попадают)
+app/Support/Flags.php ............... A46 флаги: url/img/name, forCurrency (USD→us, EUR→eu), свои флаги (настройка flags.custom), проверка загрузки (SVG без скриптов)
+app/Support/AdminScope.php .......... A46 страна в плашке админки (session admin.country) + страны сотрудника (users.admin_countries): apply/permits/clampCode
+resources/views/partials/flag ....... A46 вывод флага: code|currency, round, c, fallback
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
                                        обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
@@ -226,11 +236,12 @@ HTTP запрос
 | `ratings` | bank_id, kind (author/objective/people), score 0–5, breakdown json, votes, verdict, pros/cons json, user_id, **period** (unique bank+kind+period) | Admin\RatingController (author), RatingBoard::snapshot (objective, people) | RatingBoard: текущая авторская, прошлые снимки → ▲▼ |
 | `reviews` | user_id, bank_id, deposit_product_id?, score 1–5, title, body, status pending/approved/rejected, reject_reason, reply, reply_author, helpful, moderated_by/at, published_at, ip; unique user+bank | ReviewController, Admin\ReviewController | страница банка, /ratings, PeopleRating |
 | `review_votes` | review_id + user_id (PK) | ReviewController::vote | счётчик reviews.helpful |
-| `countries` (A21) | code ISO (unique), slug, name + name_genitive/locative/en/native, flag, currency, currency_symbol, currencies json, locale, timezone, phone_code, regulator json, central_bank json, deposit_guarantee json {short, name, url, limits{savings,term,demand,foreign}}, meta, is_active, sort | миграция (KZ), админка, обмен | CurrentCountry, все витрины, Country::guaranteeLimit |
+| `countries` (A21) | code ISO (unique), slug, name + name_genitive/locative/en/native, flag (эмодзи — только для текста), **flag_code** (A46: код SVG-флага, пусто — по ISO), currency, currency_symbol, currencies json, locale, timezone, phone_code, regulator json, central_bank json, deposit_guarantee json {short, name, url, limits{savings,term,demand,foreign}}, meta, is_active, sort | миграция (KZ), админка, обмен | CurrentCountry, все витрины, Country::guaranteeLimit |
 | `banks` (+A21) | **country_id** (FK, restrict), unique(country_id, code), `is_kdif_member` → **deposit_insured** | админка, обмен | всё, что выше, — по стране |
 | `api_tokens` (A23) | name, token_hash sha256 (unique), prefix, abilities json [read, write], last_used_at, last_ip, expires_at, user_id | админка, banq:token | AuthenticateApiToken |
 | `imports` (+A22) | api_token_id, format (json/ndjson/xml/yaml/csv/tsv/xlsx/grid/matrix/form; A39), rows_updated включает удалённые (A39), source (admin/cli/api), mode, rows_failed, stats json; kind = список сущностей | DataExchange, DepositImporter | админка (история, журнал), API |
 | `users` (+A28) | username (unique, /u/…), avatar (путь в public), city, country_code ISO-2, bio ≤280, is_public, notify json {review_status, review_reply, rate_changes}, last_seen_at | регистрация (username — хук creating), кабинет → настройки | шапка, кабинет, профиль, отзывы |
+| `users` (+A46) | **admin_countries** json — id стран сотрудника (null — все); ставит только админ без ограничений | админка → Пользователи | AdminScope: списки, правка, выгрузки, таблица, импорт по умолчанию |
 | `favorites` | user_id, favoritable_type (`deposit`\|`bank`\|`card` A30), favoritable_id; unique тройка | FavoriteController | кабинет, кнопки-сердца (User::hasFavorite) |
 | `payment_systems` (A30) | code (unique), slug, name, short_name, aliases json, scope international/regional/national, home_country, countries json, color, color_2, logo, website, founded_year, headquarters, wallets json, description, meta, is_active, sort | миграция (сидер), админка, обмен | /payment-systems, карты |
 | `card_tiers` (A30) | payment_system_id, code, slug (unique), name, level 1–6, segment, description, privileges json, meta; unique(payment_system_id, code) | сидер, админка, обмен | карточка карты, страница системы |
@@ -267,6 +278,8 @@ HTTP запрос
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
 | `BANQ_TYPOGRAPH` | phpunit.xml (`false`), вручную | true — A36 middleware типографики включён |
 | `BANQ_FX_AUTO_REFRESH` | .env (A40) | `true` — обновлять курсы при первом заходе за день; в тестах `false` |
+| `BANQ_SOCIAL_AUTO_REFRESH` | .env (A55) | `true` — счётчики соцсетей старше 12 ч обновляются после ответа посетителю; в тестах `false` |
+| `BANQ_YOUTUBE_API_KEY`, `BANQ_TELEGRAM_BOT_TOKEN`, `BANQ_VK_SERVICE_TOKEN` | .env (A55), необязательно | пусто; ключи из админки («Автор и соцсети») важнее |
 | `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
@@ -286,7 +299,13 @@ HTTP запрос
 | `fx.currencies` {"KZ": ["USD","EUR","RUB","CNY"]}, `fx.home_card` | админка → Курсы валют (A40) | CurrencyRates::codes(), карточка на главной |
 | `ads.enabled`, `ads.max_per_page` (3), `ads.feed_position` (6), `ads.label` («Реклама»), `ads.hide_for_staff` | админка → Реклама → Обзор и настройки (A51) | AdServer::pick, blog/_grid, ads/slot |
 | `ads.txt` | там же, только admin (A50) | `/ads.txt` + строки AdSense из code_snippets |
+| `flags.custom` {код: {name?, url?}} | админка → Сайт → Флаги (A46) | Flags::url/name — свой флаг поверх библиотечного или новый код |
 | `blog.premoderation` | админка → Настройки → Журнал (A37) | новые комментарии читателей — на модерацию (pending) |
+| `author.user_id`, `author.headline`, `author.slogan`, `author.about` | админка → Сайт → Автор и соцсети (A55) | Founder, страница /author, подпись в статье |
+| `social.enabled`, `social.networks` [{network, url, label, followers (ручное), visible}] | там же (A55); по умолчанию — 6 сетей из шапки tsoy.in | SocialStats → /author, подвал |
+| `social.counts` {network: {count, at, source, error}}, `social.refreshed_at` | SocialStats::refresh (A55: cron 04:20, кнопка, заход посетителя) | число подписчиков с API |
+| `social.keys` {youtube, telegram, vk} | админка (A55), в HTML не выводятся | SocialStats::key() → иначе config banq.social.keys |
+| `donate.enabled`, `donate.title`, `donate.text`, `donate.items` [{label, currency, url, details, note}] | админка (A55); по умолчанию Т-Банк RUB и ForteBank KZT | partials/donate: /author#donate, сайдбар статьи основателя, подвал |
 
 ## 6. Маршруты
 
@@ -336,10 +355,15 @@ HTTP запрос
 | GET | `/ads.txt` | ads.txt | все (A50) |
 | GET, PUT | `/admin/ads` | admin.ads.* | admin, editor (ads.txt — только admin) (A51) |
 | CRUD | `/admin/{ad-campaigns,ad-creatives,ad-slots}`, `/admin/code-snippets` | admin.resource.* | admin, editor; HTML-объявления и код сети — только admin; code-snippets — только admin (A50 A51) |
+| POST | `/admin/country` (country=id\|пусто, _back) | admin.country | admin, editor (A46): страна в плашке админки |
+| GET, POST, DELETE | `/admin/flags`, `/admin/flags/{code}` | admin.flags.* | admin, editor (A46): библиотека флагов, свой флаг (throttle 30/мин), вернуть библиотечный |
 | ANY | fallback `/{slug}` и любой несуществующий адрес | page.fallback | A42: страница → редирект → 404 |
 | GET | `/blog?q=&kind=`, `/blog/c/{category:slug}`, `/blog/tag/{tag:slug}`, `/blog/rss.xml`, `/blog/{post:slug}` | blog.index, blog.category, blog.tag, blog.rss, blog.show | все (A37); черновик — только сотрудникам; лента — частичный ответ при `X-Partial: posts` |
 | POST, POST, DELETE | `/blog/{post}/react`, `/blog/{post}/comments`, `/blog/comments/{comment}` | blog.react, blog.comment, blog.comments.destroy | вошедшие (A37); лимиты `blog-reactions` 60/мин, `blog-comments` 6/мин |
 | POST, GET, GET | `/admin/blog/upload`, `/admin/blog/lookup?q=&type=&keys=`, `/admin/blog/embed?type=&slug=` | admin.blog.* | admin, editor (A37): картинка в текст, поиск связей с каскадом, превью вставки |
+| GET | `/author?c=рубрика` | author | все (A55): страница основателя; публикации — частичный ответ при `X-Partial: posts` |
+| GET | `/donate` | donate | все (A55): 302 → `/author#donate` |
+| GET, PUT, POST | `/admin/author`, `/admin/author/refresh` | admin.author.* | admin, editor (A55); refresh — throttle 10/мин |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -400,6 +424,7 @@ HTTP запрос
 | `fx.providers` | A40: код страны → класс RateProvider (KZ → НБРК, UZ → ЦБ РУз, RU → ЦБ РФ) | CurrencyRates::provider() |
 | `fx.defaults`, `fx.auto_refresh` (env `BANQ_FX_AUTO_REFRESH`), `fx.retry_minutes`, `fx.trend_days` | A40: валюты по умолчанию, обновление при заходе, пауза между попытками (30 мин), глубина спарклайна (30 дн.) | CurrencyRates |
 | `ticker.sources` | A40: типы контента ленты (ключ → TickerSource) | Ticker, админка → Бегущая строка |
+| `social.auto_refresh`, `social.keys.{youtube,telegram,vk}` | A55: обновление счётчиков при заходе, ключи API из .env | SocialStats |
 | `Post::cascade($type, $model)`, `Post::syncLinks($keys, &$missing)`, `Post::about($model)`, `Post::linked()`, `Post::resolveLink('card:slug')` | A37 связи публикации с каскадом (не конфиг — справка) | редактор, обмен, страницы продуктов |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
 
@@ -426,3 +451,9 @@ HTTP запрос
 - **Выбор** (`AdServer::pick`): включено → лимит на страницу → места/форматы → страна → период → бюджет → частота (cookie `banq_ads`) → скрытые (`banq_ads_hide`) → кампания ещё не на странице → вес priority × weight. Нет своих — `fallback_code` места.
 - **Учёт**: показ — `resources/js/ads.js` (IntersectionObserver ≥ 50% ≥ 1 с) → `POST /ads/e`; клик — `/ads/c/{метка}`. Метка `creative.campaign.slot.ts.nonce.hmac` (APP_KEY); каждая засчитывается один раз (кеш `ads:{impressions|clicks}:{nonce}`). Боты (`AdServer::BOTS`) и сотрудники не считаются.
 - Кеши: `banq.snippets` (навсегда), `banq.ads.slots` (навсегда), `banq.ads.pool` (2 мин) — сбрасываются при сохранении моделей.
+## 13. Флаги и страна в админке — A46
+
+- **Флаг где угодно:** `@include('partials.flag', ['code' => 'KZ'])`, `['currency' => 'USD', 'round' => true]`, в PHP — `Flags::img()` или `$country->flagImg()`. Эмодзи-флаги (`countries.flag`) — только там, где картинка невозможна (`<option>`): на Windows эмодзи-флаг — две буквы.
+- **Новый ресурс админки со страной:** `countryScope()` → путь к id страны (`'country_id'`, `'bank.country_id'`, `'product.bank.country_id'`; `'id'` — сами страны), `countryNullable()` — запись без страны общая. ResourceController сам сузит список по плашке, вернёт 404 на чужую запись и не даст сохранить в чужую страну.
+- **Свои страницы админки:** `app(AdminScope::class)->apply($query, 'country_id')`, код страны для выгрузок — `clampCode()` (сотрудник с ограничениями всегда получает свою страну).
+- Ограничения сотрудника пока не касаются API-токенов и CLI (`banq:import`), а в табличном редакторе и импорте — только страна по умолчанию: строки с явным чужим банком движок обмена не отсекает.

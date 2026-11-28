@@ -8,6 +8,7 @@ use App\Models\Bank;
 use App\Models\Card;
 use App\Models\Country;
 use App\Models\PaymentSystem;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -49,6 +50,12 @@ class CardResource extends Resource
         return 'cards';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'bank.country_id';
+    }
+
     public function query(): Builder
     {
         return Card::query()->with(['bank.country', 'paymentSystems', 'tiers']);
@@ -67,7 +74,7 @@ class CardResource extends Resource
     public function filters(): array
     {
         return [
-            'country' => ['label' => 'Страна', 'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
+            'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
             'bank' => ['label' => 'Банк', 'options' => fn () => Bank::query()->inCountry(request('country') ?: null)->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => $b->displayName()])->all(), 'apply' => fn ($q, $v) => $q->where('bank_id', $v)],
             'kind' => ['label' => 'Вид', 'options' => collect(CardKind::cases())->mapWithKeys(fn ($k) => [$k->value => $k->label()])->all(), 'apply' => fn ($q, $v) => $q->where('kind', $v)],
             'system' => ['label' => 'Система', 'options' => fn () => PaymentSystem::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('paymentSystems', fn ($p) => $p->whereKey($v))],
@@ -82,7 +89,7 @@ class CardResource extends Resource
     {
         return [
             ['key' => 'name', 'label' => 'Карта', 'sort' => 'name', 'render' => fn (Card $c) => self::html(
-                '<span class="flex items-center gap-3"><span class="mini-card" style="background: '.e($c->face()).'"></span><span><b>'.e($c->name).'</b><span class="faint text-xs block">'.e(($c->bank?->country?->flag ?? '').' '.$c->bank?->displayName()).' · <span class="font-mono">'.e($c->slug).'</span></span></span></span>')],
+                '<span class="flex items-center gap-3"><span class="mini-card" style="background: '.e($c->face()).'"></span><span><b>'.e($c->name).'</b><span class="faint text-xs block">'.($c->bank?->country?->flagImg() ?? '').' '.e($c->bank?->displayName()).' · <span class="font-mono">'.e($c->slug).'</span></span></span></span>')],
             ['key' => 'kind', 'label' => 'Вид', 'sort' => 'kind', 'render' => fn (Card $c) => $c->kind?->label()],
             ['key' => 'networks', 'label' => 'Системы', 'render' => fn (Card $c) => self::html($c->networks()->map(fn ($n) => '<span class="chip !py-0.5">'.e($n['tier']?->name ?? $n['system']->displayName()).'</span>')->implode(' ') ?: '<span class="text-[var(--warn)] text-sm">не указаны</span>')],
             ['key' => 'annual_fee', 'label' => 'В год', 'sort' => 'annual_fee', 'render' => fn (Card $c) => self::html('<span class="tabular">'.($c->yearlyFee() === null ? '<span class="faint">—</span>' : ($c->yearlyFee() == 0 ? 'бесплатно' : e(money_format($c->yearlyFee(), currency_symbol($c->bank?->country?->currency))))).'</span>')],
@@ -112,7 +119,7 @@ class CardResource extends Resource
 
         return [
             ['name' => 'bank_id', 'label' => 'Банк', 'type' => 'select', 'span' => 2, 'rules' => ['required', 'integer', 'exists:banks,id'],
-                'options' => fn () => Bank::query()->with('country')->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
+                'options' => fn () => Bank::query()->with('country')->tap(fn ($q) => app(AdminScope::class)->apply($q, 'country_id', selection: false))->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
             ['name' => 'name', 'label' => 'Название', 'rules' => ['required', 'string', 'max:160']],
             ['name' => 'kind', 'label' => 'Вид', 'type' => 'select', 'rules' => ['required'], 'options' => collect(CardKind::cases())->mapWithKeys(fn ($k) => [$k->value => $k->label().' — '.mb_strtolower($k->hint())])->all()],
             ['name' => 'slug', 'label' => 'Адрес на сайте', 'help' => 'пусто — из банка и названия', 'rules' => ['nullable', 'alpha_dash', 'max:160', Rule::unique('cards')->ignore($model)]],

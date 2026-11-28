@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(\App\Services\Ticker\Ticker::class);
         $this->app->scoped(\App\Services\Ads\AdServer::class); // A51 · счёт мест на странице
         $this->app->scoped(\App\Services\Ads\Snippets::class); // A50
+        $this->app->scoped(\App\Support\Founder::class); // A55 · автор /author — один запрос на запрос
+        $this->app->scoped(\App\Services\Social\SocialStats::class);
+        $this->app->scoped(\App\Support\AdminScope::class); // A46
     }
 
     /**

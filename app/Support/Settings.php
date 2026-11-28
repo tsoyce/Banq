@@ -46,6 +46,30 @@ class Settings
             'ads.label' => 'Реклама',
             'ads.hide_for_staff' => false,
             'ads.txt' => null,           // A50 · текст /ads.txt (строки AdSense добавляются сами)
+            // A55 · Автор, соцсети, донаты (админка → Сайт → «Автор и соцсети»)
+            'author.user_id' => null,
+            'author.headline' => 'Основатель TSOY.IN',
+            'author.slogan' => 'My Unlimited Story',
+            'author.about' => null,
+            'social.enabled' => true,
+            'social.networks' => [
+                ['network' => 'youtube', 'url' => 'https://www.youtube.com/channel/UC0l5mO3-_SB6x9jOFkwTQtQ', 'followers' => 1000, 'visible' => true],
+                ['network' => 'telegram', 'url' => 'https://t.me/tsoyin', 'followers' => null, 'visible' => true],
+                ['network' => 'x', 'url' => 'https://x.com/tsoyce', 'followers' => null, 'visible' => true],
+                ['network' => 'vk', 'url' => 'https://vk.com/tsoyin', 'followers' => null, 'visible' => true],
+                ['network' => 'instagram', 'url' => 'https://www.instagram.com/tsoyce', 'followers' => null, 'visible' => true],
+                ['network' => 'facebook', 'url' => 'https://facebook.com/tsoyce', 'followers' => null, 'visible' => true],
+            ],
+            'social.counts' => [],       // {network: {count, at, source, error?}} — SocialStats::refresh
+            'social.keys' => [],         // {youtube, telegram, vk} — ключи API (иначе .env)
+            'social.refreshed_at' => null,
+            'donate.enabled' => true,
+            'donate.title' => 'Поддержать проект',
+            'donate.text' => 'TSOY.IN делается без рекламы банков и платных мест в рейтингах. Если материалы помогли выбрать вклад или карту — поддержите автора: это время на новые обзоры и проверку данных.',
+            'donate.items' => [
+                ['label' => 'Т-Банк', 'currency' => 'RUB', 'url' => 'https://tbank.ru/cf/LVYLwfut21', 'details' => null, 'note' => 'Картой любого банка России'],
+                ['label' => 'ForteBank', 'currency' => 'KZT', 'url' => 'https://p2p.forte.kz/operations/transfer/card/9013648101', 'details' => null, 'note' => 'Перевод на карту ForteBank'],
+            ],
         ];
     }
 
