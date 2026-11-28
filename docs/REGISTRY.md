@@ -66,7 +66,7 @@ app/
 ├─ Http/Controllers/PageController .. A42 Route::fallback: страница /{slug} → редирект со старого адреса → 404; redirectFor() — и для 404 на маршрутах (bootstrap/app.php)
 ├─ Services/WordPress/ WpSource (REST API → снимок), WxrReader (файл экспорта WXR → тот же снимок), WpContent (scan — проверка на взлом,
 │                     transform — HTML WordPress → журнал), WpMedia (проверка по сигнатуре, код внутри, перекодирование GD без EXIF, ≤ 2400px),
-│                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43
+│                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43; переименованные оригиналы «-scaled-1» — A44
 ├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=]
 ├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)

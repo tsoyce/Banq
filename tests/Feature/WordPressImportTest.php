@@ -14,6 +14,8 @@ use App\Services\WordPress\WpImporter;
 use App\Services\WordPress\WpMedia;
 use App\Services\WordPress\WxrReader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -158,7 +160,7 @@ class WordPressImportTest extends TestCase
     public function test_media_rejects_disguised_code_and_strips_exif(): void
     {
         $m = app(WpMedia::class);
-        $bad = $m->store("<?php echo 1; ?>", 'https://x/wp-content/uploads/2020/01/a.jpg');
+        $bad = $m->store('<?php echo 1; ?>', 'https://x/wp-content/uploads/2020/01/a.jpg');
         $this->assertFalse($bad['ok']);
         $this->assertTrue($bad['danger']);
 
@@ -269,6 +271,53 @@ class WordPressImportTest extends TestCase
         $this->assertSame(1, Redirect::query()->where('from_path', '/halyk-2025')->value('hits'));
     }
 
+    /** A44 · оригинал переименован в «-scaled-1» / лежит в другой папке; Jetpack i2.wp.com; повторный прогон не качает файлы заново. */
+    public function test_renamed_originals_and_photon_links_are_found(): void
+    {
+        $this->seedCatalog();
+        $s = self::SITE;
+        $snap = $this->snapshot();
+        $snap['posts'] = [$snap['posts'][0]];
+        $snap['posts'][0]['content']['rendered'] = '<p><img src="'.$s.'/wp-content/uploads/2018/09/WP_2018_Pro_LI-1024x768.jpg"></p>'
+            .'<p><img src="'.$s.'/wp-content/uploads/2018/09/rot_LI-e1536720574839-1024x566.jpg"></p>'
+            .'<p><img src="https://i2.wp.com/old.example/wp-content/uploads/2020/02/image-1.png?fit=1024%2C480"></p>'
+            .'<p><img src="'.$s.'/wp-content/uploads/2020/02/image-1024x480.png"></p>';
+        $snap['posts'][0]['featured_media'] = 0;
+        $snap['media'] = [
+            ['id' => 21, 'source_url' => $s.'/wp-content/uploads/2018/09/WP_2018_Pro_LI-scaled-1.jpg', 'mime_type' => 'image/jpeg'],
+            ['id' => 22, 'source_url' => $s.'/wp-content/uploads/2019/04/rot_LI-scaled-1.jpg', 'mime_type' => 'image/jpeg'],
+            ['id' => 23, 'source_url' => $s.'/wp-content/uploads/2020/02/image-1.png', 'mime_type' => 'image/png'],
+            ['id' => 24, 'source_url' => $s.'/wp-content/uploads/2021/05/image.png', 'mime_type' => 'image/png'],
+            ['id' => 25, 'source_url' => $s.'/wp-content/uploads/2022/01/image.png', 'mime_type' => 'image/png'],
+        ];
+        Http::fake([
+            $s.'/wp-content/uploads/2018/09/WP_2018_Pro_LI-scaled-1.jpg' => Http::response($this->jpegWithExif()),
+            $s.'/wp-content/uploads/2019/04/rot_LI-scaled-1.jpg' => Http::response($this->jpegWithExif()),
+            $s.'/wp-content/uploads/2020/02/image-1.png' => Http::response($this->png(40, 20)),
+            '*' => Http::response('', 404),
+        ]);
+        $this->assertSame('wp_2018_pro_li', WpImporter::uploadStem('/x/WP_2018_Pro_LI-scaled-1.jpg'));
+        $this->assertSame('rot_li', WpImporter::uploadStem('/x/rot_LI-e1536720574839-1024x566.jpg'));
+
+        $imp = app(WpImporter::class);
+        $imp->scan(snapshot: $snap, options: []);
+        for ($i = 0; $i < 10 && ! $imp->step(60)['finished']; $i++);
+
+        $body = Post::query()->where('slug', 'halyk-2025')->value('body');
+        $this->assertMatchesRegularExpression('#src="/uploads/blog/wp/2018/09/wp-2018-pro-li-scaled-1-[0-9a-f]{6}\.jpg"#i', $body);
+        $this->assertMatchesRegularExpression('#src="/uploads/blog/wp/2019/04/rot-li-scaled-1-[0-9a-f]{6}\.jpg"#i', $body);
+        $this->assertSame(1, preg_match_all('#src="/uploads/blog/wp/2020/02/image-1-[0-9a-f]{6}\.png"#', $body));
+        $this->assertStringNotContainsString('wp.com', $body);
+        $rejected = collect($imp->report()['media_rejected'])->pluck('url');
+        $this->assertTrue($rejected->contains(fn ($u) => str_contains($u, 'image-1024x480')));  // «image» в папках 2021 и 2022 — не угадываем
+
+        // Повторный прогон с обновлением: уже перенесённые файлы не скачиваются снова
+        Http::fake(['*' => Http::response('', 500)]);
+        $imp->scan(snapshot: $snap, options: ['update' => true]);
+        for ($i = 0; $i < 10 && ! $imp->step(60)['finished']; $i++);
+        $this->assertSame($body, Post::query()->where('slug', 'halyk-2025')->value('body'));
+    }
+
     public function test_rerun_keeps_edited_posts_and_update_option_overwrites(): void
     {
         $this->seedCatalog();
@@ -360,7 +409,7 @@ XML;
         $this->get('/')->assertOk()->assertSee('href="'.url('/nasha-missiya').'"', false);  // ссылка в подвале
         $this->get('/blog/nasha-missiya')->assertNotFound();
         $page->update(['nav' => null]);
-        \Illuminate\Support\Facades\Cache::forget('pages.nav');
+        Cache::forget('pages.nav');
         $this->get('/blog')->assertOk()->assertDontSee('Наша миссия');
 
         $page->update(['in_feed' => true]);
@@ -396,7 +445,7 @@ XML;
         $admin = User::query()->where('role', 'admin')->first();
         $this->actingAs($admin)->get(route('admin.wordpress.index'))->assertOk()->assertSee('Пробный прогон');
 
-        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('snap.json', json_encode($this->snapshot()));
+        $file = UploadedFile::fake()->createWithContent('snap.json', json_encode($this->snapshot()));
         $this->actingAs($admin)->post(route('admin.wordpress.scan'), ['file' => $file])->assertRedirect(route('admin.wordpress.index'));
         $this->actingAs($admin)->get(route('admin.wordpress.index'))->assertOk()->assertSee('Halyk — 2025')->assertSee('Опасно');
 

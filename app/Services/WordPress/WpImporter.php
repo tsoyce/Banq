@@ -2,6 +2,7 @@
 
 namespace App\Services\WordPress;
 
+use App\Admin\Resources\PageResource;
 use App\Models\Bank;
 use App\Models\Page;
 use App\Models\PaymentSystem;
@@ -11,6 +12,7 @@ use App\Models\Redirect;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -69,11 +71,18 @@ class WpImporter
         $this->snapshot = $snapshot;
         $plan = $this->plan($snapshot, $options);
 
+        // A44 · повторный пробный прогон того же сайта не качает заново уже перенесённые файлы
+        $this->load();
+        $prev = $this->state;
+        $source = $snapshot['site']['url'] ?? $url;
+        $keep = ($prev['source'] ?? null) === $source
+            ? array_filter($prev['media'] ?? [], fn ($m) => ($m['ok'] ?? false) && is_file(public_path(ltrim($m['path'], '/'))))
+            : [];
         File::ensureDirectoryExists(storage_path('app/'.self::DIR));
         file_put_contents($this->path('snapshot.json'), json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $this->state = [
             'source' => $snapshot['site']['url'] ?? $url, 'scanned_at' => now()->toIso8601String(), 'options' => $options,
-            'phase' => 'scanned', 'plan' => $plan, 'media' => [], 'done' => [], 'results' => [], 'started_at' => null, 'finished_at' => null,
+            'phase' => 'scanned', 'plan' => $plan, 'media' => $keep, 'done' => [], 'results' => [], 'started_at' => null, 'finished_at' => null,
         ];
         $this->save();
 
@@ -363,6 +372,10 @@ class WpImporter
     private function localMedia(string $url, ?int $attachment): ?string
     {
         $url = html_entity_decode($url, ENT_QUOTES | ENT_HTML5);
+        // A44 · Jetpack Photon: i2.wp.com/tsoy.in/wp-content/… → сам файл на своём сайте
+        if (preg_match('#^(?:https?:)?//i\d\.wp\.com/([^/?]+)(/[^?]*)#', $url, $jp) && in_array(strtolower($jp[1]), $this->state['plan']['own_hosts'] ?? [], true)) {
+            $url = 'https://'.$jp[1].$jp[2];
+        }
         $mediaList = collect($this->snapshot['media'] ?? []);
         $orig = null;
         if ($attachment && ($m = $mediaList->firstWhere('id', $attachment)) && $this->sameUpload($m['source_url'], $url)) {
@@ -372,6 +385,7 @@ class WpImporter
             $orig = $mediaList->first(fn ($m) => strtok($m['source_url'], '?') === $mm[1].$mm[2] || preg_replace('#^https?:#', '', strtok($m['source_url'], '?')) === preg_replace('#^https?:#', '', $mm[1].$mm[2]));
         }
         $orig ??= $mediaList->first(fn ($m) => preg_replace('#^https?:#', '', strtok($m['source_url'], '?')) === preg_replace('#^https?:#', '', strtok($url, '?')));
+        $orig ??= $this->renamedOriginal($mediaList, $url);
         $key = $orig['source_url'] ?? $url;
 
         if (! isset($this->state['media'][$key])) {
@@ -387,6 +401,43 @@ class WpImporter
         }
 
         return $this->state['media'][$key]['ok'] ? $this->state['media'][$key]['path'] : null;
+    }
+
+    /**
+     * A44 · WordPress переименовал оригинал (большие фото → «-scaled», повторная загрузка → «-scaled-1», поворот → «-e1536…»),
+     * а в тексте осталась ссылка на старую копию «-1024x768», которой на сервере уже нет. Ищем файл с той же основой имени:
+     * сначала в той же папке ГГГГ/ММ, иначе — только если такой файл в библиотеке один.
+     */
+    private function renamedOriginal(Collection $mediaList, string $url): ?array
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if (! $this->isOwnUpload($url) || ! preg_match('#/uploads/(\d{4}/\d{2})/#', $path, $dir)) {
+            return null;
+        }
+        $stem = self::uploadStem($path);
+        $same = $mediaList->filter(fn ($m) => $this->isOwnUpload($m['source_url']) && self::uploadStem((string) parse_url($m['source_url'], PHP_URL_PATH)) === $stem);
+        $inDir = $same->filter(fn ($m) => str_contains($m['source_url'], '/uploads/'.$dir[1].'/'));
+
+        return $inDir->first() ?? ($same->count() === 1 ? $same->first() : null);
+    }
+
+    /** Основа имени загрузки: без расширения, «-1024x768», «-scaled(-N)», «-e1536720574839». */
+    public static function uploadStem(string $path): string
+    {
+        $name = strtolower(preg_replace('#\.\w{2,4}$#', '', basename($path)));
+        do {
+            $before = $name;
+            $name = preg_replace(['#-\d{2,5}x\d{2,5}$#', '#-scaled(?:-\d+)?$#', '#-e\d{10,13}$#'], '', $name);
+        } while ($name !== $before);
+
+        return $name;
+    }
+
+    private function isOwnUpload(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        return str_contains($url, '/wp-content/uploads/') && ($host === '' || in_array($host, $this->state['plan']['own_hosts'] ?? [], true));
     }
 
     private function sameUpload(string $original, string $variant): bool
@@ -479,7 +530,7 @@ class WpImporter
             return false;
         }
         $first = strtok(trim($path, '/'), '/');
-        if (in_array($first, \App\Admin\Resources\PageResource::reservedSlugs(), true)) {
+        if (in_array($first, PageResource::reservedSlugs(), true)) {
             return true;
         }
 
@@ -490,7 +541,7 @@ class WpImporter
     {
         $base = preg_match('/^[a-z0-9-]{1,120}$/', $oldSlug) ? $oldSlug : (Str::limit(Str::slug($oldSlug !== '' ? $oldSlug : $title, '-', 'ru'), 120, '') ?: $type.'-'.$wpId);
         $base = trim($base, '-') ?: $type.'-'.$wpId;
-        $reserved = $type === 'page' ? \App\Admin\Resources\PageResource::reservedSlugs() : [];
+        $reserved = $type === 'page' ? PageResource::reservedSlugs() : [];
         $mine = $this->existing($type, $wpId);
         for ($i = 1, $s = $base; ; $s = $base.'-'.++$i) {
             if (isset($taken[$s]) || in_array($s, $reserved, true)) {
