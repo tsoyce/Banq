@@ -33,9 +33,10 @@
 @endphp
 <div class="space-y-5" x-data x-init="$store.cardCompare.set(@js($storeItems))">
     <section class="card p-7" data-reveal>
-        <nav class="text-sm muted flex items-center gap-2 mb-5"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><a href="{{ route('cards.index') }}" class="hover:text-[var(--text)]">Карты</a><span class="faint">/</span><span>Сравнение</span></nav>
+        <nav class="text-sm muted flex items-center gap-2 mb-5"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><a href="{{ route('compare.index') }}" class="hover:text-[var(--text)]">Сравнение</a><span class="faint">/</span><span>Карты</span></nav>{{-- A53 --}}
         <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Сравнение <span class="text-grad">карт</span></h1>
         <p class="muted mt-2">До {{ $limit }} карт рядом — дебетовые и кредитные вместе. Лучшее значение в каждой строке выделено.</p>
+        <div class="mt-6">@include('compare._tabs', ['active' => 'cards'])</div>{{-- A53 · вкладки видов сравнения --}}
     </section>
 
     @if ($offers->isEmpty())

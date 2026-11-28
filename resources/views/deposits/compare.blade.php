@@ -12,7 +12,7 @@
      x-init="$store.compare.set(@js($storeItems))">
     <section class="card p-7 flex flex-wrap items-end justify-between gap-6" data-reveal>
         <div>
-            <nav class="text-sm muted flex items-center gap-2 mb-5"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><a href="{{ route('deposits.index') }}" class="hover:text-[var(--text)]">Вклады</a><span class="faint">/</span><span>Сравнение</span></nav>
+            <nav class="text-sm muted flex items-center gap-2 mb-5"><a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span><a href="{{ route('compare.index') }}" class="hover:text-[var(--text)]">Сравнение</a><span class="faint">/</span><span>Вклады</span></nav>{{-- A53 --}}
             <h1 class="font-display font-bold text-4xl sm:text-[2.75rem] leading-[1.05]">Сравнение <span class="text-grad">вкладов</span></h1>
             <p class="muted mt-2">До {{ $limit }} вкладов рядом. Лучшее значение в каждой строке выделено.</p>
         </div>
@@ -29,6 +29,7 @@
                 @auth
                     <form method="POST" action="{{ route('comparisons.store') }}" class="contents">
                         @csrf
+                        <input type="hidden" name="type" value="deposits">
                         <input type="hidden" name="ids" value="{{ $ids->join(',') }}">
                         <input type="hidden" name="amount" :value="amount">
                         <input type="hidden" name="term" :value="months">
@@ -40,6 +41,7 @@
             </div>
             @error('ids')<p class="error w-full">{{ $message }}</p>@enderror
         @endif
+        <div class="w-full">@include('compare._tabs', ['active' => 'deposits'])</div>{{-- A53 · вкладки видов сравнения --}}
     </section>
 
     @if ($columns->isEmpty())

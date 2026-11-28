@@ -25,8 +25,9 @@
             <p class="kicker px-1"><b>{{ str_pad((string) ++$n, 2, '0', STR_PAD_LEFT) }}</b> / {{ $label }}</p>
             <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 @foreach ($scopes[$scope] as $i => $ps)
-                    <a href="{{ route('payment-systems.show', $ps) }}" class="card ps-card lift p-6 flex flex-col gap-6 min-h-[230px]" style="--ps-grad: {{ $ps->gradient() }}; --d: {{ 0.04 * $i }}s" data-reveal>
-                        <div class="flex items-start justify-between gap-3 relative z-10">
+                    <div class="relative">{{-- A53 · обёртка: кнопка сравнения не может лежать внутри ссылки --}}
+                    <a href="{{ route('payment-systems.show', $ps) }}" class="card ps-card lift p-6 flex flex-col gap-6 min-h-[230px] h-full" style="--ps-grad: {{ $ps->gradient() }}; --d: {{ 0.04 * $i }}s" data-reveal>
+                        <div class="flex items-start justify-between gap-3 relative z-10 pr-12">
                             <span class="text-[34px] leading-none">@include('partials.ps-mark', ['ps' => $ps])</span>
                             @if ($ps->cards_here)<span class="chip !bg-white/15 !text-white">{{ $ps->cards_here }} {{ plural($ps->cards_here, 'карта', 'карты', 'карт') }}</span>@endif
                         </div>
@@ -38,6 +39,8 @@
                             </div>
                         </div>
                     </a>
+                    @include('partials.compare-toggle', ['type' => 'payment-systems', 'item' => $ps, 'class' => 'absolute top-5 right-5 z-20 ps-cmp'])
+                    </div>
                 @endforeach
             </div>
         </section>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CardController;
+use App\Http\Controllers\CompareController;
 use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\FavoriteController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\RatingController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServicePackageController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Services\Compare\CompareRegistry;
 use Illuminate\Support\Facades\Route;
 
 // Мастер установки (доступен только до установки — см. EnsureInstalled)
@@ -51,6 +53,9 @@ Route::prefix('cards')->name('cards.')->controller(CardController::class)->group
     Route::get('/compare', 'compare')->name('compare');
     Route::get('/{card:slug}', 'show')->name('show');
 });
+// A53 · Универсальное сравнение: раздел со всеми видами продуктов и таблица одного вида (вклады и карты — на своих страницах)
+Route::get('/compare', [CompareController::class, 'index'])->name('compare.index');
+Route::get('/compare/{type}', [CompareController::class, 'show'])->where('type', implode('|', array_map(fn ($k) => preg_quote($k, '/'), array_keys(CompareRegistry::TYPES))))->name('compare.show');
 Route::get('/payment-systems', [PaymentSystemController::class, 'index'])->name('payment-systems.index');
 Route::get('/payment-systems/{system:slug}', [PaymentSystemController::class, 'show'])->name('payment-systems.show');
 Route::get('/packages', [ServicePackageController::class, 'index'])->name('packages.index');

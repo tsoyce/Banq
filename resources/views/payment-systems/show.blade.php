@@ -15,6 +15,7 @@
                 <span class="chip !bg-white/15 !text-white mb-4">{{ $system->scopeLabel() }} система</span>
                 <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.02]">{{ $system->name }}</h1>
                 @if ($system->description)<p class="mt-4 max-w-2xl opacity-85">{{ $system->description }}</p>@endif
+                <div class="mt-6">@include('partials.compare-toggle', ['type' => 'payment-systems', 'item' => $system, 'wide' => true])</div>{{-- A53 --}}
             </div>
         </div>
         <div class="card p-0 overflow-hidden" data-reveal style="--d:.06s">

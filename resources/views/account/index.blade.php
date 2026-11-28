@@ -94,12 +94,12 @@
                 <a href="{{ $c->url() }}" class="list-row">
                     <span class="icon-tile">@include('partials.icon', ['i' => 'scale', 'c' => 'w-5 h-5'])</span>
                     <span class="min-w-0 flex-1"><span class="block font-semibold truncate">{{ $c->title }}</span>
-                        <span class="block text-xs muted">{{ count($c->product_ids) }} {{ plural(count($c->product_ids), 'вклад', 'вклада', 'вкладов') }}@if ($c->amount) · {{ money_format($c->amount) }}@endif @if ($c->term_months) · {{ $c->term_months }} мес@endif · {{ $c->created_at->translatedFormat('j M') }}</span></span>
+                        <span class="block text-xs muted">{{ $c->kind()->count(count($c->product_ids)) }}{{-- A53 --}}@if ($c->amount) · {{ money_format($c->amount) }}@endif @if ($c->term_months) · {{ $c->term_months }} мес@endif · {{ $c->created_at->translatedFormat('j M') }}</span></span>
                     @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4 muted'])
                 </a>
             @empty
-                <p class="text-sm muted py-4">На странице сравнения нажмите «Сохранить» — подборка останется здесь, со своей суммой и сроком.</p>
-                <a href="{{ route('deposits.compare') }}" class="btn btn-ghost">К сравнению</a>
+                <p class="text-sm muted py-4">На странице сравнения нажмите «Сохранить» — подборка останется здесь.</p>
+                <a href="{{ route('compare.index') }}" class="btn btn-ghost">К сравнению</a>
             @endforelse
         </div>
     </section>

@@ -1,7 +1,9 @@
 {{-- A33 · Карточка пакета услуг в списке. $p — ServicePackage (bank, cards). --}}
 @php $sign = currency_symbol($p->bank->country?->currency); @endphp
-<a href="{{ route('packages.show', $p) }}" class="card lift p-6 flex flex-col gap-5" data-reveal style="--d: {{ 0.03 * ($i ?? 0) }}s">
-    <div class="flex items-center gap-3">
+{{-- A53 · обёртка: кнопка сравнения не может лежать внутри ссылки --}}
+<div class="relative">
+<a href="{{ route('packages.show', $p) }}" class="card lift p-6 flex flex-col gap-5 h-full" data-reveal style="--d: {{ 0.03 * ($i ?? 0) }}s">
+    <div class="flex items-center gap-3 pr-12">
         <span class="bank-mark !w-10 !h-10 !text-[0.6rem]" style="--c: {{ $p->bank->brand_color ?? 'var(--brand-1)' }}">{{ $p->bank->mark() }}</span>
         <div class="min-w-0 flex-1"><p class="text-sm muted truncate">{{ $p->bank->displayName() }}</p><p class="font-display font-bold text-xl truncate">{{ $p->name }}</p></div>
         <span class="chip">{{ $p->segmentLabel() }}</span>
@@ -24,3 +26,5 @@
         </div>
     @endif
 </a>
+@include('partials.compare-toggle', ['type' => 'packages', 'item' => $p, 'class' => 'absolute top-6 right-6 z-10'])
+</div>

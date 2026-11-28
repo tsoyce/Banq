@@ -21,9 +21,12 @@
                 <h1 class="font-display font-bold text-4xl sm:text-5xl leading-[1.04]">{{ $package->name }}</h1>
                 @if ($package->description)<p class="muted mt-4 max-w-2xl">{{ $package->description }}</p>@endif
             </div>
-            @if ($package->source_url || $bank->website)
-                <a href="{{ $package->source_url ?: $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline w-fit">Подключить на сайте банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>
-            @endif
+            <div class="flex flex-wrap gap-2">
+                @if ($package->source_url || $bank->website)
+                    <a href="{{ $package->source_url ?: $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline w-fit">Подключить на сайте банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>
+                @endif
+                @include('partials.compare-toggle', ['type' => 'packages', 'item' => $package, 'wide' => true]){{-- A53 --}}
+            </div>
         </div>
         <div class="card card-ink p-7 md:p-9 flex flex-col justify-between gap-6" data-reveal style="--d:.06s">
             <span class="text-sm font-semibold opacity-70">Стоимость</span>

@@ -304,6 +304,24 @@ body {
     @media (max-width: 639px) { .cmp-table th[scope='row'] { white-space: normal; font-size: 0.8rem; } }
     .cmp-table td.win > span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
+    /* A53 · Универсальное сравнение: вкладки видов, подзаголовки групп, строки-привилегии, плитки раздела */
+    .cmp-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px; }
+    .cmp-tabs::-webkit-scrollbar { display: none; }
+    .cmp-tabs > * { display: inline-flex; align-items: center; gap: 0.45rem; flex: none; padding: 0.5rem 0.85rem; border-radius: 999px; font-size: 0.88rem; font-weight: 600; background: var(--card-2); white-space: nowrap; transition: background 0.2s, color 0.2s; }
+    .cmp-tabs > a:hover { background: var(--line); }
+    .cmp-tabs > a.is-active { background: var(--ink); color: var(--ink-text); }
+    .cmp-tabs > .is-soon { opacity: 0.5; cursor: default; }
+    .cmp-count { min-width: 1.3rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.72rem; line-height: 1.3rem; text-align: center; background: var(--grad); color: #fff; }
+    .cmp-tabs > .is-soon .cmp-count { background: var(--line); color: var(--muted); }
+    .cmp-table tr.cmp-group th { padding-top: 1.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint, var(--muted)); white-space: nowrap; }
+    .cmp-table tr.cmp-sub th[scope='row'] { padding-left: 1.4rem; font-size: 0.8rem; white-space: normal; }
+    .cmp-table tr.cmp-sub td { font-size: 0.9rem; }
+    .cmp-tile { transition: box-shadow 0.25s, transform 0.25s var(--ease-out); }
+    .cmp-tile.is-on { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--brand-1) 55%, transparent); }
+    .cmp-tile.is-soon { opacity: 0.6; }
+    .cmp-btn.ps-cmp { background: rgb(255 255 255 / 0.16); color: #fff; backdrop-filter: blur(6px); }
+    .cmp-btn.ps-cmp.is-on { background: #fff; color: #0a0a0b; }
+
     /* Загрузка результатов (fetch) */
     .is-loading { opacity: 0.5; transition: opacity 0.2s; pointer-events: none; }
 
