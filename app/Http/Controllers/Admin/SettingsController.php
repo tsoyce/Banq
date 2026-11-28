@@ -28,7 +28,6 @@ class SettingsController extends Controller
             'copyright' => ['nullable', 'string', 'max:120'],
             'footer_text' => ['nullable', 'string', 'max:1000'],
             'contact_email' => ['nullable', 'email', 'max:160'],
-            'counters' => ['nullable', 'string', 'max:5000'],
             'theme_default' => ['required', 'in:dark,light'],
             'default_country' => ['nullable', 'exists:countries,slug'], // A21
             'logo' => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'],
@@ -46,7 +45,6 @@ class SettingsController extends Controller
             'site.copyright' => $data['copyright'] ?? null,
             'site.footer_text' => $data['footer_text'] ?? null,
             'site.contact_email' => $data['contact_email'] ?? null,
-            'site.counters' => $data['counters'] ?? null,
             'theme.default' => $data['theme_default'],
             'blog.premoderation' => (bool) ($data['blog_premoderation'] ?? false), // A37
         ];

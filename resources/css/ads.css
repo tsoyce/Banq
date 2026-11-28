@@ -1,0 +1,49 @@
+/* A51 · Рекламные места (resources/views/ads/slot.blade.php).
+   «Не бесить»: никаких всплывающих окон и анимаций внимания, метка «Реклама» всегда видна, место зарезервировано
+   пропорциями слота (--ar на компьютере, --ar-m на телефоне) — страница не прыгает. Нативная карточка — в стиле сайта. */
+
+@layer components {
+    .ad { position: relative; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.6rem; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); border: 1px solid var(--border); container-type: inline-size; min-width: 0; }
+    .ad-label { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0 0.4rem; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); line-height: 1.2; }
+    .ad-label > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ad-hide { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; color: var(--faint); transition: background 0.2s, color 0.2s; flex-shrink: 0; }
+    .ad-hide:hover, .ad-hide:focus-visible { background: var(--card-2); color: var(--text); }
+
+    .ad-box { display: block; position: relative; aspect-ratio: var(--ar); width: 100%; overflow: hidden; border-radius: calc(var(--radius) - 8px); background: var(--card-2); }
+    .ad-box img, .ad-box picture { display: block; width: 100%; height: 100%; object-fit: cover; margin: 0; border-radius: 0; }
+    .ad-frame { display: block; width: 100%; height: 100%; border: 0; }
+    .ad--network .ad-box { background: transparent; }
+    .ad--network .ad-box > ins { display: block; width: 100%; height: 100%; }
+    /* сеть ответила «нет рекламы» — место убирается целиком */
+    .ad:has(ins.adsbygoogle[data-ad-status='unfilled']) { display: none; }
+    @media (max-width: 640px) { .ad-box { aspect-ratio: var(--ar-m); } }
+
+    /* Нативная карточка: на узком месте — столбиком, на широком — картинка слева */
+    .ad-native { display: grid; gap: 0.9rem; color: var(--text); text-decoration: none; }
+    .ad-native-media { display: block; aspect-ratio: 16 / 10; overflow: hidden; border-radius: calc(var(--radius) - 8px); background: var(--card-2); }
+    .ad-native-media img { width: 100%; height: 100%; object-fit: cover; margin: 0; border-radius: 0; transition: transform 0.8s var(--ease-out, ease); }
+    .ad-native:hover .ad-native-media img { transform: scale(1.03); }
+    .ad-native-body { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.2rem 0.6rem 0.6rem; min-width: 0; }
+    .ad-native-title { font-family: var(--font-display); font-weight: 700; font-size: 1.12rem; line-height: 1.25; letter-spacing: -0.015em; }
+    .ad-native-text { color: var(--muted); font-size: 0.9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .ad-native-cta { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: auto; padding-top: 0.3rem; font-weight: 600; font-size: 0.9rem; color: var(--brand-1); }
+    @container (min-width: 560px) {
+        .ad-native:has(.ad-native-media) { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); align-items: center; }
+        .ad-native:not(:has(.ad-native-media)) .ad-native-body { max-width: 46rem; }
+        .ad-native-body { padding: 0.4rem 1rem 0.4rem 0.2rem; }
+        .ad-native-title { font-size: 1.3rem; }
+    }
+
+    /* В ленте журнала — карточкой среди публикаций */
+    .ad.post-card { padding: 6px 6px 0.6rem; }
+    .ad.post-card .ad-label { order: 2; padding: 0 1rem; margin-top: auto; }
+    .ad.post-card .ad-native-body { padding: 0.4rem 1rem 0.2rem; }
+
+    /* Внутри статьи: сбрасываем типографику текста */
+    .prose-banq .ad.ad-inline { margin: 2em 0; }
+    .prose-banq .ad a.ad-link, .prose-banq .ad a.ad-link:hover { text-decoration: none; color: var(--text); }
+    .prose-banq .ad img { margin: 0; border-radius: 0; }
+
+    .ad.is-hiding { transition: opacity 0.25s, transform 0.25s; opacity: 0; transform: scale(0.98); }
+    @media (prefers-reduced-motion: reduce) { .ad-native-media img, .ad.is-hiding { transition: none; } }
+}

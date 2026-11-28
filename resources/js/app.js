@@ -2,6 +2,7 @@
 import Alpine from 'alpinejs';
 import { sheet } from './sheet'; // A39 · табличный редактор админки
 import registerBlog from './blog'; // A37
+import registerAds from './ads'; // A51 · рекламные места
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -288,6 +289,7 @@ Alpine.data('favorite', (on = false) => ({
 
 window.Alpine = Alpine;
 registerBlog(Alpine); // A37 · журнал
+registerAds(); // A51
 // A52 · лайтбокс и слайдеры галерей — отдельным чанком, только где есть картинки статьи
 if (document.querySelector('[data-lightbox]')) import('./lightbox.js').then((m) => m.default());
 // A37 · Редактор публикаций (Tiptap) — отдельный чанк, грузится только на странице редактора, до запуска Alpine

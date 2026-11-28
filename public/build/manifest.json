@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-DGMQ1yEx.css",
+    "file": "assets/app-CrxVrsyr.css",
     "name": "app",
     "names": [
       "app.css"
@@ -9,7 +9,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-VWDeUunU.js",
+    "file": "assets/app-gFu8kyYa.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -25,7 +25,7 @@
     "isDynamicEntry": true
   },
   "resources/js/lightbox.js": {
-    "file": "assets/lightbox-C2PPNX3J.js",
+    "file": "assets/lightbox-C4NBKqQS.js",
     "name": "lightbox",
     "src": "resources/js/lightbox.js",
     "isDynamicEntry": true

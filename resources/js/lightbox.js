@@ -17,7 +17,7 @@ const IMAGE_FILE = /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i;
 /** Картинки контейнера, которые открываются: не иконки, не внутри ссылок на страницы и живых вставок. */
 function collect(root) {
     return [...root.querySelectorAll('img')].filter((img) => {
-        if (img.closest('.embed, .embed-video, [data-embed]')) return false;
+        if (img.closest('.embed, .embed-video, [data-embed], .ad')) return false;
         const a = img.closest('a');
         if (a && !IMAGE_FILE.test(a.getAttribute('href') || '')) return false; // картинка-ссылка ведёт на страницу — не мешаем
         const w = img.naturalWidth || +img.getAttribute('width') || 999;

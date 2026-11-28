@@ -76,6 +76,12 @@ app/
 │                     fillMissing(mirror) — пропавшие свои картинки с запасной копии сайта (old.tsoy.in), опция mirror — A52
 ├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=] [--mirror=]; --fill-missing --mirror=https://old.tsoy.in (A52)
 ├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset; fill (A52, JSON)
+├─ Models/CodeSnippet · Services/Ads/Snippets  A50 коды счётчиков и сетей (gtag, gtm, metrika, adsense, свой HTML) → layouts/app: head, body_start, body_end; adsTxtLines()
+├─ Models/{AdSlot,AdCampaign,AdCreative,AdStat} · Services/Ads/AdServer  A51 своя реклама: pick(слот) → объявление/код сети, inject() в статью, sign/verify меток, record() показов и кликов, частота и «скрыть» (cookie)
+├─ Http/Controllers/AdController ... A51 POST /ads/e (показы, «скрыть»), GET /ads/c/{метка} (клик → 302); A50 GET /ads.txt
+├─ Http/Controllers/Admin/AdsController  A51 /admin/ads: статистика 30 дней, настройки показа, ads.txt
+├─ Admin/Resources/{AdCampaign,AdCreative,AdSlot,CodeSnippet}Resource  A51 раздел меню «Реклама»; A50 Сайт → «Коды и счётчики» (только admin)
+├─ views: ads/slot (место; @include('ads.slot', ['slot' => key])), admin/ads/{index,_slot-aside,_campaign-aside,_creative-aside}; css/ads.css, js/ads.js   A51
 ├─ Support/Founder ................. A55 основатель (settings author.user_id, иначе первый админ): user(), is(), urlFor() — подпись автора ведёт на /author
 ├─ Services/Social/SocialStats ...... A55 соцсети: NETWORKS (подпись, цвет, способ счёта), profiles() (число API → ручное), refresh() (YouTube API, t.me / Bot API, VK API, GitHub), ensureFresh() (defer, 12 ч), compact(), handle()
 ├─ Http/Controllers/AuthorController  A55 /author: профиль, соцсети, публикации автора (X-Partial: posts, ?c=рубрика), поддержка
@@ -259,6 +265,11 @@ HTTP запрос
 | `tags`, `post_tag` (A37) | slug, name · post_id + tag_id | Tag::idsFor (редактор, обмен) | /blog/tag/{slug} |
 | `postables` (A37) | post_id, postable_type (morph: bank, deposit, card, package, payment_system, card_tier), postable_id, **is_primary** (выбрано автором; false — добавлено каскадом) | Post::syncLinks | Post::about(), блок «О ком материал» |
 | `post_reactions` (A37) | post_id, user_id, kind (like/fire/think/money); unique тройка | BlogController::react | реакции |
+| `code_snippets` (A50) | name, provider gtag/gtm/metrika/adsense/custom, tracking_id (проверяется по CodeSnippet::ID_PATTERNS), code (custom), placement head/body_start/body_end, countries json, skip_staff, is_active, sort | Коды и счётчики (admin); миграция из `site.counters` | Snippets → layouts/app, /ads.txt |
+| `ad_slots` (A51) | key (unique, стоит в шаблоне), name, description, formats json (image/native/html), width/height, m_width/m_height (пропорции резерва), fallback_code (код сети, только admin), is_active, sort; сидер: home-wide, sidebar, feed-native, article-inline | Реклама → Места | AdServer::pick, ads/slot |
+| `ad_campaigns` (A51) | name, advertiser, is_active, starts_at, ends_at, countries json, slots json, priority 1–10, freq_cap (в день на посетителя), max_impressions, max_clicks, impressions, clicks, notes | Реклама → Кампании; счётчики — AdServer::record | AdServer::pool (кеш 2 мин) |
+| `ad_creatives` (A51) | campaign_id (cascade), type native/image/html, name, title, body, cta, image, image_mobile, alt, url, sponsor, disclosure, html, weight, is_active, impressions, clicks | Реклама → Объявления | ads/slot |
+| `ad_stats` (A51) | date, campaign_id, creative_id, slot, impressions, clicks; unique(date, creative_id, slot) | AdServer::record (POST /ads/e, /ads/c) | /admin/ads, кампания, место |
 | `comments` (A37) | post_id, user_id, parent_id (один уровень ответов), body, status approved/pending/hidden, ip | BlogController::comment, админка | статья, модерация |
 
 ## 4. Переменные окружения (.env)
@@ -289,11 +300,13 @@ HTTP запрос
 | `site.founded_year` | установка, админка | `project_years()` → «2026» или «2024–2026» |
 | `site.copyright`, `site.footer_text` | админка | подвал |
 | `site.contact_email` | админка | подвал |
-| `site.counters` | админка | вставляется как HTML в `<head>` (только admin может менять) |
+| ~~`site.counters`~~ | A50: перенесено в `code_snippets` | — |
 | `theme.default` | админка | `data-theme` на `<html>` |
 | `country.default` | админка → Настройки (A21) | CurrentCountry: страна нового посетителя (slug, по умолчанию первая по sort) |
 | `ticker.enabled`, `ticker.sources` (порядок ключей из `banq.ticker.sources`), `ticker.text`, `ticker.speed` 1–10 | админка → Бегущая строка (A40) | Ticker → partials/ticker в шапке |
 | `fx.currencies` {"KZ": ["USD","EUR","RUB","CNY"]}, `fx.home_card` | админка → Курсы валют (A40) | CurrencyRates::codes(), карточка на главной |
+| `ads.enabled`, `ads.max_per_page` (3), `ads.feed_position` (6), `ads.label` («Реклама»), `ads.hide_for_staff` | админка → Реклама → Обзор и настройки (A51) | AdServer::pick, blog/_grid, ads/slot |
+| `ads.txt` | там же, только admin (A50) | `/ads.txt` + строки AdSense из code_snippets |
 | `flags.custom` {код: {name?, url?}} | админка → Сайт → Флаги (A46) | Flags::url/name — свой флаг поверх библиотечного или новый код |
 | `blog.premoderation` | админка → Настройки → Журнал (A37) | новые комментарии читателей — на модерацию (pending) |
 | `author.user_id`, `author.headline`, `author.slogan`, `author.about` | админка → Сайт → Автор и соцсети (A55) | Founder, страница /author, подпись в статье |
@@ -347,6 +360,11 @@ HTTP запрос
 | GET, PUT, POST | `/admin/currency`, `/admin/currency/{country}/sync` (`days=30` — история) | admin.currency.* | admin, editor (A40); sync — throttle 10/мин |
 | GET, POST, POST, GET, POST | `/admin/wordpress`, `/wordpress/scan`, `/wordpress/step`, `/wordpress/report`, `/wordpress/reset` | admin.wordpress.* | только admin (A43); scan — throttle 10/мин |
 | POST | `/admin/wordpress/fill` (`mirror`) | admin.wordpress.fill | только admin (A52): шаг «дотянуть пропавшие картинки с копии», throttle 120/мин |
+| POST | `/ads/e` ({v: [метки], h: метка}) | ads.event | все; без CSRF (метки HMAC), throttle 120/мин (A51) |
+| GET | `/ads/c/{метка}` | ads.click | все; 302 на адрес объявления, throttle 60/мин (A51) |
+| GET | `/ads.txt` | ads.txt | все (A50) |
+| GET, PUT | `/admin/ads` | admin.ads.* | admin, editor (ads.txt — только admin) (A51) |
+| CRUD | `/admin/{ad-campaigns,ad-creatives,ad-slots}`, `/admin/code-snippets` | admin.resource.* | admin, editor; HTML-объявления и код сети — только admin; code-snippets — только admin (A50 A51) |
 | POST | `/admin/country` (country=id\|пусто, _back) | admin.country | admin, editor (A46): страна в плашке админки |
 | GET, POST, DELETE | `/admin/flags`, `/admin/flags/{code}` | admin.flags.* | admin, editor (A46): библиотека флагов, свой флаг (throttle 30/мин), вернуть библиотечный |
 | ANY | fallback `/{slug}` и любой несуществующий адрес | page.fallback | A42: страница → редирект → 404 |
@@ -439,7 +457,14 @@ HTTP запрос
 - Фолбэк: источник недоступен → статус в кеше `banq.fx.status.{KZ}`, витрина показывает последний сохранённый курс (`stale` — старше 3 дней — с пометкой).
 
 
-## 12. Флаги и страна в админке — A46
+## 12. Реклама и коды счётчиков — A50 A51
+
+- **Коды** (`code_snippets`, `Snippets`): только в `layouts/app` (не в админке). Готовые сервисы — по ID из шаблона; «Свой код» — как есть. Новый сервис = строка в `CodeSnippet::PROVIDERS` + `ID_PATTERNS` + ветка в `Snippets::render()`.
+- **Места**: ключ места стоит в шаблоне строкой `@include('ads.slot', ['slot' => 'key'])`. Сейчас: `home-wide` (home), `sidebar` (home, blog/index, blog/show), `feed-native` (blog/_grid), `article-inline` (blog/show через `AdServer::inject`). Новое место = запись в «Реклама → Места» + строка в шаблоне.
+- **Выбор** (`AdServer::pick`): включено → лимит на страницу → места/форматы → страна → период → бюджет → частота (cookie `banq_ads`) → скрытые (`banq_ads_hide`) → кампания ещё не на странице → вес priority × weight. Нет своих — `fallback_code` места.
+- **Учёт**: показ — `resources/js/ads.js` (IntersectionObserver ≥ 50% ≥ 1 с) → `POST /ads/e`; клик — `/ads/c/{метка}`. Метка `creative.campaign.slot.ts.nonce.hmac` (APP_KEY); каждая засчитывается один раз (кеш `ads:{impressions|clicks}:{nonce}`). Боты (`AdServer::BOTS`) и сотрудники не считаются.
+- Кеши: `banq.snippets` (навсегда), `banq.ads.slots` (навсегда), `banq.ads.pool` (2 мин) — сбрасываются при сохранении моделей.
+## 13. Флаги и страна в админке — A46
 
 - **Флаг где угодно:** `@include('partials.flag', ['code' => 'KZ'])`, `['currency' => 'USD', 'round' => true]`, в PHP — `Flags::img()` или `$country->flagImg()`. Эмодзи-флаги (`countries.flag`) — только там, где картинка невозможна (`<option>`): на Windows эмодзи-флаг — две буквы.
 - **Новый ресурс админки со страной:** `countryScope()` → путь к id страны (`'country_id'`, `'bank.country_id'`, `'product.bank.country_id'`; `'id'` — сами страны), `countryNullable()` — запись без страны общая. ResourceController сам сузит список по плашке, вернёт 404 на чужую запись и не даст сохранить в чужую страну.

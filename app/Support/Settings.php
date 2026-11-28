@@ -31,7 +31,6 @@ class Settings
             'site.footer_text' => 'Информация носит справочный характер. Точные условия уточняйте в банке.',
             'site.contact_email' => null,
             'site.social' => [],
-            'site.counters' => null,
             'theme.default' => 'light',
             // A40 · Бегущая строка и курсы валют
             'ticker.enabled' => true,
@@ -40,6 +39,13 @@ class Settings
             'ticker.speed' => 5,
             'fx.currencies' => [],       // {"KZ": ["USD","EUR","RUB","CNY"]} — пусто: config('banq.fx.defaults')
             'fx.home_card' => true,
+            // A51 · Своя реклама (админка → Реклама → Обзор и настройки)
+            'ads.enabled' => true,
+            'ads.max_per_page' => 3,     // не больше мест с рекламой на странице
+            'ads.feed_position' => 6,    // нативная карточка в ленте журнала — после N-й публикации
+            'ads.label' => 'Реклама',
+            'ads.hide_for_staff' => false,
+            'ads.txt' => null,           // A50 · текст /ads.txt (строки AdSense добавляются сами)
             // A55 · Автор, соцсети, донаты (админка → Сайт → «Автор и соцсети»)
             'author.user_id' => null,
             'author.headline' => 'Основатель TSOY.IN',

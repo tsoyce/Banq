@@ -76,7 +76,7 @@
                 </details>
             @endif
 
-            <div class="prose-banq" id="post-body" data-lightbox>{!! $html !!}</div>
+            <div class="prose-banq" id="post-body" data-lightbox>{!! app(\App\Services\Ads\AdServer::class)->inject($html, 'article-inline') !!}</div>{{-- A51 · место внутри статьи; A52 · лайтбокс --}}
 
             @if ($post->source_url || $post->source_name)
                 <p class="post-source">Источник: @if ($post->source_url)<a href="{{ $post->source_url }}" target="_blank" rel="noopener nofollow">{{ $post->source_name ?: parse_url($post->source_url, PHP_URL_HOST) }}</a>@else{{ $post->source_name }}@endif</p>
@@ -138,6 +138,7 @@
             @include('blog._reactions', ['vertical' => true])
             <div class="border-t border-[var(--line)] pt-4">@include('blog._share')</div>
         </div>
+        @include('ads.slot', ['slot' => 'sidebar']){{-- A51 --}}
         <a href="#comments" class="card lift p-5 flex items-center gap-3">
             <span class="icon-tile">@include('partials.icon', ['i' => 'quote', 'c' => 'w-[19px] h-[19px]'])</span>
             <span><b class="block">{{ $commentsCount ? $commentsCount.' '.plural($commentsCount, 'комментарий', 'комментария', 'комментариев') : 'Обсудить' }}</b><span class="text-xs muted">{{ $post->allow_comments ? 'Поделитесь опытом' : 'Комментарии закрыты' }}</span></span>
