@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
  * Контроллер — App\Http\Controllers\Admin\ResourceController, шаблоны — resources/views/admin/resource/*.
  * Новый раздел (карты, кредиты) = новый класс в App\Admin\Resources + строка в ResourceRegistry.
  *
- * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|datetime (A37)|list|json|password|email|url|checks (A32: набор флажков)|image (A51: загрузка в public/uploads/{dir}),
+ * Поле формы: ['name', 'label', 'type' => text|textarea|number|decimal|select|bool|color|date|datetime (A37)|list|json|password|email|url|checks (A32: набор флажков),
  *              'virtual' => true (A32: не атрибут модели — значение 'value' => fn (Model), запись — в saved()),
  *              'rules' => [...], 'options' => [v => label] | Closure, 'help', 'span' => 2, 'group' => 'Основное', 'placeholder'].
  * Имя с точкой (regulator.short) пишется внутрь JSON-поля модели.
@@ -236,9 +236,9 @@ abstract class Resource
             if ($type === 'json') {
                 $r[] = 'json';
             }
-            if ($type === 'image') { // A51 · картинка: файл + «удалить»
-                $r = ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,gif', 'max:'.($f['max_kb'] ?? 2048)];
-                $rules[$f['name'].'__remove'] = ['nullable', 'boolean'];
+            if ($type === 'image') { // A54 · путь/URL строкой + загрузка файла рядом
+                $rules[$f['name'].'__upload'] = ['nullable', 'file', 'mimes:svg,png,jpg,jpeg,webp', 'max:1024'];
+                $r = array_merge(['nullable', 'string', 'max:255'], array_diff($r, ['nullable']));
             }
             if ($type === 'checks') { // A32
                 $r = ['nullable', 'array'];
@@ -268,6 +268,37 @@ abstract class Resource
         };
     }
 
+    /**
+     * A54 · Загруженные картинки полей type=image: файл → public/uploads/{ключ ресурса}/, путь — в данные поля.
+     * SVG проверяется: без скриптов, обработчиков on*, javascript: и foreignObject (картинку можно открыть по прямой ссылке).
+     */
+    public function absorbUploads(Request $request, array $data, ?Model $m = null): array
+    {
+        foreach ($this->fields($m) as $f) {
+            if (($f['type'] ?? '') !== 'image' || ! ($file = $request->file($f['name'].'__upload'))) {
+                continue;
+            }
+            $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+            if ($ext === 'svg' && ! self::safeSvg((string) file_get_contents($file->getRealPath()))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([$f['name'] => 'В SVG есть скрипт или внешние ссылки — такой файл не принимаем.']);
+            }
+            $dir = 'uploads/'.$this->key();
+            $name = Str::slug(Str::beforeLast($file->getClientOriginalName(), '.')) ?: 'image';
+            $name = Str::limit($name, 40, '').'-'.Str::lower(Str::random(6)).'.'.$ext;
+            $file->move(public_path($dir), $name);
+            $data[$f['name']] = '/'.$dir.'/'.$name;
+            unset($data[$f['name'].'__upload']);
+        }
+
+        return $data;
+    }
+
+    /** A54 · SVG без активного содержимого. */
+    public static function safeSvg(string $svg): bool
+    {
+        return ! preg_match('/<\s*(script|foreignObject|iframe|embed|object)\b|\son[a-z]+\s*=|javascript:|<!ENTITY|(?:xlink:)?href\s*=\s*["\']\s*(?!#|data:image)/i', $svg);
+    }
+
     /** Заполнить модель проверенными данными формы. */
     public function fill(Model $m, array $data): void
     {
@@ -276,7 +307,7 @@ abstract class Resource
             if ($f['virtual'] ?? false) {
                 continue; // A32 · пишется в saved()
             }
-            if (! array_key_exists($name, $data) && ! in_array($f['type'] ?? '', ['bool', 'checks', 'image'], true) && ! str_contains($name, '.')) {
+            if (! array_key_exists($name, $data) && ! in_array($f['type'] ?? '', ['bool', 'checks'], true) && ! str_contains($name, '.')) {
                 continue;
             }
             $v = data_get($data, $name);
@@ -289,18 +320,6 @@ abstract class Resource
                 default => $v === '' ? null : $v,
             };
             if (($f['type'] ?? '') === 'password' && ($v === null || $v === '')) {
-                continue;
-            }
-            if (($f['type'] ?? '') === 'image') { // A51
-                if ($v instanceof \Illuminate\Http\UploadedFile) {
-                    $dir = 'uploads/'.($f['dir'] ?? $this->key());
-                    $file = Str::random(12).'.'.strtolower($v->guessExtension() ?: $v->getClientOriginalExtension());
-                    $v->move(public_path($dir), $file);
-                    $m->setAttribute($name, '/'.$dir.'/'.$file);
-                } elseif (! empty($data[$name.'__remove'])) {
-                    $m->setAttribute($name, null);
-                }
-
                 continue;
             }
             if (($f['type'] ?? '') === 'bool' && str_contains($name, '.') === false && ! array_key_exists($name, $data)) {

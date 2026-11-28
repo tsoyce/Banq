@@ -2,10 +2,14 @@
 
 namespace App\Services\Cards;
 
+use App\Enums\CardAudience;
 use App\Enums\CardKind;
 use Illuminate\Http\Request;
 
-/** A33 · Фильтры каталога карт — в URL: ?kind[]=credit&system[]=visa&feature[]=apple_pay&free=1&sort=cashback. */
+/**
+ * A33 · Фильтры каталога карт — в URL: ?kind[]=credit&system[]=visa&feature[]=apple_pay&free=1&sort=cashback.
+ * A54 · audience: по умолчанию карты физлицам; ?audience=business — бизнесу, ?audience=all — все.
+ */
 final class CardFilters
 {
     public const SORTS = [
@@ -35,6 +39,7 @@ final class CardFilters
         public readonly bool $online = false,
         public readonly string $sort = 'score',
         public readonly ?string $q = null,
+        public readonly ?CardAudience $audience = CardAudience::Personal, // A54 · null — все
     ) {}
 
     public static function fromRequest(Request $r): self
@@ -55,7 +60,26 @@ final class CardFilters
             online: $r->boolean('online'),
             sort: array_key_exists($sort, self::SORTS) ? $sort : 'score',
             q: trim((string) $r->query('q')) ?: null,
+            audience: self::audienceFrom((string) $r->query('audience')),
         );
+    }
+
+    /** A54 · '' → физлица (по умолчанию), 'all' → все, иначе значение CardAudience. */
+    public static function audienceFrom(string $v): ?CardAudience
+    {
+        return $v === 'all' ? null : (CardAudience::fromLabel($v) ?? CardAudience::Personal);
+    }
+
+    /** A54 · Значение для URL: null — по умолчанию (физлица). */
+    public function audienceParam(?CardAudience $a = null, bool $explicit = false): ?string
+    {
+        $a = func_num_args() ? $a : $this->audience;
+
+        return match (true) {
+            $a === null => 'all',
+            $a === CardAudience::Personal && ! $explicit => null,
+            default => $a->value,
+        };
     }
 
     public function hasKind(CardKind $k): bool
@@ -76,6 +100,7 @@ final class CardFilters
             'kind' => array_map(fn ($k) => $k->value, $this->kinds), 'system' => $this->systems, 'bank' => $this->banks, 'feature' => $this->features,
             'currency' => $this->currency, 'segment' => $this->segment, 'free' => $this->free ?: null, 'cashback' => $this->cashback ?: null,
             'online' => $this->online ?: null, 'sort' => $this->sort === 'score' ? null : $this->sort, 'q' => $this->q,
+            'audience' => $this->audienceParam(), // A54
         ]);
 
         return array_filter(array_replace($q, $override), fn ($v) => $v !== null && $v !== [] && $v !== '');

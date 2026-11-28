@@ -63,8 +63,9 @@
                 $b = $s->bank; $st = $stats[$b->id] ?? ['best' => null, 'offers' => 0, 'types' => []];
                 $rank = $s->rank(RatingKind::Objective);
             @endphp
-            <a href="{{ route('banks.show', $b) }}" class="card lift bank-card group min-w-0" @if ($i < 9) data-reveal style="--d: {{ 0.03 * $i }}s" @endif>
-                <div class="flex items-center gap-4">
+            <div class="relative min-w-0">{{-- A53 · обёртка: кнопка сравнения не может лежать внутри ссылки --}}
+            <a href="{{ route('banks.show', $b) }}" class="card lift bank-card group min-w-0 h-full" @if ($i < 9) data-reveal style="--d: {{ 0.03 * $i }}s" @endif>
+                <div class="flex items-center gap-4 pr-12">
                     <span class="bank-mark" style="--c: {{ $b->brand_color ?? 'var(--brand-1)' }}">{{ $b->mark() }}</span>
                     <div class="min-w-0 flex-1">
                         <p class="font-display font-bold text-[19px] tracking-tight truncate group-hover:underline underline-offset-4 decoration-2 decoration-[var(--brand-1)]">{{ $b->displayName() }}</p>
@@ -97,6 +98,8 @@
                     <span class="font-semibold flex items-center gap-1">Подробнее @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4 transition group-hover:translate-x-0.5'])</span>
                 </div>
             </a>
+            @include('partials.compare-toggle', ['type' => 'banks', 'item' => $b, 'class' => 'absolute top-[30px] right-[22px] lg:top-[34px] lg:right-[26px] z-10'])
+            </div>
         @empty
             <div class="card p-10 text-center sm:col-span-2 2xl:col-span-3">
                 <p class="font-semibold text-lg">Ничего не нашлось</p>

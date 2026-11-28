@@ -172,7 +172,7 @@
         <section class="card p-6" data-reveal>
             <h2 class="font-display font-bold text-xl mb-2">Что можно у нас</h2>
             <div>
-                @foreach ([['scale', 'Сравнить вклады банков', route('deposits.compare')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию '.(country()?->guaranteeName() ?? 'вклада'), '#soon'], ['star', 'Оценить свой банк', route('banks.index')], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
+                @foreach ([['scale', 'Сравнить вклады, карты и банки', route('compare.index')], ['calc', 'Посчитать доход', '#calc'], ['shield', 'Проверить гарантию '.(country()?->guaranteeName() ?? 'вклада'), '#soon'], ['star', 'Оценить свой банк', route('banks.index')], ['mail', 'Получать ставки на почту', '#soon']] as [$icon, $label, $href])
                     <a href="{{ $href }}" class="list-row group">
                         <span class="icon-tile group-hover:bg-[var(--ink)] group-hover:text-[var(--ink-text)] transition">@include('partials.icon', ['i' => $icon, 'c' => 'w-[19px] h-[19px]'])</span>
                         <span class="font-medium">{{ $label }}</span>

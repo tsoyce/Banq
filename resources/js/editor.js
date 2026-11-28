@@ -63,6 +63,168 @@ const Embed = (previewUrl) => Node.create({
     },
 });
 
+// A52 · Галереи и картинки с подписью ────────────────────────────────────────
+const LAYOUTS = [['grid', 'Авто'], ['grid-2', '2 колонки'], ['grid-3', '3 колонки'], ['masonry', 'Мозаика'], ['slider', 'Слайдер']];
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const figImg = (fig) => fig.querySelector(':scope > img, :scope > a > img');
+const galleryItems = (el) => [...el.querySelectorAll(':scope > figure, :scope > ul > li > figure, :scope > ol > li > figure, :scope > .gallery-track > figure')]
+    .filter(figImg)
+    .map((f) => ({ src: figImg(f).getAttribute('src'), alt: figImg(f).getAttribute('alt') || '', caption: f.querySelector(':scope > figcaption')?.textContent.trim() || '' }));
+const isGallery = (el) => el.hasAttribute('data-gallery') || galleryItems(el).length >= 2;
+// Изменить атрибуты узла из NodeView (позиция узла может смениться — берём её в момент правки)
+const patchNode = (editor, getPos, attrs) => editor.chain().command(({ tr }) => {
+    const pos = getPos();
+    if (typeof pos !== 'number') return false;
+    tr.setNodeMarkup(pos, undefined, { ...tr.doc.nodeAt(pos).attrs, ...attrs });
+    return true;
+}).run();
+const typing = (dom) => dom.contains(document.activeElement) && document.activeElement.matches('input, textarea');
+
+// <figure data-gallery="…"><figure><img><figcaption?></figure>…<figcaption?></figure> — атом с картинками в атрибутах
+const Gallery = (upload) => Node.create({
+    name: 'gallery',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    selectable: true,
+    addAttributes() {
+        return {
+            layout: { default: 'grid', parseHTML: (el) => el.getAttribute('data-gallery') || 'grid', rendered: false },
+            images: { default: [], parseHTML: galleryItems, rendered: false },
+            caption: { default: '', parseHTML: (el) => el.querySelector(':scope > figcaption')?.textContent.trim() || '', rendered: false },
+        };
+    },
+    parseHTML() { return [{ tag: 'figure', priority: 70, getAttrs: (el) => (isGallery(el) ? null : false) }]; },
+    renderHTML({ node }) {
+        const { layout, images, caption } = node.attrs;
+        return ['figure', { 'data-gallery': layout },
+            ...images.map((i) => ['figure', {}, ['img', { src: i.src, alt: i.alt || '' }], ...(i.caption ? [['figcaption', {}, i.caption]] : [])]),
+            ...(caption ? [['figcaption', {}, caption]] : [])];
+    },
+    addNodeView() {
+        return ({ node, editor, getPos }) => {
+            let current = node;
+            const dom = document.createElement('div');
+            dom.className = 'ed-gallery';
+            dom.contentEditable = 'false';
+            const set = (attrs) => patchNode(editor, getPos, attrs);
+            const images = () => current.attrs.images.map((i) => ({ ...i }));
+            const draw = () => {
+                const { layout, images: list, caption } = current.attrs;
+                dom.dataset.layout = layout;
+                dom.innerHTML = `
+                    <div class="ed-gallery-bar">
+                        <span class="ed-gallery-tag">Галерея · ${list.length}</span>
+                        <span class="ed-gallery-layouts" role="radiogroup" aria-label="Вид галереи">${LAYOUTS.map(([v, t]) => `<button type="button" role="radio" aria-checked="${v === layout}" class="${v === layout ? 'is-on' : ''}" data-layout="${v}">${t}</button>`).join('')}</span>
+                        <label class="ed-gallery-add">+ Картинки<input type="file" accept="image/*" multiple hidden></label>
+                    </div>
+                    <div class="ed-gallery-grid">${list.map((i, n) => `
+                        <div class="ed-gi" data-i="${n}">
+                            <img src="${esc(i.src)}" alt="${esc(i.alt)}" draggable="false">
+                            <span class="ed-gi-tools">
+                                <button type="button" data-move="-1" title="Левее" aria-label="Левее"${n === 0 ? ' disabled' : ''}>←</button>
+                                <button type="button" data-move="1" title="Правее" aria-label="Правее"${n === list.length - 1 ? ' disabled' : ''}>→</button>
+                                <button type="button" data-remove title="Убрать из галереи" aria-label="Убрать">✕</button>
+                            </span>
+                            <input type="text" data-cap value="${esc(i.caption)}" placeholder="Подпись" maxlength="300">
+                        </div>`).join('')}</div>
+                    <input type="text" class="ed-gallery-cap" data-gcap value="${esc(caption)}" placeholder="Подпись ко всей галерее (необязательно)" maxlength="300">`;
+            };
+            dom.addEventListener('click', (e) => {
+                const b = e.target.closest('button');
+                if (!b) return;
+                e.preventDefault();
+                if (b.dataset.layout) return set({ layout: b.dataset.layout });
+                const n = +b.closest('.ed-gi')?.dataset.i;
+                const list = images();
+                if (b.hasAttribute('data-remove')) {
+                    list.splice(n, 1);
+                    if (!list.length) return editor.chain().focus().setNodeSelection(getPos()).deleteSelection().run();
+                    return set({ images: list });
+                }
+                if (b.dataset.move) {
+                    const k = n + +b.dataset.move;
+                    [list[n], list[k]] = [list[k], list[n]];
+                    return set({ images: list });
+                }
+            });
+            dom.addEventListener('input', (e) => {
+                if (e.target.matches('[data-gcap]')) return set({ caption: e.target.value });
+                if (e.target.matches('[data-cap]')) {
+                    const list = images();
+                    list[+e.target.closest('.ed-gi').dataset.i].caption = e.target.value;
+                    set({ images: list });
+                }
+            });
+            dom.addEventListener('change', async (e) => {
+                if (e.target.type !== 'file') return;
+                const files = [...e.target.files];
+                e.target.value = '';
+                const added = (await Promise.all(files.map(upload))).filter(Boolean);
+                if (added.length) set({ images: [...images(), ...added] });
+            });
+            draw();
+            return {
+                dom,
+                update(updated) {
+                    if (updated.type.name !== 'gallery') return false;
+                    current = updated;
+                    if (!typing(dom)) draw(); // подпись набирается — не перерисовываем поле под курсором
+                    else dom.querySelector('.ed-gallery-tag').textContent = `Галерея · ${updated.attrs.images.length}`;
+                    return true;
+                },
+                stopEvent: (e) => !!e.target.closest?.('input, button, label'),
+                ignoreMutation: () => true,
+            };
+        };
+    },
+});
+
+// Одиночная картинка с подписью: <figure><img><figcaption>…</figcaption></figure>
+const FigureImage = Node.create({
+    name: 'figureImage',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    selectable: true,
+    addAttributes() {
+        return {
+            src: { default: null, parseHTML: (el) => figImg(el)?.getAttribute('src'), rendered: false },
+            alt: { default: '', parseHTML: (el) => figImg(el)?.getAttribute('alt') || '', rendered: false },
+            caption: { default: '', parseHTML: (el) => el.querySelector(':scope > figcaption')?.textContent.trim() || '', rendered: false },
+        };
+    },
+    parseHTML() { return [{ tag: 'figure', priority: 60, getAttrs: (el) => (!isGallery(el) && figImg(el) ? null : false) }]; },
+    renderHTML({ node }) {
+        const { src, alt, caption } = node.attrs;
+        return ['figure', {}, ['img', { src, alt: alt || '' }], ...(caption ? [['figcaption', {}, caption]] : [])];
+    },
+    addNodeView() {
+        return ({ node, editor, getPos }) => {
+            let current = node;
+            const dom = document.createElement('figure');
+            dom.className = 'ed-figure';
+            dom.contentEditable = 'false';
+            const draw = () => {
+                dom.innerHTML = `<img src="${esc(current.attrs.src)}" alt="${esc(current.attrs.alt)}" draggable="false"><input type="text" value="${esc(current.attrs.caption)}" placeholder="Подпись к картинке" maxlength="300">`;
+            };
+            dom.addEventListener('input', (e) => patchNode(editor, getPos, { caption: e.target.value }));
+            draw();
+            return {
+                dom,
+                update(updated) {
+                    if (updated.type.name !== 'figureImage') return false;
+                    current = updated;
+                    if (!typing(dom)) draw();
+                    return true;
+                },
+                stopEvent: (e) => !!e.target.closest?.('input'),
+                ignoreMutation: () => true,
+            };
+        };
+    },
+});
+
 export default function registerEditor(Alpine) {
     // Экземпляр Editor держим вне реактивного состояния Alpine: Proxy ломает ProseMirror
     Alpine.data('postEditor', (cfg) => { let editor = null; return {
@@ -93,6 +255,7 @@ export default function registerEditor(Alpine) {
                     TableKit.configure({ table: { resizable: false } }),
                     Highlight, Subscript, Superscript,
                     Callout, Embed(cfg.embedUrl),
+                    Gallery((file) => self.upload(file)), FigureImage, // A52
                     Placeholder.configure({
                         placeholder: ({ node }) => node.type.name === 'heading' ? 'Заголовок раздела' : 'Начните писать… Картинку можно перетащить или вставить из буфера',
                     }),
@@ -101,18 +264,20 @@ export default function registerEditor(Alpine) {
                 editorProps: {
                     attributes: { class: 'prose-banq !p-0', spellcheck: 'true', 'aria-label': 'Текст публикации' },
                     handleDrop: (view, event, slice, moved) => {
-                        const file = !moved && event.dataTransfer?.files?.[0];
-                        if (!file || !file.type.startsWith('image/')) return false;
+                        const files = moved ? [] : [...(event.dataTransfer?.files || [])].filter((f) => f.type.startsWith('image/'));
+                        const file = files[0];
+                        if (!file) return false;
                         event.preventDefault();
                         const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+                        if (files.length > 1) { self.insertGallery(files, pos); return true; } // A52 · несколько файлов — сразу галерея
                         self.uploadImage(file, pos);
                         return true;
                     },
                     handlePaste: (view, event) => {
-                        const file = [...(event.clipboardData?.files || [])].find((f) => f.type.startsWith('image/'));
-                        if (!file) return false;
+                        const files = [...(event.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+                        if (!files.length) return false;
                         event.preventDefault();
-                        self.uploadImage(file);
+                        files.length > 1 ? self.insertGallery(files) : self.uploadImage(files[0]);
                         return true;
                     },
                 },
@@ -207,27 +372,54 @@ export default function registerEditor(Alpine) {
         insertTable() { this.run((c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })); },
 
         pickImage() { this.$refs.imageFile.click(); },
-        async uploadImage(file, pos = null) {
-            if (!file) return;
-            this.uploading = true;
+        // A52 · загрузка одного файла → { src, alt, caption } или null (ошибку показываем)
+        async upload(file) {
             const fd = new FormData();
             fd.append('image', file);
             try {
                 const r = await fetch(cfg.uploadUrl, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf(), Accept: 'application/json' }, body: fd });
                 const d = await r.json();
                 if (!r.ok) throw new Error(d.message || 'Не удалось загрузить');
-                const alt = (file.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
-                const chain = editor.chain().focus();
-                (pos != null ? chain.insertContentAt(pos, { type: 'image', attrs: { src: d.url, alt } }) : chain.setImage({ src: d.url, alt })).run();
+                return { src: d.url, alt: (file.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' '), caption: '' };
             } catch (e) {
-                alert(e.message || 'Не удалось загрузить картинку');
+                alert(`${file.name || 'Картинка'}: ${e.message || 'не удалось загрузить'}`);
+                return null;
+            }
+        },
+        async uploadImage(file, pos = null) {
+            if (!file) return;
+            this.uploading = true;
+            const img = await this.upload(file);
+            if (img) {
+                const chain = editor.chain().focus();
+                (pos != null ? chain.insertContentAt(pos, { type: 'image', attrs: { src: img.src, alt: img.alt } }) : chain.setImage({ src: img.src, alt: img.alt })).run();
             }
             this.uploading = false;
         },
+        pickGallery() { this.$refs.galleryFiles.click(); },
+        async insertGallery(files, pos = null) {
+            files = [...files].filter((f) => f.type.startsWith('image/'));
+            if (!files.length) return;
+            this.uploading = true;
+            const images = (await Promise.all(files.map((f) => this.upload(f)))).filter(Boolean);
+            if (images.length) {
+                const node = { type: 'gallery', attrs: { layout: 'grid', images, caption: '' } };
+                const chain = editor.chain().focus();
+                (pos != null ? chain.insertContentAt(pos, node) : chain.insertContent(node)).run();
+            }
+            this.uploading = false;
+        },
+        // картинка → картинка с подписью (подпись вводится прямо под ней)
+        addCaption() {
+            const { src, alt } = editor.getAttributes('image');
+            this.run((c) => c.insertContent({ type: 'figureImage', attrs: { src, alt, caption: '' } }));
+            this.$nextTick(() => document.querySelector('.ProseMirror-selectednode input, .ed-figure:focus-within input')?.focus());
+        },
         imageAlt() {
-            const cur = editor.getAttributes('image').alt || '';
+            const type = this.is('figureImage') ? 'figureImage' : 'image';
+            const cur = editor.getAttributes(type).alt || '';
             const alt = prompt('Описание картинки (для поиска и незрячих читателей)', cur);
-            if (alt !== null) this.run((c) => c.updateAttributes('image', { alt }));
+            if (alt !== null) this.run((c) => c.updateAttributes(type, { alt }));
         },
 
         insertEmbed(item) {

@@ -44,14 +44,6 @@
                     @endforeach
                 </div>
                 @break
-            @case('image')
-                {{-- A51 · картинка: превью, новый файл, «удалить» --}}
-                <div class="flex items-center gap-3 flex-wrap">
-                    @if ($value)<img src="{{ $value }}" alt="" class="h-16 max-w-[12rem] rounded-lg object-contain border border-[var(--line)] bg-[var(--card-2)]">@endif
-                    <input id="{{ $id }}" type="file" name="{{ $name }}" accept="image/png,image/jpeg,image/webp,image/gif" class="text-sm muted">
-                    @if ($value)<label class="flex items-center gap-2 text-xs muted"><input type="checkbox" name="{{ $name }}__remove" value="1"> удалить</label>@endif
-                </div>
-                @break
             @case('select')
                 <select id="{{ $id }}" name="{{ $name }}" class="input">
                     @unless ($required)<option value="">—</option>@endunless
@@ -60,6 +52,20 @@
                         <option value="{{ $v }}" @selected((string) $val === (string) $v)>{{ $l }}</option>
                     @endforeach
                 </select>
+                @break
+            @case('image')
+                {{-- A54 · картинка: загрузить файл (SVG/PNG/WebP) или указать путь/URL; пусто — рисунок по умолчанию --}}
+                <div class="flex items-center gap-3" x-data="{ src: @js($val), pick(e) { const f = e.target.files[0]; if (f) this.src = URL.createObjectURL(f) } }">
+                    <span class="grid place-items-center w-20 h-14 rounded-xl bg-[var(--card-2)] border border-[var(--line)] overflow-hidden shrink-0">
+                        <img x-show="src" :src="src" alt="" class="max-w-full max-h-full object-contain" @if (! $val) x-cloak @endif>
+                        <span x-show="!src" class="text-[10px] faint text-center leading-tight px-1">по умол&shy;чанию</span>
+                    </span>
+                    <div class="grid gap-2 flex-1 min-w-0">
+                        <input type="file" name="{{ $name }}__upload" accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/webp,image/jpeg" class="text-sm" @change="pick($event)">
+                        <input id="{{ $id }}" name="{{ $name }}" value="{{ $val }}" class="input !py-2 text-sm font-mono" placeholder="/uploads/… или https://…" @input="src = $event.target.value">
+                    </div>
+                </div>
+                @error($dot.'__upload')<p class="error text-xs">{{ $message }}</p>@enderror
                 @break
             @case('color')
                 <div class="flex gap-2"><input type="color" class="input !p-1 h-12 w-16" value="{{ $val ?: '#7b5cff' }}" oninput="this.nextElementSibling.value = this.value" aria-label="{{ $f['label'] }}"><input id="{{ $id }}" name="{{ $name }}" class="input font-mono" value="{{ $val }}" placeholder="#7b5cff" oninput="if (/^#[0-9a-f]{6}$/i.test(this.value)) this.previousElementSibling.value = this.value"></div>

@@ -259,10 +259,10 @@ class AdsTest extends TestCase
         // баннер с загрузкой картинки
         $this->actingAs($admin)->post('/admin/ad-creatives', [
             'campaign_id' => $cr->campaign_id, 'type' => 'image', 'name' => 'Баннер', 'url' => 'https://bank.example', 'weight' => 5, 'is_active' => 1,
-            'image' => UploadedFile::fake()->image('banner.png', 1200, 200),
+            'image__upload' => UploadedFile::fake()->image('banner.png', 1200, 200),
         ])->assertSessionHasNoErrors();
         $banner = AdCreative::firstWhere('name', 'Баннер');
-        $this->assertMatchesRegularExpression('#^/uploads/ads/\w{12}\.png$#', $banner->image);
+        $this->assertMatchesRegularExpression('#^/uploads/ad-creatives/banner-\w{6}\.png$#', $banner->image);
         $this->assertFileExists(public_path($banner->image));
         @unlink(public_path($banner->image));
 

@@ -102,25 +102,52 @@ const parseMoney = (s) => +(String(s).replace(/\D/g, '')) || 0;
 
 // A14 · Список сравнения (до 4 вкладов) — в localStorage, общий для всех страниц.
 // A33 · Фабрика: $store.compare — вклады, $store.cardCompare — карты (свой ключ и адрес сравнения).
-const compareStore = (key, path) => ({
+const compareStore = (key, path, type = null, forms = ['вклад', 'вклада', 'вкладов']) => ({
     limit: 4,
+    type,
+    forms,
     items: (() => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } })(),
     has(id) { return this.items.some((i) => i.id === id); },
     toggle(item) {
         if (this.has(item.id)) this.items = this.items.filter((i) => i.id !== item.id);
         else if (this.items.length < this.limit) this.items = [...this.items, item];
-        else { this.full = true; setTimeout(() => (this.full = false), 2200); return; }
+        else { this.full = true; if (type) Alpine.store('compareAll')?.touch(type); setTimeout(() => (this.full = false), 2200); return; }
         this.save();
     },
     remove(id) { this.items = this.items.filter((i) => i.id !== id); this.save(); },
     clear() { this.items = []; this.save(); },
     set(items) { this.items = items.slice(0, this.limit); this.save(); },
-    save() { try { localStorage.setItem(key, JSON.stringify(this.items)); } catch {} },
+    save() {
+        try { localStorage.setItem(key, JSON.stringify(this.items)); } catch {}
+        if (type && this.items.length) Alpine.store('compareAll')?.touch(type); // A53 · панель внизу показывает последний тронутый вид
+    },
     url() { return path + '?ids=' + this.items.map((i) => i.id).join(','); },
+    word(n) { const a = Math.abs(n) % 100, b = a % 10; return a > 10 && a < 20 ? forms[2] : b > 1 && b < 5 ? forms[1] : b === 1 ? forms[0] : forms[2]; },
     full: false,
 });
-Alpine.store('compare', compareStore('banq.compare', '/deposits/compare'));
-Alpine.store('cardCompare', compareStore('banq.cards.compare', '/cards/compare'));
+// A53 · Универсальное сравнение: по хранилищу на вид продукта. Те же store/storageKey/path/forms — в App\Services\Compare\Types\*.
+const COMPARE_TYPES = [
+    ['deposits', 'compare', 'banq.compare', '/deposits/compare', ['вклад', 'вклада', 'вкладов']],
+    ['cards', 'cardCompare', 'banq.cards.compare', '/cards/compare', ['карта', 'карты', 'карт']],
+    ['packages', 'packageCompare', 'banq.packages.compare', '/compare/packages', ['пакет', 'пакета', 'пакетов']],
+    ['banks', 'bankCompare', 'banq.banks.compare', '/compare/banks', ['банк', 'банка', 'банков']],
+    ['payment-systems', 'systemCompare', 'banq.systems.compare', '/compare/payment-systems', ['система', 'системы', 'систем']],
+];
+const LAST_KEY = 'banq.compare.last';
+Alpine.store('compareAll', {
+    last: (() => { try { return localStorage.getItem(LAST_KEY); } catch { return null; } })(),
+    section: document.documentElement.dataset.compare || null, // вид раздела — задаёт layouts.app (<html data-compare>)
+    // Сколько выбрано по всем видам — счётчик у «Сравнения» в шапке
+    get count() { return COMPARE_TYPES.reduce((n, [, store]) => n + Alpine.store(store).items.length, 0); },
+    of(type) { const t = COMPARE_TYPES.find(([k]) => k === type); return t ? Alpine.store(t[1]) : null; },
+    touch(type) { this.last = type; try { localStorage.setItem(LAST_KEY, type); } catch {} },
+    // Вид для панели внизу: последний тронутый (если в нём что-то есть) → вид раздела → первый непустой
+    get current() {
+        for (const t of [this.last, this.section]) { const s = t && this.of(t); if (s?.items.length) return s; }
+        return COMPARE_TYPES.map(([k]) => this.of(k)).find((s) => s.items.length) || this.of(this.section || 'deposits');
+    },
+});
+COMPARE_TYPES.forEach(([type, store, key, path, forms]) => Alpine.store(store, compareStore(key, path, type, forms)));
 
 // A33 · x-tilt — объёмный наклон карты за курсором (+ блик через --mx/--my). Уважает reduced-motion и тач.
 Alpine.directive('tilt', (el) => {
@@ -263,6 +290,8 @@ Alpine.data('favorite', (on = false) => ({
 window.Alpine = Alpine;
 registerBlog(Alpine); // A37 · журнал
 registerAds(); // A51
+// A52 · лайтбокс и слайдеры галерей — отдельным чанком, только где есть картинки статьи
+if (document.querySelector('[data-lightbox]')) import('./lightbox.js').then((m) => m.default());
 // A37 · Редактор публикаций (Tiptap) — отдельный чанк, грузится только на странице редактора, до запуска Alpine
 if (document.querySelector('[data-post-editor]')) {
     import('./editor.js').then((m) => m.default(Alpine)).finally(() => Alpine.start());

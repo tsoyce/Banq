@@ -79,7 +79,7 @@ class ResourceController extends Controller
     {
         $r = $this->resource($request, $key);
         abort_unless($r->canCreate(), 403);
-        $data = $request->validate($r->rules(null));
+        $data = $r->absorbUploads($request, $request->validate($r->rules(null))); // A54 · картинки
 
         if ($key === 'rates') {
             return $this->storeRate($request, $data);
@@ -109,7 +109,7 @@ class ResourceController extends Controller
         $r = $this->resource($request, $key);
         $model = $this->find($r, $id);
         abort_unless($r->canEdit($model), 404);
-        $data = $request->validate($r->rules($model));
+        $data = $r->absorbUploads($request, $request->validate($r->rules($model)), $model); // A54 · картинки
 
         $r->fill($model, $data);
         $r->saving($model, $data, $request);

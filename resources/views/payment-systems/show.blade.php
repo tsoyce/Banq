@@ -15,6 +15,7 @@
                 <span class="chip !bg-white/15 !text-white mb-4">{{ $system->scopeLabel() }} система</span>
                 <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.02]">{{ $system->name }}</h1>
                 @if ($system->description)<p class="mt-4 max-w-2xl opacity-85">{{ $system->description }}</p>@endif
+                <div class="mt-6">@include('partials.compare-toggle', ['type' => 'payment-systems', 'item' => $system, 'wide' => true])</div>{{-- A53 --}}
             </div>
         </div>
         <div class="card p-0 overflow-hidden" data-reveal style="--d:.06s">
@@ -36,24 +37,30 @@
         <section class="card p-6 md:p-8" data-reveal>
             <p class="kicker mb-1"><b>01</b> / уровни карт</p>
             <h2 class="font-display font-bold text-2xl">От базового до топового</h2>
-            <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
-                @foreach ($system->tiers->sortBy('level') as $t)
-                    <div id="tier-{{ $t->code }}" class="plate rounded-2xl p-5 tier-step scroll-mt-24" style="--lvl: {{ $t->level }}">
-                        <div class="flex items-center gap-3">
-                            <span class="mini-card !w-12 !h-8" style="background: {{ $system->gradient() }}; filter: saturate({{ 0.55 + $t->level * 0.1 }}) brightness({{ 1.2 - $t->level * 0.08 }})"></span>
-                            <div class="min-w-0 flex-1">
-                                <p class="font-semibold truncate">{{ $t->name }}</p>
-                                <p class="text-xs muted">{{ $t->segmentLabel() }} · ступень {{ $t->level }} из 6 @if ($byTier[$t->id] ?? 0) · {{ $byTier[$t->id] }} {{ plural($byTier[$t->id], 'карта', 'карты', 'карт') }}@endif</p>
+            {{-- A54 · уровни для физлиц и для бизнеса — отдельными лестницами, у каждого свой значок --}}
+            @foreach ($system->tiers->groupBy(fn ($t) => $t->isBusiness() ? 'business' : 'personal')->sortKeys()->reverse() as $group => $tiers)
+                @if ($system->tiers->contains(fn ($t) => $t->isBusiness()))
+                    <p class="label mt-6 -mb-2 flex items-center gap-2">@include('partials.icon', ['i' => $group === 'business' ? 'layers' : 'user', 'c' => 'w-4 h-4']) {{ $group === 'business' ? 'Для бизнеса' : 'Для физлиц' }}</p>
+                @endif
+                <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+                    @foreach ($tiers->sortBy('level') as $t)
+                        <div id="tier-{{ $t->code }}" class="plate rounded-2xl p-5 tier-step scroll-mt-24" style="--lvl: {{ $t->level }}">
+                            <div class="flex items-center gap-3">
+                                @include('partials.tier-badge', ['tier' => $t->setRelation('paymentSystem', $system), 'c' => 'w-16'])
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold truncate">{{ $t->name }}</p>
+                                    <p class="text-xs muted">{{ $t->segmentLabel() }} · ступень {{ $t->level }} из 6 @if ($byTier[$t->id] ?? 0) · {{ $byTier[$t->id] }} {{ plural($byTier[$t->id], 'карта', 'карты', 'карт') }}@endif</p>
+                                </div>
+                                <span class="level-dots">@for ($l = 1; $l <= 6; $l++)<i @class(['on' => $l <= $t->level])></i>@endfor</span>
                             </div>
-                            <span class="level-dots">@for ($l = 1; $l <= 6; $l++)<i @class(['on' => $l <= $t->level])></i>@endfor</span>
+                            @if ($t->description)<p class="text-sm muted mt-3">{{ $t->description }}</p>@endif
+                            @if ($t->privileges)
+                                <ul class="grid gap-1.5 mt-4">@foreach ($t->privileges as $p)<li class="perk !text-[0.85rem]">@include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4']) {{ $p }}</li>@endforeach</ul>
+                            @endif
                         </div>
-                        @if ($t->description)<p class="text-sm muted mt-3">{{ $t->description }}</p>@endif
-                        @if ($t->privileges)
-                            <ul class="grid gap-1.5 mt-4">@foreach ($t->privileges as $p)<li class="perk !text-[0.85rem]">@include('partials.icon', ['i' => 'check', 'c' => 'w-4 h-4']) {{ $p }}</li>@endforeach</ul>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @endforeach
             <p class="text-xs faint mt-5">Привилегии — типичный набор уровня у платёжной системы; что именно даёт ваша карта, определяет банк-эмитент.</p>
         </section>
     @endif
@@ -63,11 +70,11 @@
             <h2 class="font-display font-bold text-2xl">Карты {{ $system->displayName() }} в банках {{ country()?->genitive() }}</h2>
             @if ($offers->isNotEmpty())<a href="{{ route('cards.index', ['system' => [$system->slug]]) }}" class="text-sm font-semibold muted hover:text-[var(--text)] whitespace-nowrap">В каталоге →</a>@endif
         </div>
-        @forelse ($offers->take(10) as $i => $o)
-            @include('cards._offer', ['o' => $o, 'i' => $i])
-        @empty
+        @if ($offers->isNotEmpty())
+            @include('cards._split', ['offers' => $offers, 'offerFrom' => 'ps:'.$system->slug, 'limit' => 40]) {{-- A54 · физлицам / бизнесу, по видам --}}
+        @else
             <div class="card p-10 text-center muted">Карт {{ $system->displayName() }} в каталоге пока нет.</div>
-        @endforelse
+        @endif
     </section>
 
     @include('blog._about', ['about' => $system, 'title' => $system->displayName().' в журнале', 'limit' => 3]) {{-- A37 --}}
