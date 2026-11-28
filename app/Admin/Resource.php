@@ -56,6 +56,21 @@ abstract class Resource
         return ($this->model())::query();
     }
 
+    /**
+     * A46 · Где у записи страна: 'id' (сами страны), 'country_id', 'bank.country_id'… null — ресурс без страны.
+     * По нему список сужается фильтром страны в плашке админки, а сотрудник со своими странами не видит и не сохраняет чужое.
+     */
+    public function countryScope(): ?string
+    {
+        return null;
+    }
+
+    /** A46 · Запись без страны (null) — общая, видна при любом выборе. */
+    public function countryNullable(): bool
+    {
+        return false;
+    }
+
     /** Колонки поиска (LIKE) или Closure($q, $term). */
     public function search(): array|\Closure
     {
@@ -84,7 +99,7 @@ abstract class Resource
         ]] : [];
     }
 
-    /** Ключ сущности обмена данными (App\Services\Exchange) — даёт «Экспорт выбранного» JSON/CSV/XLSX. */
+    /** Ключ сущности обмена данными (App\Services\Exchange) — даёт «Экспорт» и «Экспорт выбранного» в любом формате обмена. */
     public function exchangeEntity(): ?string
     {
         return null;

@@ -8,6 +8,7 @@ use App\Models\Bank;
 use App\Models\Country;
 use App\Models\DepositProduct;
 use App\Models\DepositRate;
+use App\Support\AdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -49,6 +50,12 @@ class DepositProductResource extends Resource
         return 'deposit_products';
     }
 
+    /** A46 · Где у записи страна — для фильтра в плашке админки и стран сотрудника. */
+    public function countryScope(): ?string
+    {
+        return 'bank.country_id';
+    }
+
     public function query(): Builder
     {
         return DepositProduct::query()->with('bank.country')->withCount(['currentRates', 'rates'])->withMax('currentRates as best_rate', 'rate')->withMax('rates as last_rate_at', 'valid_from');
@@ -67,7 +74,7 @@ class DepositProductResource extends Resource
     public function filters(): array
     {
         return [
-            'country' => ['label' => 'Страна', 'options' => fn () => Country::query()->ordered()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
+            'country' => ['label' => 'Страна', 'options' => fn () => app(AdminScope::class)->countryQuery()->pluck('name', 'id')->all(), 'apply' => fn ($q, $v) => $q->whereHas('bank', fn ($b) => $b->where('country_id', $v))],
             'bank' => ['label' => 'Банк', 'options' => fn () => Bank::query()->inCountry(request('country') ?: null)->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => $b->displayName()])->all(), 'apply' => fn ($q, $v) => $q->where('bank_id', $v)],
             'type' => ['label' => 'Тип', 'options' => collect(DepositType::cases())->mapWithKeys(fn ($t) => [$t->value => $t->label()])->all(), 'apply' => fn ($q, $v) => $q->where('type', $v)],
             'active' => ['label' => 'На сайте', 'options' => ['1' => 'Активные', '0' => 'Скрытые'], 'apply' => fn ($q, $v) => $q->where('is_active', $v === '1')],
@@ -81,7 +88,7 @@ class DepositProductResource extends Resource
     {
         return [
             ['key' => 'name', 'label' => 'Вклад', 'sort' => 'name', 'render' => fn (DepositProduct $p) => self::html(
-                '<p class="font-semibold">'.e($p->name).'</p><p class="faint text-xs">'.e(($p->bank?->country?->flag ?? '').' '.$p->bank?->displayName()).' · <span class="font-mono">'.e($p->slug).'</span></p>')],
+                '<p class="font-semibold">'.e($p->name).'</p><p class="faint text-xs">'.($p->bank?->country?->flagImg() ?? '').' '.e($p->bank?->displayName()).' · <span class="font-mono">'.e($p->slug).'</span></p>')],
             ['key' => 'type', 'label' => 'Тип', 'sort' => 'type', 'render' => fn (DepositProduct $p) => $p->type?->label()],
             ['key' => 'best_rate', 'label' => 'Лучшая ставка', 'sort' => 'best_rate', 'render' => fn (DepositProduct $p) => self::html('<b class="tabular">'.rate_format($p->best_rate).'</b>')],
             ['key' => 'rates', 'label' => 'Ставок', 'sort' => 'current_rates_count', 'render' => fn (DepositProduct $p) => self::html('<span class="tabular">'.$p->current_rates_count.'</span><span class="faint"> / '.$p->rates_count.'</span>')],
@@ -95,7 +102,7 @@ class DepositProductResource extends Resource
     {
         return [
             ['name' => 'bank_id', 'label' => 'Банк', 'type' => 'select', 'span' => 2, 'rules' => ['required', 'integer', 'exists:banks,id'],
-                'options' => fn () => Bank::query()->with('country')->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
+                'options' => fn () => Bank::query()->with('country')->tap(fn ($q) => app(AdminScope::class)->apply($q, 'country_id', selection: false))->orderBy('country_id')->orderBy('name')->get()->mapWithKeys(fn ($b) => [$b->id => trim(($b->country?->flag ?? '').' '.$b->displayName().' · '.$b->code)])->all()],
             ['name' => 'name', 'label' => 'Название', 'rules' => ['required', 'string', 'max:160']],
             ['name' => 'type', 'label' => 'Тип', 'type' => 'select', 'rules' => ['required'], 'options' => collect(DepositType::cases())->mapWithKeys(fn ($t) => [$t->value => $t->label().' — '.mb_strtolower($t->hint())])->all()],
             ['name' => 'slug', 'label' => 'Адрес на сайте', 'help' => 'пусто — из банка и названия', 'rules' => ['nullable', 'alpha_dash', 'max:160', Rule::unique('deposit_products')->ignore($model)]],

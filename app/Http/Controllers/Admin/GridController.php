@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
 use App\Models\Country;
+use App\Support\AdminScope;
 use App\Models\DepositProduct;
 use App\Models\PaymentSystem;
 use App\Services\Exchange\DataExchange;
@@ -39,8 +40,8 @@ class GridController extends Controller
         return view('admin.exchange.grid', [
             'entity' => $e,
             'entities' => $this->registry->all(),
-            'countries' => Country::query()->ordered()->get(),
-            'country' => $request->query('country', country()?->code),
+            'countries' => app(AdminScope::class)->countryQuery()->get(), // A46
+            'country' => app(AdminScope::class)->clampCode($request->query('country', app(AdminScope::class)->code() ?? country()?->code)),
             'config' => [
                 'entity' => $e->key(),
                 'label' => $e->label(),
@@ -57,7 +58,7 @@ class GridController extends Controller
     public function rows(Request $request, string $entity): JsonResponse
     {
         $e = $this->entity($entity);
-        $country = $request->query('country') ?: null;
+        $country = app(AdminScope::class)->clampCode($request->query('country') ?: null); // A46
         $filters = ['country' => $country, 'bank' => array_filter(explode(',', (string) $request->query('bank', ''))) ?: null, 'current' => $request->boolean('current')];
         $rows = $this->exchange->export([$e->key()], $filters, true)[$e->key()];
 
@@ -72,7 +73,7 @@ class GridController extends Controller
         $dry = (bool) ($data['dry_run'] ?? false);
         try {
             $report = $this->exchange->import([$e->key() => array_values($data['rows'])], new ImportOptions(
-                dryRun: $dry, country: $data['country'] ?? null, source: 'admin', userId: $request->user()->id,
+                dryRun: $dry, country: app(AdminScope::class)->clampCode($data['country'] ?? null), source: 'admin', userId: $request->user()->id,
                 filename: 'таблица · '.$e->label(), format: 'grid', allowDelete: true,
             ));
         } catch (Throwable $ex) {

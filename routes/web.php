@@ -175,6 +175,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::post('/reset', 'reset')->name('reset');
     });
 
+    // A46 · Страна в плашке админки и библиотека флагов (свои флаги — загрузка/замена)
+    Route::post('/country', Admin\CountryScopeController::class)->name('country');
+    Route::get('/flags', [Admin\FlagController::class, 'index'])->name('flags.index');
+    Route::post('/flags', [Admin\FlagController::class, 'store'])->middleware('throttle:30,1')->name('flags.store');
+    Route::delete('/flags/{code}', [Admin\FlagController::class, 'destroy'])->where('code', '[a-z0-9-]+')->name('flags.destroy');
+
     // A24 · Глобальный поиск по админке
     Route::get('/search', Admin\SearchController::class)->name('search');
 
