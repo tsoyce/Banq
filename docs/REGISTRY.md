@@ -61,6 +61,14 @@ app/
 ├─ Http/Controllers/Admin/BlogController (загрузка картинок, поиск связей, превью вставки)  A37
 ├─ Admin/Resources/{Post,PostCategory,Comment}Resource  A37 (раздел меню «Блог»; PostResource — свой редактор admin.posts.editor)
 ├─ Services/Exchange/Entities/ PostCategoryEntity, PostEntity (tags, links «type:slug», body или body_markdown)  A37
+├─ Models/Page (posts.type = page; nav(), кеш pages.nav), Models/Redirect (normalize, match, remember)  A42
+├─ Admin/Resources/{Page,Redirect}Resource  A42 (Page — тот же редактор admin.posts.editor с $isPage; Redirect — Сайт → Редиректы)
+├─ Http/Controllers/PageController .. A42 Route::fallback: страница /{slug} → редирект со старого адреса → 404; redirectFor() — и для 404 на маршрутах (bootstrap/app.php)
+├─ Services/WordPress/ WpSource (REST API → снимок), WxrReader (файл экспорта WXR → тот же снимок), WpContent (scan — проверка на взлом,
+│                     transform — HTML WordPress → журнал), WpMedia (проверка по сигнатуре, код внутри, перекодирование GD без EXIF, ≤ 2400px),
+│                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43
+├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=]
+├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
@@ -117,6 +125,7 @@ public/uploads/branding/ ............ логотип и фавикон из ад
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18),
                                        обмен данными + API (A22 A23: DataExchangeTest), ресурсы админки и страны на витрине (A24: AdminResourceTest)
 public/uploads/avatars/ ............. A28 фото пользователей (в git не попадают)
+public/uploads/blog/wp/ГГГГ/ММ/ ...... A43 файлы, перенесённые с WordPress (в git не попадают)
 tests/ .............................. Unit: парсер Excel · Feature: установка, админка, импорт, каталог вкладов (A14), банки и рейтинги (A18), профиль и кабинет (A28), карты (A33: CardCatalogTest; fixtures/cards-demo.json — вымышленные условия)
 routes/console.php .................. A18 команда banq:ratings-snapshot + расписание 03:10
 deploy.sh ........................... A11 деплой на BrainyCP; A19: автопоиск PHP, кеши только очищаются (ARTISAN_CACHE=1 — строить); A29: путь SQLite из chroot; A35: DEPLOY_SKIP_PULL
@@ -225,6 +234,8 @@ HTTP запрос
 | `currency_rates` (A40) | country_id, currency ISO, name, nominal (курс за N единиц), rate, change (к прошлому курсу по источнику), date, source (nbrk/cbu/cbr); unique(country_id, currency, date) | CurrencyRates::sync (cron `banq:fx-sync`, заход посетителя, админка) | карточка курсов, лента, админка → Курсы валют |
 | `post_categories` (A37) | slug, name, description, color, icon, is_active, sort (сидер: news, analytics, reviews, guides, opinion) | миграция, админка, обмен | лента, рубрики |
 | `posts` (A37) | country_id?, category_id?, author_id?, kind (article/news/review/guide/analytics), status draft/published, published_at (в будущем — отложено), title, slug, lead, body (HTML после санитайзера), cover, cover_alt, cover_caption, reading_minutes, is_featured (один), allow_comments, views, seo_title, seo_description, source_name, source_url, meta | редактор, обмен | /blog, главная, страницы продуктов |
+| `posts` + A42 | **type** post/page, **in_feed** (страница в ленте), **nav** aside/footer/null, **nav_sort**; meta.wp_key / meta.wp — откуда перенесено (A43) | PageResource, WpImporter | Post — глобальный скоуп `type` (публикации + страницы in_feed), Page — только страницы; /{slug} |
+| `redirects` (A42) | from_path (нормализованный, кириллица как есть), from_hash (sha256, уникальный), to_url, status 301/302, source wp/manual, note, hits, last_hit_at | RedirectResource, WpImporter | PageController (fallback), 404 на маршрутах, /?p= на главной |
 | `tags`, `post_tag` (A37) | slug, name · post_id + tag_id | Tag::idsFor (редактор, обмен) | /blog/tag/{slug} |
 | `postables` (A37) | post_id, postable_type (morph: bank, deposit, card, package, payment_system, card_tier), postable_id, **is_primary** (выбрано автором; false — добавлено каскадом) | Post::syncLinks | Post::about(), блок «О ком материал» |
 | `post_reactions` (A37) | post_id, user_id, kind (like/fire/think/money); unique тройка | BlogController::react | реакции |
@@ -305,6 +316,8 @@ HTTP запрос
 | GET | `/packages`, `/packages/{package:slug}` | packages.* | все (A33) |
 | GET, PUT | `/admin/ticker` | admin.ticker.* | admin, editor (A40) |
 | GET, PUT, POST | `/admin/currency`, `/admin/currency/{country}/sync` (`days=30` — история) | admin.currency.* | admin, editor (A40); sync — throttle 10/мин |
+| GET, POST, POST, GET, POST | `/admin/wordpress`, `/wordpress/scan`, `/wordpress/step`, `/wordpress/report`, `/wordpress/reset` | admin.wordpress.* | только admin (A43); scan — throttle 10/мин |
+| ANY | fallback `/{slug}` и любой несуществующий адрес | page.fallback | A42: страница → редирект → 404 |
 | GET | `/blog?q=&kind=`, `/blog/c/{category:slug}`, `/blog/tag/{tag:slug}`, `/blog/rss.xml`, `/blog/{post:slug}` | blog.index, blog.category, blog.tag, blog.rss, blog.show | все (A37); черновик — только сотрудникам; лента — частичный ответ при `X-Partial: posts` |
 | POST, POST, DELETE | `/blog/{post}/react`, `/blog/{post}/comments`, `/blog/comments/{comment}` | blog.react, blog.comment, blog.comments.destroy | вошедшие (A37); лимиты `blog-reactions` 60/мин, `blog-comments` 6/мин |
 | POST, GET, GET | `/admin/blog/upload`, `/admin/blog/lookup?q=&type=&keys=`, `/admin/blog/embed?type=&slug=` | admin.blog.* | admin, editor (A37): картинка в текст, поиск связей с каскадом, превью вставки |

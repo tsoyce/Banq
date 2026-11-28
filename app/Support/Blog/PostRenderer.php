@@ -46,6 +46,10 @@ class PostRenderer
             return $this->embed($t[1] ?? '', $s[1] ?? '');
         }, $html);
 
+        // A43 · ссылка на свой аудиофайл отдельным абзацем — плеер
+        $html = preg_replace_callback('~<p>\s*<a href="(/uploads/[^"?#]+\.(?:mp3|m4a|ogg|wav))"[^>]*>(.*?)</a>\s*</p>~iu',
+            fn ($m) => '<figure class="post-audio"><audio controls preload="none" src="'.$m[1].'"></audio><figcaption>'.$m[2].'</figcaption></figure>', $html);
+
         $html = preg_replace(['#<table>#', '#</table>#'], ['<div class="prose-table"><table>', '</table></div>'], $html);
         // числовые ячейки («1 000 000 ₸», «16,5%») — без переноса и по правому краю
         $html = preg_replace_callback('#<(td|th)((?:\s[^>]*)?)>((?:<p>)?)([^<]{1,40})((?:</p>)?)</\1>#u', fn ($m) => preg_match('/^[\s\x{00A0}\d.,%₸$€₽¥+−–-]+$/u', html_entity_decode($m[4])) && preg_match('/\d/', $m[4])
@@ -57,6 +61,11 @@ class PostRenderer
     /** Карточка вставки или пусто, если продукт скрыт/удалён. */
     public function embed(string $type, string $slug): string
     {
+        if ($type === 'youtube') { // A43 · видео: youtube-nocookie, грузится только при прокрутке
+            return preg_match('/^[A-Za-z0-9_-]{6,20}$/', $slug)
+                ? '<figure class="embed-video"><iframe src="https://www.youtube-nocookie.com/embed/'.$slug.'" title="Видео YouTube" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></figure>'
+                : '';
+        }
         $model = Post::resolveLink($type.':'.$slug);
         if (! $model) {
             return '';

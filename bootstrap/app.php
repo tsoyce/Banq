@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [ResolveCountry::class, Typography::class]); // A36 · неразрывные пробелы в HTML
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // A42 · 404 на существующем маршруте (например, /blog/старый-адрес) — пробуем редирект со старого адреса
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            $missing = $e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException || $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException;
+
+            return $missing && ! $request->is('api/*', 'admin/*') ? \App\Http\Controllers\PageController::redirectFor($request) : null;
+        });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

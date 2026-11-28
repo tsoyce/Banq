@@ -14,7 +14,7 @@
         // A32 · раздел «Карты»
         'Карты' => collect(['cards', 'packages', 'payment-systems', 'card-tiers'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         // A37 · блог: публикации, рубрики, комментарии
-        'Блог' => collect(['posts', 'post-categories', 'comments'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
+        'Блог' => collect(['posts', 'post-categories', 'comments', 'pages'])->map(fn ($k) => ['admin.resource.index', [$k], $res($k)->label(), $res($k)->icon(), request()->route('key') === $k])->all(),
         'Обмен' => [
             ['admin.exchange.index', [], 'Импорт и экспорт', 'swap', request()->routeIs('admin.exchange.index', 'admin.exchange.check', 'admin.exchange.show')],
             ['admin.exchange.grid.index', [], 'Таблица', 'grid', request()->routeIs('admin.exchange.grid', 'admin.exchange.grid.*')], // A39
@@ -30,6 +30,8 @@
             ['admin.settings.edit', [], 'Настройки', 'settings', request()->routeIs('admin.settings.*')],
             ['admin.ticker.edit', [], 'Бегущая строка', 'news', request()->routeIs('admin.ticker.*')], // A40
             ['admin.currency.index', [], 'Курсы валют', 'coins', request()->routeIs('admin.currency.*')], // A40
+            ['admin.resource.index', ['redirects'], 'Редиректы', 'arrow', request()->route('key') === 'redirects'], // A42
+            $role === 'admin' ? ['admin.wordpress.index', [], 'Перенос с WordPress', 'upload', request()->routeIs('admin.wordpress.*')] : null, // A43
             $role === 'admin' ? ['admin.database.index', [], 'База данных', 'layers', request()->routeIs('admin.database.*')] : null, // A34
         ]),
     ];
