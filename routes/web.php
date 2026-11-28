@@ -170,6 +170,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         Route::get('/', 'index')->name('index');
         Route::post('/scan', 'scan')->middleware('throttle:10,1')->name('scan');
         Route::post('/step', 'step')->middleware('throttle:120,1')->name('step');
+        Route::post('/fill', 'fill')->middleware('throttle:120,1')->name('fill'); // A52 · пропавшие файлы с запасной копии
         Route::get('/report', 'report')->name('report');
         Route::post('/reset', 'reset')->name('reset');
     });

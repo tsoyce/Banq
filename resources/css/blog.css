@@ -195,7 +195,7 @@
     /* A43/A45 · одиночная картинка: подпись занимает своё место, картинка блоком по центру */
     .prose-banq figure { display: flow-root; }
     .prose-banq figure > img, .prose-banq figure > a > img { display: block; margin-inline: auto; }
-    /* A46 · галереи <figure data-gallery="grid|grid-2|grid-3|masonry|slider"> (старые галереи WordPress приводит к нему Gallery) */
+    /* A52 · галереи <figure data-gallery="grid|grid-2|grid-3|masonry|slider"> (старые галереи WordPress приводит к нему Gallery) */
     .prose-banq figure[data-gallery] { --cols: 3; --gap: 0.6rem; display: grid; gap: var(--gap); grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); align-items: start; }
     .prose-banq figure[data-gallery='grid'][data-count='1'] { --cols: 1; }
     .prose-banq figure[data-gallery='grid'][data-count='2'], .prose-banq figure[data-gallery='grid'][data-count='4'], .prose-banq figure[data-gallery='grid-2'] { --cols: 2; }
@@ -237,7 +237,7 @@
         .prose-banq figure[data-gallery='masonry'] { columns: 2; }
         .gallery-nav { display: none; }
     }
-    /* A46 · картинки открываются в лайтбоксе */
+    /* A52 · картинки открываются в лайтбоксе */
     .has-lightbox img[data-lb] { cursor: zoom-in; transition: filter 0.25s, transform 0.4s var(--ease-out); }
     .has-lightbox img[data-lb]:hover { filter: brightness(1.04) saturate(1.05); }
     .embed-video { position: relative; aspect-ratio: 16 / 9; max-width: none; border-radius: var(--radius-sm); overflow: hidden; background: #000; }
@@ -316,7 +316,7 @@
     .ed-embed { position: relative; max-width: 70ch; }
     .ed-embed > .embed { pointer-events: none; }
     .ed-embed-tag { position: absolute; right: 10px; top: -10px; z-index: 1; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--grad); color: #fff; }
-    /* A46 · галерея и картинка с подписью в редакторе */
+    /* A52 · галерея и картинка с подписью в редакторе */
     .ed-gallery, .ed-figure { position: relative; max-width: none; padding: 0.7rem; border-radius: var(--radius-sm); background: var(--card-2); box-shadow: inset 0 0 0 1px var(--line); }
     .ed-gallery-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; font-size: 0.8rem; }
     .ed-gallery-tag { font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--grad); color: #fff; }
@@ -380,7 +380,7 @@
 /* A37 · Режим фокуса редактора: только лист, шире */
 .ed-focus .ed-shell { grid-template-columns: minmax(0, 1fr); max-width: 980px; margin-inline: auto; }
 
-/* A46 · Лайтбокс: картинка статьи на весь экран (resources/js/lightbox.js). Всегда тёмный — фото так смотрятся лучше в обеих темах. */
+/* A52 · Лайтбокс: картинка статьи на весь экран (resources/js/lightbox.js). Всегда тёмный — фото так смотрятся лучше в обеих темах. */
 .lb-lock, .lb-lock body { overflow: hidden; }
 .lb { position: fixed; inset: 0; z-index: 100; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; color: #fff; opacity: 0; transition: opacity 0.26s var(--ease-out); --fade: 1; }
 .lb[hidden] { display: none; }

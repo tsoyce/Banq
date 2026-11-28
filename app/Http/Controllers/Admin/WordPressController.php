@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 1) «Проверить» — снимок сайта (REST API или файл WXR/JSON), план и проверка безопасности; база не меняется.
  * 2) «Перенести» — браузер вызывает step() по очереди, каждый шаг ≤ 20 с (без очередей и cron), прогресс на странице.
  * 3) Отчёт — на странице и файлом JSON.
+ * 4) A52 · «Дотянуть с копии» — записи с пропавшими картинками переносятся заново, файлы — с запасной копии (old.tsoy.in).
  */
 class WordPressController extends Controller
 {
@@ -44,7 +45,8 @@ class WordPressController extends Controller
             'url' => ['nullable', 'url:http,https', 'max:255', 'required_without:file'],
             'file' => ['nullable', 'file', 'max:204800', 'required_without:url'],
             'update' => ['nullable', 'boolean'], 'external_images' => ['nullable', 'boolean'],
-        ], [], ['url' => 'адрес сайта', 'file' => 'файл']);
+            'mirror' => ['nullable', 'url:http,https', 'max:255'], // A52 · запасная копия для пропавших файлов
+        ], [], ['url' => 'адрес сайта', 'file' => 'файл', 'mirror' => 'адрес копии']);
 
         try {
             $snapshot = null;
@@ -58,6 +60,7 @@ class WordPressController extends Controller
             @set_time_limit(180);
             $this->importer->scan($data['url'] ?? null, $snapshot, [
                 'update' => $request->boolean('update'), 'external_images' => $request->boolean('external_images', true),
+                'mirror' => $data['mirror'] ?? null,
             ]);
         } catch (\Throwable $e) {
             return back()->withInput()->withErrors(['url' => $e->getMessage()]);
@@ -71,6 +74,20 @@ class WordPressController extends Controller
         $this->guard($request);
         try {
             return response()->json($this->importer->step(20));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /** A52 · Дотянуть пропавшие картинки с запасной копии сайта — шаг ≤ 20 с, браузер повторяет до finished. */
+    public function fill(Request $request): JsonResponse
+    {
+        $this->guard($request);
+        $data = $request->validate(['mirror' => ['required', 'url:http,https', 'max:255']], [], ['mirror' => 'адрес копии']);
+        try {
+            return response()->json($this->importer->fillMissing($data['mirror'], 20));
         } catch (\Throwable $e) {
             report($e);
 

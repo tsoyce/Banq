@@ -261,7 +261,7 @@ Alpine.data('favorite', (on = false) => ({
 
 window.Alpine = Alpine;
 registerBlog(Alpine); // A37 · журнал
-// A46 · лайтбокс и слайдеры галерей — отдельным чанком, только где есть картинки статьи
+// A52 · лайтбокс и слайдеры галерей — отдельным чанком, только где есть картинки статьи
 if (document.querySelector('[data-lightbox]')) import('./lightbox.js').then((m) => m.default());
 // A37 · Редактор публикаций (Tiptap) — отдельный чанк, грузится только на странице редактора, до запуска Alpine
 if (document.querySelector('[data-post-editor]')) {

@@ -114,7 +114,7 @@
                 <button type="button" class="ed-btn" @click="pickImage()" :disabled="uploading" title="Картинка (можно перетащить в текст)" aria-label="Картинка">
                     <span x-show="!uploading">@include('partials.icon', ['i' => 'image', 'c' => 'w-4 h-4'])</span><span x-show="uploading" x-cloak class="dot-loader"><i></i><i></i><i></i></span>
                 </button>
-                {{-- A46 · галерея из нескольких картинок; подпись к картинке --}}
+                {{-- A52 · галерея из нескольких картинок; подпись к картинке --}}
                 <button type="button" class="ed-btn" @click="pickGallery()" :disabled="uploading" title="Галерея: несколько картинок сеткой, мозаикой или слайдером (можно перетащить несколько файлов)" aria-label="Галерея">@include('partials.icon', ['i' => 'grid', 'c' => 'w-4 h-4'])</button>
                 <button type="button" class="ed-btn" x-show="is('image') || is('figureImage')" x-cloak @click="imageAlt()" title="Описание картинки" aria-label="Описание картинки">alt</button>
                 <button type="button" class="ed-btn" x-show="is('image')" x-cloak @click="addCaption()" title="Добавить подпись под картинкой" aria-label="Подпись">Подпись</button>

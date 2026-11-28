@@ -14,14 +14,14 @@ use Illuminate\Support\Str;
  *  — живые вставки продуктов <div data-embed="…" data-slug="…"> → карточки с текущими ставками/условиями
  *    (данные берутся в момент показа, поэтому статья не устаревает при смене ставок);
  *  — таблицы в обёртке с горизонтальной прокруткой;
- *  — галереи в едином формате (A46, Gallery); лайтбокс по клику на картинку — resources/js/lightbox.js.
+ *  — галереи в едином формате (A52, Gallery); лайтбокс по клику на картинку — resources/js/lightbox.js.
  */
 class PostRenderer
 {
     /** @return array{html: string, toc: list<array{id: string, text: string, level: int}>} */
     public function render(Post $post): array
     {
-        $html = Gallery::normalizeHtml((string) $post->body); // A46 · старые галереи WordPress → сетка, data-count для CSS
+        $html = Gallery::normalizeHtml((string) $post->body); // A52 · старые галереи WordPress → сетка, data-count для CSS
         $toc = [];
         $used = [];
 

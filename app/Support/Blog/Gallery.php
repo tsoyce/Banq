@@ -3,7 +3,7 @@
 namespace App\Support\Blog;
 
 /**
- * A46 · Галереи в тексте публикации.
+ * A52 · Галереи в тексте публикации.
  *
  * Единый формат: <figure data-gallery="grid|grid-2|grid-3|masonry|slider"> <figure><img><figcaption?></figure> … <figcaption?> </figure>.
  * Старые галереи WordPress приводятся к нему же:

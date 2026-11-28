@@ -63,7 +63,7 @@ const Embed = (previewUrl) => Node.create({
     },
 });
 
-// A46 · Галереи и картинки с подписью ────────────────────────────────────────
+// A52 · Галереи и картинки с подписью ────────────────────────────────────────
 const LAYOUTS = [['grid', 'Авто'], ['grid-2', '2 колонки'], ['grid-3', '3 колонки'], ['masonry', 'Мозаика'], ['slider', 'Слайдер']];
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const figImg = (fig) => fig.querySelector(':scope > img, :scope > a > img');
@@ -255,7 +255,7 @@ export default function registerEditor(Alpine) {
                     TableKit.configure({ table: { resizable: false } }),
                     Highlight, Subscript, Superscript,
                     Callout, Embed(cfg.embedUrl),
-                    Gallery((file) => self.upload(file)), FigureImage, // A46
+                    Gallery((file) => self.upload(file)), FigureImage, // A52
                     Placeholder.configure({
                         placeholder: ({ node }) => node.type.name === 'heading' ? 'Заголовок раздела' : 'Начните писать… Картинку можно перетащить или вставить из буфера',
                     }),
@@ -269,7 +269,7 @@ export default function registerEditor(Alpine) {
                         if (!file) return false;
                         event.preventDefault();
                         const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
-                        if (files.length > 1) { self.insertGallery(files, pos); return true; } // A46 · несколько файлов — сразу галерея
+                        if (files.length > 1) { self.insertGallery(files, pos); return true; } // A52 · несколько файлов — сразу галерея
                         self.uploadImage(file, pos);
                         return true;
                     },
@@ -372,7 +372,7 @@ export default function registerEditor(Alpine) {
         insertTable() { this.run((c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })); },
 
         pickImage() { this.$refs.imageFile.click(); },
-        // A46 · загрузка одного файла → { src, alt, caption } или null (ошибку показываем)
+        // A52 · загрузка одного файла → { src, alt, caption } или null (ошибку показываем)
         async upload(file) {
             const fd = new FormData();
             fd.append('image', file);

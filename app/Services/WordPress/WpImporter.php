@@ -57,6 +57,9 @@ class WpImporter
     /** @var array<string, string>|null старый адрес → новый (для ссылок внутри текстов) */
     private ?array $linkMap = null;
 
+    /** A52 · запасная копия старого сайта (https://old.tsoy.in): откуда брать файлы, которых нет на основном. */
+    private ?string $mirror = null;
+
     /** @var array<int, ?int> автор WordPress → пользователь */
     private array $authors = [];
 
@@ -204,6 +207,7 @@ class WpImporter
         $this->deadline = microtime(true) + $budget;
         $this->progressed = false;
         $this->state['started_at'] ??= now()->toIso8601String();
+        $this->mirror = ($this->state['options']['mirror'] ?? null) ?: null; // A52
 
         try {
             if (in_array($this->state['phase'], ['scanned', 'taxonomy'], true)) {
@@ -296,6 +300,79 @@ class WpImporter
         $this->state = [];
     }
 
+    // ── A52 · Дотянуть пропавшие файлы с запасной копии ─────
+
+    /**
+     * Записи, в которых при переносе пропали свои картинки (файла не было на основном сайте), переносятся заново —
+     * файлы берутся с запасной копии сайта ($mirror, например https://old.tsoy.in) по тому же пути /wp-content/uploads/….
+     * Остальные записи не трогаются (их правки в журнале сохраняются). Шагами по времени, как step().
+     */
+    public function fillMissing(string $mirror, float $budget = 20): array
+    {
+        $this->load();
+        if (($this->state['phase'] ?? null) !== 'done') {
+            throw new RuntimeException('Сначала завершите перенос.');
+        }
+        $mirror = rtrim($mirror, '/');
+        if (! preg_match('#^https?://[a-z0-9.-]+(:\d+)?$#i', $mirror)) {
+            throw new RuntimeException('Адрес копии — только сайт, например https://old.tsoy.in');
+        }
+        $this->mirror = $mirror;
+        $this->snapshot ?: $this->loadSnapshot();
+        @set_time_limit((int) max(120, $budget * 4));
+        $this->deadline = microtime(true) + $budget;
+        $this->progressed = false;
+
+        $fill = $this->state['fill'] ?? [];
+        if (($fill['mirror'] ?? null) !== $mirror || ($fill['finished'] ?? false)) {
+            $todo = collect($this->state['results'] ?? [])
+                ->filter(fn ($r) => collect($r['missing'] ?? [])->contains(fn ($u) => $this->isOwnUpload(html_entity_decode($u, ENT_QUOTES | ENT_HTML5))))
+                ->keys()->values()->all();
+            $fill = ['mirror' => $mirror, 'todo' => $todo, 'done' => [], 'fixed' => 0, 'started_at' => now()->toIso8601String(), 'finished' => false];
+        }
+        $items = collect($this->state['plan']['items'] ?? [])->keyBy('key');
+
+        try {
+            foreach ($fill['todo'] as $key) {
+                if (in_array($key, $fill['done'], true) || ! $items->has($key)) {
+                    continue;
+                }
+                $this->checkTime();
+                $before = count($this->state['results'][$key]['missing'] ?? []);
+                $this->state['current'] = $items[$key]['title'];
+                $result = $this->importItem($items[$key], force: true);
+                $this->state['results'][$key] = $result;
+                $fill['fixed'] += max(0, $before - count($result['missing'] ?? []));
+                $fill['done'][] = $key;
+                $this->progressed = true;
+                $this->state['fill'] = $fill;
+                $this->save();
+            }
+            $fill['finished'] = true;
+            $fill['finished_at'] = now()->toIso8601String();
+            $this->state['current'] = null;
+        } catch (WpImportPaused) {
+            // продолжим следующим шагом
+        }
+        $this->state['fill'] = $fill;
+        $this->save();
+
+        return [
+            'mirror' => $mirror, 'done' => count($fill['done']), 'total' => count($fill['todo']), 'fixed' => $fill['fixed'], 'finished' => $fill['finished'],
+            'current' => $this->state['current'] ?? null,
+            'still_missing' => $fill['finished'] ? collect($fill['todo'])->flatMap(fn ($k) => $this->state['results'][$k]['missing'] ?? [])->filter(fn ($u) => $this->isOwnUpload(html_entity_decode($u, ENT_QUOTES | ENT_HTML5)))->values()->all() : [],
+        ];
+    }
+
+    /** Тот же путь на запасной копии. */
+    private function onMirror(string $url): string
+    {
+        $url = str_starts_with($url, '//') ? 'https:'.$url : $url;
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return $this->mirror.implode('/', array_map(fn ($seg) => rawurlencode(rawurldecode($seg)), explode('/', $path)));
+    }
+
     // ── Внутреннее ─────────────────────────────────────────
 
     private function importCategories(): void
@@ -310,7 +387,7 @@ class WpImporter
         $this->save();
     }
 
-    private function importItem(array $item): array
+    private function importItem(array $item, bool $force = false): array
     {
         $this->snapshot ?: $this->loadSnapshot();
         $wp = collect($this->snapshot[$item['type'] === 'page' ? 'pages' : 'posts'] ?? [])->firstWhere('id', $item['wp_id']);
@@ -318,7 +395,7 @@ class WpImporter
             return ['action' => 'missing', 'error' => 'нет в снимке'];
         }
         $existing = $this->existing($item['type'], $item['wp_id']);
-        if ($existing && ! ($this->state['options']['update'] ?? false)) {
+        if ($existing && ! $force && ! ($this->state['options']['update'] ?? false)) {
             return ['action' => 'kept', 'id' => $existing->id, 'url' => $existing->url(), 'findings' => $item['findings']];
         }
 
@@ -394,6 +471,24 @@ class WpImporter
             $r['wp_id'] = $orig['id'] ?? null;
             $r['variants'] = [];
             $this->state['media'][$key] = $r;
+            $this->progressed = true;
+        }
+        // A52 · на основном сайте файла нет — пробуем ту же дорожку на запасной копии (те же проверки WpMedia: сигнатура, код внутри, EXIF прочь)
+        $entry = $this->state['media'][$key];
+        if (! $entry['ok'] && $this->mirror && ! ($entry['danger'] ?? false) && $this->isOwnUpload($key) && ! in_array($this->mirror, $entry['mirror_tried'] ?? [], true)) {
+            $this->checkTime();
+            foreach (array_unique([$key, $url]) as $try) {
+                if (! $this->isOwnUpload($try)) {
+                    continue;
+                }
+                $r = $this->media->fetch($this->onMirror($try), $key);
+                if ($r['ok'] || ($r['danger'] ?? false)) {
+                    break;
+                }
+            }
+            $this->state['media'][$key] = ($r['ok'] || ($r['danger'] ?? false))
+                ? $r + ['wp_id' => $entry['wp_id'] ?? null, 'variants' => $entry['variants'] ?? [], 'from' => $this->mirror]
+                : $entry + ['mirror_tried' => [...($entry['mirror_tried'] ?? []), $this->mirror]];
             $this->progressed = true;
         }
         if ($key !== $url && ! in_array($url, $this->state['media'][$key]['variants'] ?? [], true)) {
