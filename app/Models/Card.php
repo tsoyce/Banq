@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CardAudience;
 use App\Enums\CardKind;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -16,14 +17,18 @@ use Illuminate\Support\Collection;
  */
 class Card extends Model
 {
-    public const SEGMENTS = ['mass' => 'Массовая', 'premium' => 'Премиальная', 'elite' => 'Элитная', 'business' => 'Для бизнеса', 'youth' => 'Молодёжная', 'kids' => 'Детская'];
+    /** A54: «для бизнеса» — теперь не сегмент, а аудитория (audience), см. CardAudience. */
+    public const SEGMENTS = ['mass' => 'Массовая', 'premium' => 'Премиальная', 'elite' => 'Элитная', 'youth' => 'Молодёжная', 'kids' => 'Детская'];
 
     public const FORMATS = ['physical' => 'Пластик', 'virtual' => 'Виртуальная', 'both' => 'Пластик и виртуальная'];
 
     protected $guarded = ['id'];
 
+    protected $attributes = ['audience' => 'personal']; // A54
+
     protected $casts = [
         'kind' => CardKind::class,
+        'audience' => CardAudience::class, // A54
         'currencies' => 'array', 'features' => 'array', 'conditions' => 'array',
         'online_opening' => 'boolean', 'delivery' => 'boolean', 'is_active' => 'boolean',
         'issue_fee' => 'decimal:2', 'annual_fee' => 'decimal:2', 'monthly_fee' => 'decimal:2',
@@ -136,6 +141,20 @@ class Card extends Model
                 $this->balance_rate !== null ? ['на остаток', $pct($this->balance_rate), false] : ['формат', mb_strtolower(self::FORMATS[$this->format] ?? '—'), false],
             ],
         };
+    }
+
+    /** A54 · Карта для бизнеса (юрлица, ИП). */
+    public function isBusiness(): bool
+    {
+        return $this->audience === CardAudience::Business;
+    }
+
+    /** A54 · Аудитория по умолчанию: бизнес, если среди уровней есть бизнес-уровень (Visa Business…). */
+    public function guessAudience(): CardAudience
+    {
+        $this->loadMissing('tiers');
+
+        return $this->tiers->contains('segment', 'business') ? CardAudience::Business : CardAudience::Personal;
     }
 
     public function hasFeature(string $f): bool

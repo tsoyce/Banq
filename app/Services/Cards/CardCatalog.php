@@ -2,6 +2,7 @@
 
 namespace App\Services\Cards;
 
+use App\Enums\CardAudience;
 use App\Enums\CardKind;
 use App\Enums\RatingKind;
 use App\Models\Bank;
@@ -50,7 +51,8 @@ class CardCatalog
         $list = $this->all()->filter(function (Card $c) use ($f, $q) {
             $systems = $c->paymentSystems->pluck('slug')->all();
 
-            return (! $f->kinds || in_array($c->kind, $f->kinds, true))
+            return (! $f->audience || $c->audience === $f->audience) // A54
+                && (! $f->kinds || in_array($c->kind, $f->kinds, true))
                 && (! $f->systems || array_intersect($f->systems, $systems))
                 && (! $f->banks || in_array($c->bank->slug, $f->banks, true))
                 && (! $f->features || ! array_diff($f->features, $c->features ?? []))
@@ -78,10 +80,17 @@ class CardCatalog
         };
     }
 
-    /** @return array<string, int> вид → число карт */
-    public function kindCounts(): array
+    /** @return array<string, int> вид → число карт (A54: в выбранной аудитории; null — во всех) */
+    public function kindCounts(?CardAudience $audience = null): array
     {
-        return $this->all()->countBy(fn (Card $c) => $c->kind->value)->all();
+        return $this->all()->when($audience, fn ($all) => $all->where('audience', $audience))
+            ->countBy(fn (Card $c) => $c->kind->value)->all();
+    }
+
+    /** @return array<string, int> A54 · аудитория → число карт */
+    public function audienceCounts(): array
+    {
+        return $this->all()->countBy(fn (Card $c) => $c->audience->value)->all();
     }
 
     /** @return Collection<int, PaymentSystem> системы с картами в стране (cards_here — сколько) */
@@ -112,10 +121,10 @@ class CardCatalog
         return array_values(array_unique([...array_intersect($country?->currencyList() ?? [], $all), ...$all]));
     }
 
-    /** Крупные цифры для шапки раздела. */
-    public function stats(): array
+    /** Крупные цифры для шапки раздела (A54: по выбранной аудитории; null — все карты). */
+    public function stats(?CardAudience $audience = null): array
     {
-        $all = $this->all();
+        $all = $audience ? $this->all()->where('audience', $audience)->values() : $this->all();
 
         return [
             'count' => $all->count(),
@@ -127,17 +136,23 @@ class CardCatalog
         ];
     }
 
+    /** @return Collection<int, Card> A54 · карты того же вида и аудитории (для места в рейтинге) */
+    public function peers(Card $card): Collection
+    {
+        return $this->all()->filter(fn (Card $c) => $c->kind === $card->kind && $c->audience === $card->audience)->values();
+    }
+
     /** @return Collection<int, CardOffer> того же вида в других банках, лучшие по оценке */
     public function similar(Card $card, int $limit = 4): Collection
     {
-        return $this->all()->filter(fn (Card $c) => $c->kind === $card->kind && $c->bank_id !== $card->bank_id)
+        return $this->all()->filter(fn (Card $c) => $c->kind === $card->kind && $c->audience === $card->audience && $c->bank_id !== $card->bank_id) // A54: та же аудитория
             ->map(fn (Card $c) => $this->offer($c))->sortByDesc(fn (CardOffer $o) => $o->score)->take($limit)->values();
     }
 
-    /** Место карты среди карт того же вида (1 — лучшая). */
+    /** Место карты среди карт того же вида и аудитории (1 — лучшая). */
     public function rank(Card $card): ?int
     {
-        $ids = $this->all()->filter(fn (Card $c) => $c->kind === $card->kind)
+        $ids = $this->peers($card)
             ->map(fn (Card $c) => $this->offer($c))->sortByDesc(fn (CardOffer $o) => $o->score)->pluck('card.id')->values();
         $i = $ids->search($card->id);
 

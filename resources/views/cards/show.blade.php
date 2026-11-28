@@ -50,12 +50,42 @@
 
 @section('content')
 <div class="space-y-5">
-    <nav class="text-sm muted flex items-center gap-2 px-1 flex-wrap">
+    {{-- A54 · хлебные крошки ведут туда, откуда пришли: из платёжной системы (?from=ps:visa), из банка (?from=bank) или из каталога --}}
+    @php
+        $aud = $card->audience->value === 'personal' ? null : $card->audience->value;
+        $crumbs = match ($from['type'] ?? null) {
+            'ps' => [
+                ['Платёжные системы', route('payment-systems.index')],
+                [$from['system']->name, route('payment-systems.show', $from['system'])],
+                ...($from['tier'] ? [[$from['tier']->shortName(), route('payment-systems.show', $from['system']).'#tier-'.$from['tier']->code]] : []),
+            ],
+            'bank' => [['Банки', route('banks.index')], [$bank->displayName(), route('banks.show', $bank)]],
+            default => [
+                ['Карты', route('cards.index')],
+                [$card->audience->label(), route('cards.index', array_filter(['audience' => $card->audience->value]))],
+                [$card->kind->plural(), route('cards.index', array_filter(['kind' => [$card->kind->value], 'audience' => $aud]))],
+            ],
+        };
+    @endphp
+    <nav class="text-sm muted flex items-center gap-2 px-1 flex-wrap" aria-label="Навигация">
         <a href="{{ route('home') }}" class="hover:text-[var(--text)]">Главная</a><span class="faint">/</span>
-        <a href="{{ route('cards.index') }}" class="hover:text-[var(--text)]">Карты</a><span class="faint">/</span>
-        <a href="{{ route('cards.index', ['kind' => [$card->kind->value]]) }}" class="hover:text-[var(--text)]">{{ $card->kind->plural() }}</a><span class="faint">/</span>
-        <a href="{{ route('cards.index', ['bank' => [$bank->slug]]) }}" class="hover:text-[var(--text)]">{{ $bank->displayName() }}</a>
+        @foreach ($crumbs as [$crumbLabel, $crumbUrl])
+            <a href="{{ $crumbUrl }}" class="hover:text-[var(--text)]">{{ $crumbLabel }}</a><span class="faint">/</span>
+        @endforeach
+        <span class="text-[var(--text)] font-medium truncate max-w-[16rem]" aria-current="page">{{ $card->name }}</span>
     </nav>
+    {{-- A54 · быстрый путь назад: банк и каждая платёжная система карты с её уровнем --}}
+    <div class="flex flex-wrap gap-2 px-1 -mt-2">
+        <a href="{{ route('banks.show', $bank) }}" class="pill !py-1.5 !text-sm">@include('partials.icon', ['i' => 'arrow', 'c' => 'w-3.5 h-3.5 rotate-180']) <span class="bank-mark !w-5 !h-5 !text-[0.38rem]" style="--c: {{ $bank->brand_color ?? 'var(--brand-1)' }}">{{ $bank->mark() }}</span> {{ $bank->displayName() }}</a>
+        @foreach ($networks as $n)
+            <a href="{{ route('payment-systems.show', $n['system']) }}{{ $n['tier'] ? '#tier-'.$n['tier']->code : '' }}" class="pill !py-1.5 !text-sm">
+                @include('partials.icon', ['i' => 'arrow', 'c' => 'w-3.5 h-3.5 rotate-180'])
+                @if ($n['tier'])@include('partials.tier-badge', ['tier' => $n['tier'], 'c' => 'w-8'])@else<span class="ps-tile !w-7 !h-5 !rounded-md !text-[10px]" style="--ps: {{ $n['system']->gradient() }}">@include('partials.ps-mark', ['ps' => $n['system']])</span>@endif
+                {{ $n['tier']?->name ?? $n['system']->name }}
+            </a>
+        @endforeach
+        <a href="{{ route('cards.index', array_filter(['audience' => $aud, 'kind' => [$card->kind->value]])) }}" class="pill !py-1.5 !text-sm">Все {{ mb_strtolower($card->kind->plural()) }} {{ $card->audience->forWhom() }}</a>
+    </div>
 
     <section class="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5">
         <div class="card p-7 md:p-9 flex flex-col justify-between gap-8" data-reveal>
@@ -68,6 +98,7 @@
             </a>
             <div>
                 <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="chip">@include('partials.icon', ['i' => $card->audience->icon(), 'c' => 'w-3.5 h-3.5']) {{ $card->audience->label() }}</span>{{-- A54 --}}
                     <span class="chip">{{ $card->kind->label() }}</span>
                     @if ($card->segmentLabel())<span class="chip">{{ $card->segmentLabel() }}</span>@endif
                     @if ($card->format !== 'physical')<span class="chip">{{ \App\Models\Card::FORMATS[$card->format] }}</span>@endif
@@ -99,7 +130,7 @@
                 @include('partials.gauge', ['score' => $offer->score, 'color' => 'var(--brand-2)', 'size' => 112, 'sub' => 'из 5'])
                 <div class="min-w-0">
                     <p class="font-semibold">@if ($rank)<span class="text-grad font-display text-2xl">{{ $rank }}</span> место из {{ $sameKind }}@else Оценка Banq @endif</p>
-                    <p class="text-sm opacity-60 mt-1">среди {{ $card->kind->genitivePlural() }} карт {{ country()?->genitive() }} — по данным, без рекламы</p>
+                    <p class="text-sm opacity-60 mt-1">среди {{ $card->kind->genitivePlural() }} карт {{ $card->audience->forWhom() }} {{ country()?->genitive() }} — по данным, без рекламы</p>
                     <a href="#score" class="text-sm font-semibold mt-2 inline-flex items-center gap-1 opacity-80 hover:opacity-100">Как считаем @include('partials.icon', ['i' => 'arrow', 'c' => 'w-3.5 h-3.5'])</a>
                 </div>
             </div>
@@ -141,7 +172,7 @@
                         @foreach ($networks as $n)
                             <div class="plate rounded-2xl p-5 space-y-4">
                                 <a href="{{ route('payment-systems.show', $n['system']) }}" class="flex items-center gap-3 group">
-                                    <span class="ps-tile" style="--ps: {{ $n['system']->gradient() }}">@include('partials.ps-mark', ['ps' => $n['system']])</span>
+                                    @if ($n['tier'])@include('partials.tier-badge', ['tier' => $n['tier'], 'c' => 'w-16']){{-- A54 --}}@else<span class="ps-tile" style="--ps: {{ $n['system']->gradient() }}">@include('partials.ps-mark', ['ps' => $n['system']])</span>@endif
                                     <span>
                                         <span class="font-semibold block group-hover:underline underline-offset-4">{{ $n['tier']?->name ?? $n['system']->name }}</span>
                                         <span class="text-xs muted">{{ $n['system']->scopeLabel() }} система@if ($n['tier']) · {{ mb_strtolower($n['tier']->segmentLabel()) }} уровень@endif</span>

@@ -40,6 +40,7 @@
                 <a href="#deposits" class="btn btn-primary">Вклады банка @include('partials.icon', ['i' => 'arrow', 'c' => 'w-4 h-4'])</a>
                 <a href="#review-form" class="btn btn-ghost">@include('partials.icon', ['i' => 'star', 'c' => 'w-4 h-4']) Оставить отзыв</a>
                 @include('partials.fav', ['type' => 'bank', 'id' => $bank->id, 'on' => auth()->user()?->hasFavorite($bank), 'wide' => true]){{-- A28 --}}
+                @include('partials.compare-toggle', ['type' => 'banks', 'item' => $bank, 'wide' => true]){{-- A53 --}}
                 @if ($bank->website)<a href="{{ $bank->website }}" target="_blank" rel="noopener nofollow" class="btn btn-outline">Сайт банка @include('partials.icon', ['i' => 'external', 'c' => 'w-4 h-4'])</a>@endif
             </div>
         </div>
@@ -118,9 +119,7 @@
                 </div>
                 @if ($cardOffers->isNotEmpty())<a href="{{ route('cards.index', ['bank' => [$bank->slug]]) }}" class="text-sm font-semibold muted hover:text-[var(--text)] whitespace-nowrap">в каталоге →</a>@endif
             </div>
-            @foreach ($cardOffers->take(6) as $i => $o)
-                @include('cards._offer', ['o' => $o, 'first' => $i === 0 && $cardOffers->count() > 1, 'i' => $i])
-            @endforeach
+            @include('cards._split', ['offers' => $cardOffers, 'offerFrom' => 'bank', 'limit' => 24]) {{-- A54 · физлицам / бизнесу, по видам --}}
             @if ($packages->isNotEmpty())
                 <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 pt-2">
                     @foreach ($packages as $i => $p)@include('packages._card', ['p' => $p, 'i' => $i])@endforeach

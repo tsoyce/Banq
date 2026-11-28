@@ -93,7 +93,9 @@ class PaymentSystemResource extends Resource
 
             ['name' => 'color', 'label' => 'Цвет', 'type' => 'color', 'group' => 'Оформление', 'rules' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/']],
             ['name' => 'color_2', 'label' => 'Второй цвет градиента', 'type' => 'color', 'group' => 'Оформление', 'rules' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/']],
-            ['name' => 'logo', 'label' => 'Логотип (путь или URL)', 'group' => 'Оформление', 'rules' => ['nullable', 'string', 'max:255']],
+            // A54 · знак системы: загрузка файла; второй вариант — латиница/кириллица (MIR / МИР) или монохром
+            ['name' => 'logo', 'label' => 'Знак системы', 'type' => 'image', 'group' => 'Оформление', 'help' => 'пусто — буквы марки; загружайте только знак, который вправе использовать'],
+            ['name' => 'logo_alt', 'label' => 'Второй вариант знака', 'type' => 'image', 'group' => 'Оформление', 'help' => 'например, латиницей вместо кириллицы или монохромный'],
             ['name' => 'meta.mark', 'label' => 'Буквы марки', 'group' => 'Оформление', 'help' => 'до 4 символов: MC, UP', 'rules' => ['nullable', 'string', 'max:4']],
             ['name' => 'sort', 'label' => 'Порядок', 'type' => 'number', 'group' => 'Оформление', 'rules' => ['nullable', 'integer', 'min:0'], 'default' => 500],
 

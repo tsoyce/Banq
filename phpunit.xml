@@ -23,6 +23,7 @@
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BANQ_TYPOGRAPH" value="false"/>
         <env name="BANQ_FX_AUTO_REFRESH" value="false"/>
+        <env name="BANQ_SOCIAL_AUTO_REFRESH" value="false"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
