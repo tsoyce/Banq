@@ -193,10 +193,16 @@
     .prose-banq figcaption { font-size: 0.82rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
     .prose-banq > p > img:only-child { display: block; }
     /* A43 · галерея (figure внутри figure — так приходят галереи WordPress), видео YouTube, аудио */
-    .prose-banq figure:has(> figure) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 0.6rem; }
-    .prose-banq figure:has(> figure) > figure { margin: 0; }
-    .prose-banq figure:has(> figure) > figure img { width: 100%; height: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
-    .prose-banq figure:has(> figure) > figcaption { grid-column: 1 / -1; }
+    .prose-banq figure:has(> figure) { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    /* A45 · подпись занимает своё место: картинка не растягивается на высоту ячейки (раньше height:100% выталкивал подпись на следующий абзац) */
+    .prose-banq figure { display: flow-root; }
+    .prose-banq figure > img { display: block; margin-inline: auto; }
+    .prose-banq figure:has(> figure) { align-items: flex-start; }
+    .prose-banq figure:has(> figure) > figure { margin: 0; display: flex; flex-direction: column; flex: 1 1 200px; min-width: 0; }
+    .prose-banq figure:has(> figure) > figure img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+    .prose-banq figure:has(> figure) > figure figcaption { margin-top: 0.4rem; line-height: 1.35; overflow-wrap: anywhere; }
+    .prose-banq figure:has(> figure) > figcaption { flex-basis: 100%; margin-top: 0.2rem; }
+    @media (max-width: 520px) { .prose-banq figure:has(> figure) { gap: 0.4rem; } .prose-banq figure:has(> figure) > figure { flex-basis: calc(50% - 0.2rem); } }
     .embed-video { position: relative; aspect-ratio: 16 / 9; max-width: none; border-radius: var(--radius-sm); overflow: hidden; background: #000; }
     .embed-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .post-audio { display: grid; gap: 0.4rem; }
