@@ -46,6 +46,12 @@
             <label class="switch"><span>Скачивать картинки со сторонних сайтов (ВКонтакте, OneDrive…), которые вставлены в тексты</span><input type="hidden" name="external_images" value="0"><input type="checkbox" name="external_images" value="1" class="sr-only" checked><i></i></label>
             <label class="switch"><span>Перезаписать уже перенесённые записи (правки, сделанные после переноса, пропадут)</span><input type="hidden" name="update" value="0"><input type="checkbox" name="update" value="1" class="sr-only"><i></i></label>
         </div>
+        {{-- A52 --}}
+        <label class="field">
+            <span>Запасная копия сайта <span class="faint !font-normal">— необязательно</span></span>
+            <input name="mirror" type="url" value="{{ old('mirror') }}" class="input" placeholder="https://old.tsoy.in">
+            <span class="text-xs faint !font-normal">Если файла нет на основном сайте, он берётся по тому же пути с копии — с теми же проверками.</span>
+        </label>
         <button class="btn btn-brand">@include('partials.icon', ['i' => 'search', 'c' => 'w-4 h-4']) Проверить сайт</button>
     </form>
 @else
@@ -103,6 +109,26 @@
         </section>
     @endif
 
+    {{-- A52 · Дотянуть пропавшие картинки с запасной копии --}}
+    @php $missingPosts = collect($report['items'] ?? [])->filter(fn ($i) => collect($i['result']['missing'] ?? [])->contains(fn ($u) => str_contains($u, '/wp-content/uploads/'))); @endphp
+    @if ($phase === 'done' && ($missingPosts->isNotEmpty() || ! empty($state['fill'])))
+        <section class="glass p-6 mt-5 space-y-3" x-data="wpFill(@js(['url' => route('admin.wordpress.fill'), 'fill' => $state['fill'] ?? null]))">
+            <div>
+                <p class="font-display font-bold text-xl">Дотянуть картинки с копии сайта</p>
+                <p class="text-sm muted">Записей, где пропали свои картинки (файлов нет на основном сайте): {{ $missingPosts->count() }}. Эти записи перенесутся заново с картинками с копии; правки, сделанные в них после переноса, пропадут. Остальные записи не трогаются.</p>
+            </div>
+            @if ($missingPosts->isNotEmpty())
+                <ul class="text-sm space-y-1">@foreach ($missingPosts as $i)<li>· <a href="{{ $i['result']['url'] ?? $i['new_url'] }}" target="_blank" class="underline underline-offset-4">{{ $i['title'] }}</a> <span class="faint">— {{ count($i['result']['missing']) }}</span></li>@endforeach</ul>
+            @endif
+            <div class="flex flex-wrap gap-2 items-center">
+                <input type="url" x-model="mirror" class="input max-w-xs" placeholder="https://old.tsoy.in">
+                <button type="button" class="btn btn-brand" @click="run()" :disabled="running || !mirror"><span x-show="!running">Дотянуть</span><span x-show="running" x-cloak>Переношу…</span></button>
+            </div>
+            <p class="text-xs faint tabular" x-show="p" x-cloak x-text="p ? (p.done + ' из ' + p.total + ' записей · картинок возвращено ' + p.fixed + (p.current ? ' · ' + p.current : '')) : ''"></p>
+            <p class="error" x-show="error" x-text="error" x-cloak></p>
+        </section>
+    @endif
+
     {{-- Проверка безопасности --}}
     <section class="glass p-6 mt-5 space-y-3">
         <p class="font-display font-bold text-xl">Проверка на взлом</p>
@@ -153,6 +179,27 @@
 
 <script>
 document.addEventListener('alpine:init', () => {
+    // A52 · шаги «дотянуть с копии»
+    Alpine.data('wpFill', (cfg) => ({
+        mirror: cfg.fill?.mirror || 'https://old.tsoy.in', p: null, running: false, error: '',
+        async run() {
+            this.running = true; this.error = '';
+            const token = document.querySelector('meta[name=csrf-token]')?.content;
+            let fails = 0;
+            while (!this.p?.finished) {
+                try {
+                    const r = await fetch(cfg.url, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ mirror: this.mirror }) });
+                    const j = await r.json();
+                    if (!r.ok) throw new Error(j.error || j.message || ('Ошибка ' + r.status));
+                    this.p = j; fails = 0;
+                } catch (e) {
+                    if (++fails >= 3) { this.error = e.message; this.running = false; return; }
+                    await new Promise((res) => setTimeout(res, 3000));
+                }
+            }
+            location.reload();
+        },
+    }));
     Alpine.data('wpRun', (cfg) => ({
         p: cfg.progress || { done: 0, total: 0, media: 0 }, running: false, error: '',
         get pct() { return this.p.total ? Math.round(this.p.done / this.p.total * 100) : 0; },

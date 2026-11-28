@@ -5,7 +5,7 @@ namespace App\Support\Blog;
 /**
  * A37 · Очистка HTML публикации по белому списку (редактор, импорт, API).
  * Остаётся только разметка, которую умеет редактор: абзацы, заголовки H2–H4, списки, цитаты, код,
- * ссылки (http/https/mailto/относительные), картинки с подписями, таблицы, врезки <aside data-tone>,
+ * ссылки (http/https/mailto/относительные), картинки с подписями, галереи <figure data-gallery> (A52), таблицы, врезки <aside data-tone>,
  * вставки продуктов <div data-embed="bank|deposit|card|package|payment_system" data-slug>, видео <div data-embed="youtube" data-slug="ID"> (A43).
  * Всё прочее (script, style, on*-атрибуты, javascript:-ссылки, iframe) выбрасывается, текст сохраняется.
  */
@@ -16,7 +16,7 @@ class HtmlSanitizer
         'p' => [], 'br' => [], 'hr' => [], 'h2' => ['id'], 'h3' => ['id'], 'h4' => ['id'],
         'strong' => [], 'b' => [], 'em' => [], 'i' => [], 'u' => [], 's' => [], 'del' => [], 'mark' => [], 'sup' => [], 'sub' => [], 'code' => ['class'],
         'a' => ['href', 'title', 'target', 'rel'], 'ul' => [], 'ol' => ['start'], 'li' => [], 'blockquote' => [], 'pre' => [],
-        'figure' => [], 'figcaption' => [], 'img' => ['src', 'alt', 'width', 'height', 'title'],
+        'figure' => ['data-gallery'], 'figcaption' => [], 'img' => ['src', 'alt', 'width', 'height', 'title'],
         'table' => [], 'thead' => [], 'tbody' => [], 'tr' => [], 'th' => ['colspan', 'rowspan'], 'td' => ['colspan', 'rowspan'], 'colgroup' => [], 'col' => [],
         'aside' => ['data-tone'], 'div' => ['data-embed', 'data-slug'], 'span' => [],
     ];
@@ -46,6 +46,7 @@ class HtmlSanitizer
             return e(strip_tags($html));
         }
         $this->walk($root);
+        Gallery::normalize($root); // A52 · галереи — единый формат <figure data-gallery>
 
         $out = '';
         foreach ($root->childNodes as $child) {
@@ -152,6 +153,9 @@ class HtmlSanitizer
                 $el->removeAttribute('data-embed');
                 $el->removeAttribute('data-slug');
             }
+        }
+        if ($tag === 'figure' && $el->hasAttribute('data-gallery')) { // A52
+            $el->setAttribute('data-gallery', Gallery::layout($el->getAttribute('data-gallery')));
         }
         if (in_array($tag, ['th', 'td'], true)) {
             foreach (['colspan', 'rowspan'] as $s) {

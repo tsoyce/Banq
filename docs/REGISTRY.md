@@ -62,6 +62,7 @@ app/
 ├─ Services/Exchange/Entities/ PaymentSystem, CardTier, Card, ServicePackage Entity + Concerns/ResolvesBank  A31
 ├─ Models/ Post, PostCategory, Tag, PostReaction, Comment  A37 журнал; Post::LINK_TYPES, cascade(), syncLinks(), about()
 ├─ Support/Blog/ HtmlSanitizer (белый список тегов/атрибутов), PostRenderer (оглавление, якоря, живые вставки, таблицы)  A37
+│                Gallery — галереи <figure data-gallery=grid|grid-2|grid-3|masonry|slider>, старые галереи WP → этот формат  A52
 ├─ Http/Controllers/BlogController (лента, рубрика, тег, статья, реакции, комментарии, RSS)  A37
 ├─ Http/Controllers/Admin/BlogController (загрузка картинок, поиск связей, превью вставки)  A37
 ├─ Admin/Resources/{Post,PostCategory,Comment}Resource  A37 (раздел меню «Блог»; PostResource — свой редактор admin.posts.editor)
@@ -71,9 +72,10 @@ app/
 ├─ Http/Controllers/PageController .. A42 Route::fallback: страница /{slug} → редирект со старого адреса → 404; redirectFor() — и для 404 на маршрутах (bootstrap/app.php)
 ├─ Services/WordPress/ WpSource (REST API → снимок), WxrReader (файл экспорта WXR → тот же снимок), WpContent (scan — проверка на взлом,
 │                     transform — HTML WordPress → журнал), WpMedia (проверка по сигнатуре, код внутри, перекодирование GD без EXIF, ≤ 2400px),
-│                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43; переименованные оригиналы «-scaled-1» — A44
-├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=]
-├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset
+│                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43; переименованные оригиналы «-scaled-1» — A44;
+│                     fillMissing(mirror) — пропавшие свои картинки с запасной копии сайта (old.tsoy.in), опция mirror — A52
+├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=] [--mirror=]; --fill-missing --mirror=https://old.tsoy.in (A52)
+├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset; fill (A52, JSON)
 ├─ Support/Founder ................. A55 основатель (settings author.user_id, иначе первый админ): user(), is(), urlFor() — подпись автора ведёт на /author
 ├─ Services/Social/SocialStats ...... A55 соцсети: NETWORKS (подпись, цвет, способ счёта), profiles() (число API → ручное), refresh() (YouTube API, t.me / Bot API, VK API, GitHub), ensureFresh() (defer, 12 ч), compact(), handle()
 ├─ Http/Controllers/AuthorController  A55 /author: профиль, соцсети, публикации автора (X-Partial: posts, ?c=рубрика), поддержка
@@ -111,7 +113,8 @@ resources/
 ├─ js/sheet.js ...................... A39 табличный редактор: класс Grid (виртуальная отрисовка, выделение, правка, буфер TSV, отмена) + Alpine.data('sheet')
 ├─ css/blog.css ..................... A37 журнал: лента, обложки, статья (.prose-banq), реакции, комментарии, вставки .embed, редактор .ed-*
 ├─ js/blog.js ....................... A37 loadMore, share, $store.post (реакции), readProgress, tocSpy
-├─ js/editor.js ..................... A37 редактор Tiptap (грузится отдельным чанком только на странице [data-post-editor])
+├─ js/lightbox.js ................... A52 лайтбокс картинок [data-lightbox] (стрелки, свайпы, Esc, увеличение, миниатюры) + стрелки/точки слайдера галереи; отдельный чанк
+├─ js/editor.js ..................... A37 редактор Tiptap (грузится отдельным чанком только на странице [data-post-editor]); A52 узлы gallery (вид, порядок, подписи, «+ Картинки», несколько файлов → галерея) и figureImage (картинка с подписью)
 └─ views/
    ├─ layouts/ app (витрина), admin, install
    ├─ partials/ head, logo, icon (линейные иконки), theme-toggle, backdrop (пусто в v2)
@@ -343,6 +346,7 @@ HTTP запрос
 | GET, PUT | `/admin/ticker` | admin.ticker.* | admin, editor (A40) |
 | GET, PUT, POST | `/admin/currency`, `/admin/currency/{country}/sync` (`days=30` — история) | admin.currency.* | admin, editor (A40); sync — throttle 10/мин |
 | GET, POST, POST, GET, POST | `/admin/wordpress`, `/wordpress/scan`, `/wordpress/step`, `/wordpress/report`, `/wordpress/reset` | admin.wordpress.* | только admin (A43); scan — throttle 10/мин |
+| POST | `/admin/wordpress/fill` (`mirror`) | admin.wordpress.fill | только admin (A52): шаг «дотянуть пропавшие картинки с копии», throttle 120/мин |
 | POST | `/admin/country` (country=id\|пусто, _back) | admin.country | admin, editor (A46): страна в плашке админки |
 | GET, POST, DELETE | `/admin/flags`, `/admin/flags/{code}` | admin.flags.* | admin, editor (A46): библиотека флагов, свой флаг (throttle 30/мин), вернуть библиотечный |
 | ANY | fallback `/{slug}` и любой несуществующий адрес | page.fallback | A42: страница → редирект → 404 |
@@ -367,6 +371,7 @@ HTTP запрос
 - A54: `.aud-tabs` (переключатель «Физлицам / Бизнесу / Все»), `.tier-badge` (`.is-img`), `.ps-logo`. Поле админки `type => 'image'` (`Resource::absorbUploads` → `public/uploads/{ключ ресурса}/`, SVG проверяется `Resource::safeSvg`; рядом остаётся поле пути/URL).
 - A36: Blade-компонент `<x-hscroll label="…">` (resources/views/components/hscroll.blade.php, Alpine `hscroll`) — горизонтальная лента без скроллбара с фейдом и стрелками (`.hscroll`, `.hscroll-end`); `partials.catalog-soon` ($title, $text, $items, $links, $class) — пустой каталог; классы `.qs-bar .qs-field .qs-label .qs-chevron .qs-submit` (быстрый подбор на главной), `.hero-title .hero-rate` (кегль в `cqi`), `.ink-plate`, `.offers` (контейнер) + области `.offer-head/-rate/-feats/-actions`. `partials.fav`: параметр `$wide` вместо `$label`. `CardKind::genitivePlural()`; `.cmp-scroll` (закреплённая колонка сравнения), `.cb-short/.cb-long` (панель сравнения на телефоне). Глобально: `text-wrap: balance` у заголовков, `pretty` у абзацев, тонкие скроллбары.
 - A37 журнал: `.blog-hero`, `.post-grid` (`.is-3`), `.post-card`, `.post-cover` (сгенерированная обложка с цветом рубрики, если картинки нет), `.read-progress`, `.post-sheet/.post-title/.post-byline`, `.toc` (+ `.toc-inline` на телефоне), `.reactions`, `.prose-banq` (типографика статьи: врезки `aside[data-tone=info|tip|warn|money]`, `.prose-table`, `td.num`), `.embed` (живая карточка продукта в тексте), `.ed-*` (редактор, `.ed-focus` — режим фокуса). Иконки: eye, share, copy, rss, tag, send, image, bold…redo, table, hr, bulb, box, save, highlight, maximize, reply.
+- A52 галереи и лайтбокс: `figure[data-gallery][data-count]` (сетка «авто» по числу картинок, `grid-2`, `grid-3`, `masonry` — колонки, `slider` — `.gallery-track` + `.gallery-nav`/`.gallery-dots`), `.has-lightbox img[data-lb]` (курсор-лупа), `.lb*` (лайтбокс: всегда тёмный, `.lb-lock` на `<html>`), редактор `.ed-gallery`, `.ed-gi`, `.ed-figure`.
 - A32 админка: тип поля `checks` (флажки, группы «Группа|подпись»), поля `virtual` с `value`-замыканием, хук `Resource::saved($model, $data)`.
 - Шрифты: Onest (текст и заголовки), JetBrains Mono (бегущая строка).
 - **Дизайн-гайд (A17):** правила стиля — `docs/DESIGN.md`, наглядные примеры — `docs/design/guide.html`. Любой новый экран сверяется с чек-листом §12 гайда.

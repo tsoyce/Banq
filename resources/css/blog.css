@@ -192,17 +192,56 @@
     .prose-banq figure { max-width: none; }
     .prose-banq figcaption { font-size: 0.82rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
     .prose-banq > p > img:only-child { display: block; }
-    /* A43 · галерея (figure внутри figure — так приходят галереи WordPress), видео YouTube, аудио */
-    .prose-banq figure:has(> figure) { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-    /* A45 · подпись занимает своё место: картинка не растягивается на высоту ячейки (раньше height:100% выталкивал подпись на следующий абзац) */
+    /* A43/A45 · одиночная картинка: подпись занимает своё место, картинка блоком по центру */
     .prose-banq figure { display: flow-root; }
-    .prose-banq figure > img { display: block; margin-inline: auto; }
-    .prose-banq figure:has(> figure) { align-items: flex-start; }
-    .prose-banq figure:has(> figure) > figure { margin: 0; display: flex; flex-direction: column; flex: 1 1 200px; min-width: 0; }
-    .prose-banq figure:has(> figure) > figure img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
-    .prose-banq figure:has(> figure) > figure figcaption { margin-top: 0.4rem; line-height: 1.35; overflow-wrap: anywhere; }
-    .prose-banq figure:has(> figure) > figcaption { flex-basis: 100%; margin-top: 0.2rem; }
-    @media (max-width: 520px) { .prose-banq figure:has(> figure) { gap: 0.4rem; } .prose-banq figure:has(> figure) > figure { flex-basis: calc(50% - 0.2rem); } }
+    .prose-banq figure > img, .prose-banq figure > a > img { display: block; margin-inline: auto; }
+    /* A52 · галереи <figure data-gallery="grid|grid-2|grid-3|masonry|slider"> (старые галереи WordPress приводит к нему Gallery) */
+    .prose-banq figure[data-gallery] { --cols: 3; --gap: 0.6rem; display: grid; gap: var(--gap); grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); align-items: start; }
+    .prose-banq figure[data-gallery='grid'][data-count='1'] { --cols: 1; }
+    .prose-banq figure[data-gallery='grid'][data-count='2'], .prose-banq figure[data-gallery='grid'][data-count='4'], .prose-banq figure[data-gallery='grid-2'] { --cols: 2; }
+    .prose-banq figure[data-gallery] > figure, .prose-banq .gallery-track > figure { margin: 0; display: flex; flex-direction: column; min-width: 0; }
+    .prose-banq figure[data-gallery] figure img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; margin: 0; }
+    .prose-banq figure[data-gallery] figure figcaption { margin-top: 0.4rem; line-height: 1.35; overflow-wrap: anywhere; }
+    .prose-banq figure[data-gallery] > figcaption { grid-column: 1 / -1; margin-top: 0.2rem; }
+    /* «Авто» из трёх: первая крупнее — на две строки, две другие столбиком справа */
+    @media (min-width: 640px) {
+        .prose-banq figure[data-gallery='grid'][data-count='3'] { grid-template-columns: 2fr 1fr; }
+        .prose-banq figure[data-gallery='grid'][data-count='3'] > figure:first-child { grid-row: span 2; align-self: stretch; contain: size; }
+        .prose-banq figure[data-gallery='grid'][data-count='3'] > figure:first-child img { flex: 1 1 0; min-height: 0; aspect-ratio: auto; }
+    }
+    /* Мозаика: колонки, картинки в своих пропорциях */
+    .prose-banq figure[data-gallery='masonry'] { display: block; columns: 3; column-gap: var(--gap); }
+    .prose-banq figure[data-gallery='masonry'] > figure { break-inside: avoid; margin-bottom: var(--gap); }
+    .prose-banq figure[data-gallery='masonry'] figure img { aspect-ratio: auto; }
+    .prose-banq figure[data-gallery='masonry'] > figcaption { column-span: all; }
+    /* Слайдер: лента с прилипанием, стрелки добавляет lightbox.js */
+    .prose-banq figure[data-gallery='slider'] { display: block; position: relative; }
+    .prose-banq .gallery-track { display: flex; gap: var(--gap); overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; scrollbar-width: none; border-radius: var(--radius-sm); }
+    .prose-banq .gallery-track::-webkit-scrollbar { display: none; }
+    .prose-banq .gallery-track > figure { flex: 0 0 min(86%, 620px); scroll-snap-align: center; }
+    .prose-banq figure[data-gallery='slider'] figure img { aspect-ratio: 3 / 2; }
+    .prose-banq figure[data-gallery='slider'] > figcaption { margin-top: 0.5rem; }
+    .gallery-nav { position: absolute; top: calc(50% - 1.6rem); z-index: 2; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: var(--text);
+        background: color-mix(in oklab, var(--card) 78%, transparent); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3);
+        box-shadow: 0 0 0 1px var(--line), 0 10px 30px -12px rgb(0 0 0 / 0.45); transition: opacity 0.25s, transform 0.2s var(--ease-out); }
+    .gallery-nav:hover { transform: scale(1.08); }
+    .gallery-nav:active { transform: scale(0.94); }
+    .gallery-nav[disabled] { opacity: 0; pointer-events: none; }
+    .gallery-nav.is-prev { left: 0.6rem; } .gallery-nav.is-next { right: 0.6rem; }
+    .gallery-dots { display: flex; justify-content: center; gap: 6px; margin-top: 0.6rem; }
+    .gallery-dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--line); transition: width 0.3s var(--ease-out), background 0.3s; }
+    .gallery-dots i.is-on { width: 18px; background: var(--grad); }
+    @media (max-width: 520px) {
+        .prose-banq figure[data-gallery] { --gap: 0.4rem; }
+        .prose-banq figure[data-gallery='grid-3'], .prose-banq figure[data-gallery='grid']:not([data-count='1']) { --cols: 2; }
+        .prose-banq figure[data-gallery='masonry'] { columns: 2; }
+        /* нечётное число в две колонки: первая — во всю ширину, без «сироты» в конце */
+        .prose-banq figure[data-gallery='grid']:is([data-count='3'], [data-count='5'], [data-count='7'], [data-count='9']) > figure:first-child { grid-column: 1 / -1; }
+        .gallery-nav { display: none; }
+    }
+    /* A52 · картинки открываются в лайтбоксе */
+    .has-lightbox img[data-lb] { cursor: zoom-in; transition: filter 0.25s, transform 0.4s var(--ease-out); }
+    .has-lightbox img[data-lb]:hover { filter: brightness(1.04) saturate(1.05); }
     .embed-video { position: relative; aspect-ratio: 16 / 9; max-width: none; border-radius: var(--radius-sm); overflow: hidden; background: #000; }
     .embed-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .post-audio { display: grid; gap: 0.4rem; }
@@ -279,6 +318,35 @@
     .ed-embed { position: relative; max-width: 70ch; }
     .ed-embed > .embed { pointer-events: none; }
     .ed-embed-tag { position: absolute; right: 10px; top: -10px; z-index: 1; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--grad); color: #fff; }
+    /* A52 · галерея и картинка с подписью в редакторе */
+    .ed-gallery, .ed-figure { position: relative; max-width: none; padding: 0.7rem; border-radius: var(--radius-sm); background: var(--card-2); box-shadow: inset 0 0 0 1px var(--line); }
+    .ed-gallery-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; font-size: 0.8rem; }
+    .ed-gallery-tag { font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--grad); color: #fff; }
+    .ed-gallery-layouts { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+    .ed-gallery-layouts button { padding: 0.25rem 0.6rem; border-radius: 8px; font-weight: 600; color: var(--muted); }
+    .ed-gallery-layouts button:hover { color: var(--text); }
+    .ed-gallery-layouts button.is-on { background: var(--ink); color: var(--ink-text); }
+    .ed-gallery-add { margin-left: auto; cursor: pointer; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+    .ed-gallery-add:hover { box-shadow: inset 0 0 0 1px var(--brand-1); }
+    .ed-gallery-grid { display: grid; align-items: start; gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .ed-gallery[data-layout='grid-2'] .ed-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ed-gallery[data-layout='grid-3'] .ed-gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ed-gallery[data-layout='slider'] .ed-gallery-grid { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(180px, 40%); overflow-x: auto; }
+    .ed-gi { position: relative; display: grid; gap: 0.3rem; }
+    .ed-gi img, .ed-figure img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: var(--card); }
+    .ed-gallery[data-layout='masonry'] .ed-gi img { aspect-ratio: auto; max-height: 220px; object-fit: contain; }
+    .ed-figure img { aspect-ratio: auto; max-height: 520px; object-fit: contain; }
+    .ed-gi input, .ed-figure input, .ed-gallery-cap { width: 100%; min-width: 0; padding: 0.3rem 0.5rem; border-radius: 8px; background: var(--card); font-size: 0.8rem; color: var(--text); box-shadow: inset 0 0 0 1px var(--line); outline: none; }
+    .ed-figure input { margin-top: 0.4rem; text-align: center; }
+    .ed-gallery-cap { margin-top: 0.6rem; }
+    .ed-gi input:focus, .ed-figure input:focus, .ed-gallery-cap:focus { box-shadow: inset 0 0 0 2px var(--brand-1); }
+    .ed-gi-tools { position: absolute; top: 6px; right: 6px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
+    .ed-gi:hover .ed-gi-tools, .ed-gi:focus-within .ed-gi-tools { opacity: 1; }
+    .ed-gi-tools button { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; font-size: 0.78rem; color: #fff; background: rgb(0 0 0 / 0.55); backdrop-filter: blur(6px); }
+    .ed-gi-tools button:hover { background: rgb(0 0 0 / 0.8); }
+    .ed-gi-tools button[data-remove]:hover { background: var(--bad); }
+    .ed-gi-tools button[disabled] { opacity: 0.35; pointer-events: none; }
+    @media (hover: none) { .ed-gi-tools { opacity: 1; } }
     .ed-side .field > label, .ed-side .field > span { font-size: 0.82rem; }
     .ed-cover { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); overflow: hidden; background: var(--card-2); display: grid; place-items: center; text-align: center; cursor: pointer; transition: box-shadow 0.2s; }
     .ed-cover:hover, .ed-cover.is-drag { box-shadow: inset 0 0 0 2px var(--brand-1); }
@@ -313,3 +381,44 @@
 
 /* A37 · Режим фокуса редактора: только лист, шире */
 .ed-focus .ed-shell { grid-template-columns: minmax(0, 1fr); max-width: 980px; margin-inline: auto; }
+
+/* A52 · Лайтбокс: картинка статьи на весь экран (resources/js/lightbox.js). Всегда тёмный — фото так смотрятся лучше в обеих темах. */
+.lb-lock, .lb-lock body { overflow: hidden; }
+.lb { position: fixed; inset: 0; z-index: 100; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; color: #fff; opacity: 0; transition: opacity 0.26s var(--ease-out); --fade: 1; }
+.lb[hidden] { display: none; }
+.lb.is-open { opacity: 1; }
+.lb-backdrop { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, #18162a, #07070b); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); opacity: var(--fade); }
+.lb-top, .lb-bottom { position: relative; z-index: 2; }
+.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: max(0.75rem, env(safe-area-inset-top)) 0.9rem 0.5rem; }
+.lb-count { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; color: rgb(255 255 255 / 0.7); font-variant-numeric: tabular-nums; padding-left: 0.3rem; }
+.lb-actions { display: flex; gap: 0.4rem; }
+.lb-btn { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: rgb(255 255 255 / 0.08); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12); transition: background 0.2s, transform 0.2s var(--ease-out), opacity 0.2s; }
+.lb-btn:hover { background: rgb(255 255 255 / 0.18); }
+.lb-btn:active { transform: scale(0.92); }
+.lb-btn:focus-visible { outline: 2px solid var(--brand-2); outline-offset: 2px; }
+.lb-stage { position: relative; z-index: 1; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; min-height: 0; padding: 0 clamp(0.5rem, 5vw, 5.5rem); overflow: hidden; touch-action: none; cursor: zoom-out; }
+.lb-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; user-select: none; -webkit-user-drag: none; cursor: zoom-in;
+    box-shadow: 0 40px 120px -40px rgb(0 0 0 / 0.8); opacity: 0; transform: translateX(var(--from, 0)) scale(0.97); transition: opacity 0.3s var(--ease-out), transform 0.35s var(--ease-out); will-change: transform; }
+.lb-img.is-in { opacity: 1; transform: none; }
+.lb-img.is-drag { transition: none; }
+.lb.is-zoomed .lb-img { cursor: grab; border-radius: 0; }
+.lb.is-zoomed .lb-img.is-drag { cursor: grabbing; }
+.lb.is-zoomed .lb-nav, .lb.is-zoomed .lb-bottom { opacity: 0; pointer-events: none; }
+.lb-nav { position: absolute; z-index: 2; top: 50%; translate: 0 -50%; width: 50px; height: 50px; }
+.lb-nav.is-prev { left: max(0.9rem, env(safe-area-inset-left)); } .lb-nav.is-next { right: max(0.9rem, env(safe-area-inset-right)); }
+.lb.is-single .lb-nav { display: none; }
+.lb-bottom { display: grid; justify-items: center; gap: 0.7rem; padding: 0.7rem 1rem max(0.9rem, env(safe-area-inset-bottom)); transition: opacity 0.2s; }
+.lb-caption { max-width: 70ch; text-align: center; font-size: 0.92rem; line-height: 1.45; color: rgb(255 255 255 / 0.86); }
+.lb-thumbs { display: flex; gap: 6px; max-width: 100%; overflow-x: auto; padding: 4px; scrollbar-width: none; }
+.lb-thumbs::-webkit-scrollbar { display: none; }
+.lb-thumb { flex: none; width: 54px; height: 40px; border-radius: 8px; overflow: hidden; opacity: 0.45; transition: opacity 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-out); }
+.lb-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.lb-thumb:hover { opacity: 0.8; }
+.lb-thumb.is-on { opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 0 4px color-mix(in oklab, var(--brand-1) 70%, transparent); transform: translateY(-2px); }
+@media (max-width: 640px) {
+    .lb-nav { display: none; }
+    .lb-stage { padding: 0; }
+    .lb-img { border-radius: 0; }
+    .lb-thumb { width: 44px; height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .lb, .lb-img { transition: none; } }

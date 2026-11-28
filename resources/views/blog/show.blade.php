@@ -62,7 +62,7 @@
             </header>
 
             @if ($post->coverUrl())
-                <figure class="post-hero-cover">
+                <figure class="post-hero-cover" data-lightbox>
                     @include('blog._cover', ['post' => $post, 'eager' => true])
                     @if ($post->cover_caption)<figcaption>{{ $post->cover_caption }}</figcaption>@endif
                 </figure>
@@ -76,7 +76,7 @@
                 </details>
             @endif
 
-            <div class="prose-banq" id="post-body">{!! $html !!}</div>
+            <div class="prose-banq" id="post-body" data-lightbox>{!! $html !!}</div>
 
             @if ($post->source_url || $post->source_name)
                 <p class="post-source">Источник: @if ($post->source_url)<a href="{{ $post->source_url }}" target="_blank" rel="noopener nofollow">{{ $post->source_name ?: parse_url($post->source_url, PHP_URL_HOST) }}</a>@else{{ $post->source_name }}@endif</p>
