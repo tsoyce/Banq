@@ -7,6 +7,15 @@ return [
     'install_lock' => env('BANQ_INSTALL_LOCK'),
     // A36 · Экранная типографика (неразрывные пробелы) для HTML-ответов — App\Http\Middleware\Typography
     'typograph' => env('BANQ_TYPOGRAPH', true),
+    // A46 · Соцсети: ключи API для счётчиков подписчиков (можно задать и в админке → «Автор и соцсети»)
+    'social' => [
+        'auto_refresh' => env('BANQ_SOCIAL_AUTO_REFRESH', true),
+        'keys' => [
+            'youtube' => env('BANQ_YOUTUBE_API_KEY'),
+            'telegram' => env('BANQ_TELEGRAM_BOT_TOKEN'),
+            'vk' => env('BANQ_VK_SERVICE_TOKEN'),
+        ],
+    ],
     'currencies' => ['KZT', 'USD', 'EUR', 'RUB', 'CNY'],
     'terms' => [1, 3, 6, 9, 12, 18, 24, 36],
     // A21 · Лимиты гарантии вкладов перенесены в страну: countries.deposit_guarantee.limits (Country::guaranteeLimit).

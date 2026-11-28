@@ -44,3 +44,11 @@ Artisan::command('banq:fx-sync {--country= : код страны (KZ); по ум
 })->purpose('Загрузить официальные курсы валют центробанков');
 
 Schedule::command('banq:fx-sync')->hourlyAt(7)->withoutOverlapping();
+
+// A46 · Счётчики подписчиков соцсетей (YouTube, Telegram, VK, GitHub) — App\Services\Social\SocialStats
+Artisan::command('banq:social-refresh', function (App\Services\Social\SocialStats $social) {
+    foreach ($social->refresh() as $network => $r) {
+        $r['error'] ? $this->warn($network.': '.$r['error']) : $this->info($network.': '.($r['count'] ?? 'нет ключа — ручное число'));
+    }
+})->purpose('Обновить счётчики подписчиков соцсетей автора');
+Schedule::command('banq:social-refresh')->dailyAt('04:20')->withoutOverlapping();

@@ -70,6 +70,11 @@ app/
 │                     WpImporter (scan/plan → step по бюджету времени → report; состояние storage/app/wordpress/{state,snapshot}.json)  A43; переименованные оригиналы «-scaled-1» — A44
 ├─ Console/Commands/WordPressImportCommand  A43 banq:wp-import --url= | --file= [--dry-run] [--resume] [--update] [--no-external] [--author=]
 ├─ Http/Controllers/Admin/WordPressController  A43 /admin/wordpress (только admin): scan, step (JSON), report (JSON-файл), reset
+├─ Support/Founder ................. A46 основатель (settings author.user_id, иначе первый админ): user(), is(), urlFor() — подпись автора ведёт на /author
+├─ Services/Social/SocialStats ...... A46 соцсети: NETWORKS (подпись, цвет, способ счёта), profiles() (число API → ручное), refresh() (YouTube API, t.me / Bot API, VK API, GitHub), ensureFresh() (defer, 12 ч), compact(), handle()
+├─ Http/Controllers/AuthorController  A46 /author: профиль, соцсети, публикации автора (X-Partial: posts, ?c=рубрика), поддержка
+├─ Http/Controllers/Admin/AuthorController  A46 /admin/author: автор, соцсети (порядок, ручные числа, видимость), ключи API (не отдаются в HTML), донаты; refresh
+├─ views: author/show, admin/author/edit, partials/{socials (grid|row), social-icon (знаки сетей), donate (полный | compact)} · css/author.css · public/images/brand/ta-500.png (монограмма TA)  A46
 ├─ Notifications/ReviewModerated .... A28 письмо автору: опубликован / отклонён / ответ банка (если включено)
 ├─ Services/
 │  ├─ Installer/ EnvironmentChecker, EnvWriter, DatabaseConfigurator   A03
@@ -256,6 +261,8 @@ HTTP запрос
 | `BANQ_INSTALL_LOCK` | тесты | storage/app/installed.json |
 | `BANQ_TYPOGRAPH` | phpunit.xml (`false`), вручную | true — A36 middleware типографики включён |
 | `BANQ_FX_AUTO_REFRESH` | .env (A40) | `true` — обновлять курсы при первом заходе за день; в тестах `false` |
+| `BANQ_SOCIAL_AUTO_REFRESH` | .env (A46) | `true` — счётчики соцсетей старше 12 ч обновляются после ответа посетителю; в тестах `false` |
+| `BANQ_YOUTUBE_API_KEY`, `BANQ_TELEGRAM_BOT_TOKEN`, `BANQ_VK_SERVICE_TOKEN` | .env (A46), необязательно | пусто; ключи из админки («Автор и соцсети») важнее |
 | `PHP_BIN`, `COMPOSER_BIN`, `ARTISAN_CACHE`, `DEPLOY_SKIP_PULL` | окружение при запуске `deploy.sh` (не .env) | автопоиск PHP; `ARTISAN_CACHE=0` (A19); `DEPLOY_SKIP_PULL=0` (A35: автодеплой сам ставит коммит) |
 
 ## 5. Настройки сайта (таблица settings)
@@ -274,6 +281,11 @@ HTTP запрос
 | `ticker.enabled`, `ticker.sources` (порядок ключей из `banq.ticker.sources`), `ticker.text`, `ticker.speed` 1–10 | админка → Бегущая строка (A40) | Ticker → partials/ticker в шапке |
 | `fx.currencies` {"KZ": ["USD","EUR","RUB","CNY"]}, `fx.home_card` | админка → Курсы валют (A40) | CurrencyRates::codes(), карточка на главной |
 | `blog.premoderation` | админка → Настройки → Журнал (A37) | новые комментарии читателей — на модерацию (pending) |
+| `author.user_id`, `author.headline`, `author.slogan`, `author.about` | админка → Сайт → Автор и соцсети (A46) | Founder, страница /author, подпись в статье |
+| `social.enabled`, `social.networks` [{network, url, label, followers (ручное), visible}] | там же (A46); по умолчанию — 6 сетей из шапки tsoy.in | SocialStats → /author, подвал |
+| `social.counts` {network: {count, at, source, error}}, `social.refreshed_at` | SocialStats::refresh (A46: cron 04:20, кнопка, заход посетителя) | число подписчиков с API |
+| `social.keys` {youtube, telegram, vk} | админка (A46), в HTML не выводятся | SocialStats::key() → иначе config banq.social.keys |
+| `donate.enabled`, `donate.title`, `donate.text`, `donate.items` [{label, currency, url, details, note}] | админка (A46); по умолчанию Т-Банк RUB и ForteBank KZT | partials/donate: /author#donate, сайдбар статьи основателя, подвал |
 
 ## 6. Маршруты
 
@@ -322,6 +334,9 @@ HTTP запрос
 | GET | `/blog?q=&kind=`, `/blog/c/{category:slug}`, `/blog/tag/{tag:slug}`, `/blog/rss.xml`, `/blog/{post:slug}` | blog.index, blog.category, blog.tag, blog.rss, blog.show | все (A37); черновик — только сотрудникам; лента — частичный ответ при `X-Partial: posts` |
 | POST, POST, DELETE | `/blog/{post}/react`, `/blog/{post}/comments`, `/blog/comments/{comment}` | blog.react, blog.comment, blog.comments.destroy | вошедшие (A37); лимиты `blog-reactions` 60/мин, `blog-comments` 6/мин |
 | POST, GET, GET | `/admin/blog/upload`, `/admin/blog/lookup?q=&type=&keys=`, `/admin/blog/embed?type=&slug=` | admin.blog.* | admin, editor (A37): картинка в текст, поиск связей с каскадом, превью вставки |
+| GET | `/author?c=рубрика` | author | все (A46): страница основателя; публикации — частичный ответ при `X-Partial: posts` |
+| GET | `/donate` | donate | все (A46): 302 → `/author#donate` |
+| GET, PUT, POST | `/admin/author`, `/admin/author/refresh` | admin.author.* | admin, editor (A46); refresh — throttle 10/мин |
 
 ## 7. Фронтенд: токены и функции (v2 «Bento», A13)
 
@@ -382,6 +397,7 @@ HTTP запрос
 | `fx.providers` | A40: код страны → класс RateProvider (KZ → НБРК, UZ → ЦБ РУз, RU → ЦБ РФ) | CurrencyRates::provider() |
 | `fx.defaults`, `fx.auto_refresh` (env `BANQ_FX_AUTO_REFRESH`), `fx.retry_minutes`, `fx.trend_days` | A40: валюты по умолчанию, обновление при заходе, пауза между попытками (30 мин), глубина спарклайна (30 дн.) | CurrencyRates |
 | `ticker.sources` | A40: типы контента ленты (ключ → TickerSource) | Ticker, админка → Бегущая строка |
+| `social.auto_refresh`, `social.keys.{youtube,telegram,vk}` | A46: обновление счётчиков при заходе, ключи API из .env | SocialStats |
 | `Post::cascade($type, $model)`, `Post::syncLinks($keys, &$missing)`, `Post::about($model)`, `Post::linked()`, `Post::resolveLink('card:slug')` | A37 связи публикации с каскадом (не конфиг — справка) | редактор, обмен, страницы продуктов |
 | ~~`kdif_limits`~~ | A21: удалено — лимиты живут в `countries.deposit_guarantee.limits` (для KZ те же 20 / 10 / 10 / 5 млн ₸) | `Country::guaranteeLimit()` |
 

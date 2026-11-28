@@ -133,6 +133,14 @@
             @include('partials.logo')
             <span class="muted max-w-sm">{{ settings('site.tagline') }}</span>
         </div>
+        {{-- A46 · Соцсети TSOY.IN и ссылки на автора и поддержку --}}
+        <div class="flex flex-col gap-3 md:items-center">
+            @include('partials.socials', ['class' => 'is-footer'])
+            <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] faint md:justify-center">
+                <a href="{{ route('author') }}" class="hover:text-[var(--text)]">Автор</a>
+                @if (settings('donate.enabled', true) && settings('donate.items'))<a href="{{ route('author') }}#donate" class="hover:text-[var(--text)] inline-flex items-center gap-1">@include('partials.icon', ['i' => 'heart', 'c' => 'w-3.5 h-3.5 text-[var(--brand-3)]']) Поддержать проект</a>@endif
+            </p>
+        </div>
         <div class="faint md:text-right space-y-1">
             <p>© {{ project_years() }} {{ settings('site.copyright') ?: settings('site.name') }}@if (settings('site.contact_email')) · <a href="mailto:{{ settings('site.contact_email') }}">{{ settings('site.contact_email') }}</a>@endif</p>
             <p class="max-w-xl">{{ settings('site.footer_text') }}</p>

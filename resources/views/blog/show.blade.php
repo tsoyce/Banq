@@ -47,10 +47,10 @@
                 @if ($post->lead)<p class="post-lead">{{ $post->lead }}</p>@endif
                 <div class="post-byline">
                     @if ($post->author)
-                        @php($authorUrl = $post->author->profileUrl())
+                        @php($authorUrl = app(\App\Support\Founder::class)->urlFor($post->author)) {{-- A46 · основатель → /author --}}
                         <a @if ($authorUrl) href="{{ $authorUrl }}" @endif class="flex items-center gap-3 min-w-0">
                             @include('partials.avatar', ['u' => $post->author, 'c' => '!w-11 !h-11'])
-                            <span class="min-w-0"><b class="block truncate">{{ $post->author->name }}</b><span class="text-xs muted">{{ ['admin' => 'Главный редактор', 'editor' => 'Редактор'][$post->author->role] ?? 'Автор' }}</span></span>
+                            <span class="min-w-0"><b class="block truncate">{{ $post->author->name }}</b><span class="text-xs muted">{{ app(\App\Support\Founder::class)->is($post->author) ? settings('author.headline', 'Автор') : (['admin' => 'Главный редактор', 'editor' => 'Редактор'][$post->author->role] ?? 'Автор') }}</span></span>
                         </a>
                     @endif
                     <div class="post-byline-facts">
@@ -142,6 +142,8 @@
             <span class="icon-tile">@include('partials.icon', ['i' => 'quote', 'c' => 'w-[19px] h-[19px]'])</span>
             <span><b class="block">{{ $commentsCount ? $commentsCount.' '.plural($commentsCount, 'комментарий', 'комментария', 'комментариев') : 'Обсудить' }}</b><span class="text-xs muted">{{ $post->allow_comments ? 'Поделитесь опытом' : 'Комментарии закрыты' }}</span></span>
         </a>
+        {{-- A46 · материал основателя — короткий блок «Поддержать проект» --}}
+        @if (app(\App\Support\Founder::class)->is($post->author))@include('partials.donate', ['compact' => true])@endif
     </aside>
 </div>
 @endsection
