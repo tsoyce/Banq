@@ -56,7 +56,8 @@ class PaymentSystemEntity extends Entity
             'countries' => ['list', 'desc' => 'ISO-2 стран, где система национальная', 'example' => ['KG']],
             'color' => ['string', 'example' => '#1A1F71', 'rules' => 'regex:/^#[0-9a-fA-F]{6}$/'],
             'color_2' => ['string', 'desc' => 'второй цвет градиента', 'rules' => 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'logo' => ['string', 'rules' => 'max:255'],
+            'logo' => ['string', 'desc' => 'знак системы: путь /uploads/… или URL', 'rules' => 'max:255'],
+            'logo_alt' => ['string', 'desc' => 'второй вариант знака (латиница/кириллица, монохром)', 'rules' => 'max:255'], // A54
             'website' => ['string', 'rules' => 'url|max:255', 'aliases' => ['сайт']],
             'founded_year' => ['int', 'rules' => 'integer|min:1800|max:2100'],
             'headquarters' => ['string', 'rules' => 'max:255'],

@@ -119,9 +119,7 @@
                 </div>
                 @if ($cardOffers->isNotEmpty())<a href="{{ route('cards.index', ['bank' => [$bank->slug]]) }}" class="text-sm font-semibold muted hover:text-[var(--text)] whitespace-nowrap">в каталоге →</a>@endif
             </div>
-            @foreach ($cardOffers->take(6) as $i => $o)
-                @include('cards._offer', ['o' => $o, 'first' => $i === 0 && $cardOffers->count() > 1, 'i' => $i])
-            @endforeach
+            @include('cards._split', ['offers' => $cardOffers, 'offerFrom' => 'bank', 'limit' => 24]) {{-- A54 · физлицам / бизнесу, по видам --}}
             @if ($packages->isNotEmpty())
                 <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 pt-2">
                     @foreach ($packages as $i => $p)@include('packages._card', ['p' => $p, 'i' => $i])@endforeach

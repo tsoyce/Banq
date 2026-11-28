@@ -2,6 +2,7 @@
 
 namespace App\Services\Exchange\Entities;
 
+use App\Enums\CardAudience;
 use App\Enums\CardKind;
 use App\Models\Bank;
 use App\Models\Card;
@@ -62,7 +63,10 @@ class CardEntity extends Entity
             'kind' => ['enum', 'values' => array_map(fn ($k) => $k->value, CardKind::cases()), 'parse' => fn ($s) => CardKind::fromLabel($s)?->value,
                 'desc' => 'debit — дебетовая, credit — кредитная, prepaid — предоплаченная; понимает русские подписи', 'example' => 'debit', 'aliases' => ['вид', 'тип']],
             'networks' => ['list', 'desc' => 'платёжные системы и уровни: «VISA:gold», «Mastercard World Elite»', 'example' => ['VISA:gold', 'MASTERCARD:world'], 'aliases' => ['системы', 'платёжные системы']],
-            'segment' => ['enum', 'values' => array_keys(Card::SEGMENTS), 'example' => 'mass', 'aliases' => ['сегмент']],
+            'audience' => ['enum', 'values' => array_map(fn ($a) => $a->value, CardAudience::cases()), 'parse' => fn ($s) => CardAudience::fromLabel($s)?->value, // A54
+                'desc' => 'personal — физлицам, business — бизнесу (юрлица, ИП); понимает «физлица», «юрлица», «ИП», «бизнес». Пусто у новой — по уровню (Visa Business → business)', 'example' => 'personal', 'aliases' => ['для кого', 'клиенты', 'аудитория']],
+            'segment' => ['enum', 'values' => array_keys(Card::SEGMENTS), 'example' => 'mass', 'aliases' => ['сегмент'],
+                'parse' => fn ($s) => CardAudience::fromLabel($s) === CardAudience::Business ? 'business' : null], // A54: старое «business» → audience
             'format' => ['enum', 'values' => array_keys(Card::FORMATS), 'desc' => 'physical — пластик, virtual — виртуальная, both — обе', 'example' => 'both'],
             'currencies' => ['list', 'example' => ['KZT', 'USD'], 'aliases' => ['валюты']],
             'issue_fee' => ['decimal', 'desc' => 'выпуск', 'example' => 0, 'aliases' => ['выпуск']],
@@ -114,6 +118,10 @@ class CardEntity extends Entity
     {
         $bank = isset($row['bank']) ? $this->bank($row, $ctx) : ($existing?->bank ?? throw new RowError('нужен bank'));
         unset($row['country'], $row['bank']);
+        if (($row['segment'] ?? null) === 'business') { // A54 · совместимость: сегмент «для бизнеса» стал аудиторией
+            $row['audience'] ??= CardAudience::Business->value;
+            $row['segment'] = null;
+        }
         if (! $existing) {
             $row['name'] ?? throw new RowError('для новой карты нужен name');
             $row['kind'] ?? throw new RowError('для новой карты нужен kind');
@@ -134,6 +142,9 @@ class CardEntity extends Entity
         }
         DB::table('card_networks')->where('card_id', $model->getKey())->delete();
         DB::table('card_networks')->insert($want->map(fn ($p) => ['card_id' => $model->getKey(), 'payment_system_id' => $p[0]->id, 'card_tier_id' => $p[1]?->id])->all());
+        if ($model->wasRecentlyCreated && $model->audience === CardAudience::Personal && $want->contains(fn ($p) => $p[1]?->isBusiness())) {
+            $model->forceFill(['audience' => CardAudience::Business])->saveQuietly(); // A54 · новая карта на бизнес-уровне — для бизнеса
+        }
 
         return ['networks' => [implode(' | ', $before) ?: null, implode(' | ', $after) ?: null]];
     }
